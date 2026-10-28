@@ -161,7 +161,8 @@ async function downloadEvent() {
     const key = 'distances/' + entry.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
     saveEvent({ id: entry.id, kind: data.kind, key, distance: data.distance });
     state.marks = loadMarks();
-    setStatus('Событие скачано', 'good');
+    // Сообщение о скачивании не показываем: сразу видно сам экран отметки
+    setStatus('');
     showTab('mark');
   } catch (error) {
     setStatus(error.message, 'error');
