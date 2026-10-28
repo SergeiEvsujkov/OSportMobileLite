@@ -711,7 +711,7 @@ async function downloadGroup(entry, downloaded) {
   writeJson(STORAGE.group, { number: entry.number, items });
 }
 
-/** Экран группы: только просмотр — название, сроки, список дистанций. */
+/** Экран группы — как в приложении: сроки, количество дистанций, автор, карта и дистанции. */
 function openGroup() {
   renderGroup();
   showTab('group');
@@ -719,47 +719,113 @@ function openGroup() {
 
 function renderGroup() {
   const group = readJson(STORAGE.group, null);
-  const items = group && group.items ? group.items : [];
+  const items = (group && group.items) || [];
   if (!items.length) {
     showTab('events');
     return;
   }
 
   const first = items[0].entry || {};
-  $('groupTitle').textContent = (group.number ? `№ ${group.number} ` : '') + (first.name || 'Группа дистанций');
-  $('groupSub').textContent = 'Группа дистанций';
+  const firstDistance = items[0].distance || {};
+  $('groupTitle').textContent = first.name || 'Группа дистанций';
+  $('groupSub').textContent = '';
 
   const rows = $('groupRows');
   rows.textContent = '';
-  if (first.organizer) rows.append(detailRow(`Организатор: ${first.organizer}`));
   if (first.startTime) {
     rows.append(detailRow(formatDate(first.startTime) + ' - ' + formatDate(first.finishTime)));
   }
+  rows.append(detailRow(`Количество дистанций: ${items.length}`));
+  if (first.organizer) rows.append(detailRow(`Организатор: ${first.organizer}`));
+
+  // Общая карта группы: пункты всех дистанций, нумерация по порядку появления
+  const labels = new Map();
+  let position = 0;
+  items.forEach((item) => {
+    const distance = item.distance || {};
+    (distance.order || []).forEach((code) => {
+      const numeric = Number(code);
+      if (!(numeric >= 31 && numeric <= 99)) return;
+      const key = String(code);
+      if (!labels.has(key)) {
+        position += 1;
+        labels.set(key, `${position} - ${key.padStart(2, '0')}`);
+      }
+    });
+  });
+
+  const byCode = new Map();
+  items.forEach((item) => {
+    ((item.distance || {}).points || []).forEach((point) => {
+      const key = String(codeOf(point));
+      if (!byCode.has(key)) byCode.set(key, point);
+    });
+  });
+
+  const allPoints = [];
+  labels.forEach((label, code) => {
+    const point = byCode.get(code);
+    if (point) allPoints.push(point);
+  });
+
+  const startLat = Number(firstDistance.latitude);
+  const startLon = Number(firstDistance.longitude);
+  const startCode = items.some((item) => item.kind === 'rogaine') ? '01' : '1';
+  const hasStart = allPoints.some((point) => startAliasCodes(firstDistance).has(String(codeOf(point))));
+  if (!hasStart && Number.isFinite(startLat) && Number.isFinite(startLon) && (startLat || startLon)) {
+    allPoints.unshift({ code: startCode, latitude: startLat, longitude: startLon, accuracyMeters: 0 });
+  }
+  items.forEach((item) => {
+    ((item.distance || {}).points || []).forEach((point) => {
+      const code = String(codeOf(point));
+      if (isFinish(code, item.kind === 'rogaine') && !allPoints.includes(point)) allPoints.push(point);
+    });
+  });
+
+  mapState.labels = labels;
+  mapState.showRoute = false;
+  showMapOn($('groupMap'), allPoints);
 
   const list = $('groupDistances');
   list.textContent = '';
   items.forEach((item, index) => {
     const distance = item.distance || {};
     const entry = item.entry || {};
+    const starts = startAliasCodes(distance);
+    const order = distance.order || [];
+    const checkpoints = order
+      .filter((code) => !starts.has(String(code)))
+      .filter((code) => Number(code) >= 31 && Number(code) <= 99).length;
 
-    const row = document.createElement('div');
-    row.className = 'point';
-    if (state.event && state.event.id === item.id) row.classList.add('done');
+    const card = document.createElement('div');
+    card.className = 'group-distance';
 
-    const name = document.createElement('span');
-    name.className = 'num';
-    name.textContent = `Дистанция ${index + 1}`;
+    const head = document.createElement('div');
+    head.className = 'head';
+    const title = document.createElement('span');
+    title.className = 'title';
+    title.textContent = `Дистанция ${index + 1}`;
+    const mode = document.createElement('span');
+    mode.className = 'mode';
+    mode.textContent = String(distance.markMode || entry.markMode || '').toUpperCase() === 'QR' ? 'QR' : 'GPS';
+    head.append(title, mode);
 
-    const info = document.createElement('span');
-    info.className = 'state';
-    const parts = [];
-    if (distance.points) parts.push(`КП: ${distance.points.length}`);
-    if (entry.lengthMeters) parts.push(`${entry.lengthMeters} м`);
-    info.textContent = parts.join(' · ');
+    const length = document.createElement('p');
+    length.className = 'line';
+    length.textContent = `Длина : ${distance.longInMeters || entry.lengthMeters || 0} м`;
 
-    row.append(name, info);
-    row.addEventListener('click', () => activateItem(item));
-    list.append(row);
+    const points = document.createElement('p');
+    points.className = 'line';
+    points.textContent = `КП: ${checkpoints}`;
+
+    const participants = document.createElement('p');
+    participants.className = 'line';
+    const results = Array.isArray(distance.results) ? distance.results.length : 0;
+    participants.textContent = `Участников: ${results}`;
+
+    card.append(head, length, points, participants);
+    card.addEventListener('click', () => activateItem(item));
+    list.append(card);
   });
 }
 
@@ -920,6 +986,8 @@ const mapState = {
   points: [],
   zoom: null,      // null — подобрать по границам при первом показе
   center: null,    // { latitude, longitude }
+  labels: null,    // подписи пунктов для группы: код → «1 - 31»
+  showRoute: true, // у группы линия маршрута не рисуется
 };
 
 function currentMapKind() {
@@ -929,6 +997,24 @@ function currentMapKind() {
 function resetMapView() {
   mapState.zoom = null;
   mapState.center = null;
+  mapState.labels = null;
+  mapState.showRoute = true;
+}
+
+/** Показывает карту группы в её контейнере: подписи заданы, линия не рисуется. */
+function showMapOn(box, points) {
+  mapState.points = (points || []).filter(
+    (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
+  );
+  mapState.zoom = null;
+  mapState.center = null;
+
+  box.classList.toggle('hidden', mapState.points.length === 0);
+  if (!mapState.points.length) return;
+
+  box.textContent = '';
+  box.classList.remove('fullscreen');
+  drawMap(box);
 }
 
 function showMap(points) {
@@ -1237,7 +1323,8 @@ function drawMap(box) {
   // Линия маршрута: как в приложении — красная, по порядку пунктов
   const current = state.event || {};
   const order = (current.distance && current.distance.order) || [];
-  const routeVisible = !(current.distance && current.distance.routeVisible === false);
+  const routeVisible = mapState.showRoute
+    && !(current.distance && current.distance.routeVisible === false);
   // Линия маршрута: красная, 1.6, круглые концы, каждый отрезок укорочен
   // на радиус значка (14) с обеих сторон — как RouteLineOverlay
   const MARKER_RADIUS = 14;
@@ -1323,7 +1410,9 @@ function drawMap(box) {
     circle.setAttribute('stroke-width', '2.5');
     svg.append(circle);
 
-    const markerLabel = mapLabelOf(point, order);
+    const markerLabel = mapState.labels
+      ? mapState.labels.get(String(code))
+      : mapLabelOf(point, order);
     if (!markerLabel) return;
 
     // Номер справа от окружности: белая обводка, чтобы читался на карте
