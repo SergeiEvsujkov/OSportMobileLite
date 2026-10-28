@@ -148,7 +148,17 @@ function formatDate(value) {
 
 /* ─────────────────────────── вкладки ─────────────────────────── */
 
-function showTab(name) {
+/**
+ * Навигация между экранами.
+ *
+ * Каждый переход пишется в историю браузера, поэтому системная кнопка «назад»
+ * возвращает на предыдущий экран, а не закрывает приложение.
+ */
+let navStack = ['events'];
+
+function showTab(name, options = {}) {
+  const push = options.push !== false;
+
   // Экран отметки без активного события не открывается: сначала скачайте
   if (name === 'mark' && !state.event) {
     setStatus('Сначала активируйте событие', 'error');
@@ -171,6 +181,11 @@ function showTab(name) {
     || name === 'participant');
   $('tabMark').classList.toggle('active', name === 'mark');
   $('tabProfile').classList.toggle('active', name === 'profile');
+
+  if (push && navStack[navStack.length - 1] !== name) {
+    navStack.push(name);
+    history.pushState({ depth: navStack.length }, '');
+  }
 
   if (name === 'mark') {
     if (qrMode()) {
@@ -2247,6 +2262,13 @@ function registerServiceWorker() {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
+// Системная кнопка «назад»: на предыдущий экран
+window.addEventListener('popstate', () => {
+  if (navStack.length > 1) navStack.pop();
+  const previous = navStack[navStack.length - 1] || 'events';
+  showTab(previous, { push: false });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   bind();
   registerServiceWorker();
@@ -2262,5 +2284,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSendState();
   }
   // «Открывать экран отметки при запуске» — как в приложении
-  showTab(saved && saved.distance && settings().showOnStart ? 'mark' : 'events');
+  const first = saved && saved.distance && settings().showOnStart ? 'mark' : 'events';
+  navStack = [first];
+  history.replaceState({ depth: 1 }, '');
+  showTab(first, { push: false });
 });
