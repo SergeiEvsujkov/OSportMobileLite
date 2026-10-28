@@ -1595,8 +1595,11 @@ function startQrScanner() {
     return;
   }
 
-  if (!('BarcodeDetector' in window)) {
-    setStatus('Этот браузер не читает QR-коды. Откройте lite в Chrome на Android.', 'error');
+  // В Chrome на Android есть встроенный BarcodeDetector, в Safari его нет —
+  // там работает резервный декодер jsQR
+  const native = 'BarcodeDetector' in window;
+  if (!native && typeof jsQR === 'undefined') {
+    setStatus('Камера есть, но читать QR этот браузер не умеет', 'error');
     return;
   }
 
@@ -1606,10 +1609,38 @@ function startQrScanner() {
       qrStream = stream;
       video.srcObject = stream;
       video.play().catch(() => {});
-      const detector = new BarcodeDetector({ formats: ['qr_code'] });
-      qrTimer = setInterval(() => detectOnce(detector, video), 500);
+      if (native) {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        qrTimer = setInterval(() => detectOnce(detector, video), 500);
+      } else {
+        qrTimer = setInterval(() => detectWithJsQr(video), 500);
+      }
     })
     .catch(() => setStatus('Камера недоступна: проверьте разрешение', 'error'));
+}
+
+/** Резервный путь для iPhone: кадр в canvas и разбор через jsQR. */
+const qrCanvas = document.createElement('canvas');
+
+function detectWithJsQr(video) {
+  if (qrBusy || !video.videoWidth) return;
+  qrBusy = true;
+
+  const width = Math.min(640, video.videoWidth);
+  const height = Math.round(video.videoHeight * (width / video.videoWidth));
+  qrCanvas.width = width;
+  qrCanvas.height = height;
+  const context = qrCanvas.getContext('2d');
+  context.drawImage(video, 0, 0, width, height);
+
+  try {
+    const image = context.getImageData(0, 0, width, height);
+    const found = jsQR(image.data, width, height, { inversionAttempts: 'dontInvert' });
+    qrBusy = false;
+    if (found && found.data) handleQrText(found.data);
+  } catch (error) {
+    qrBusy = false;
+  }
 }
 
 function detectOnce(detector, video) {

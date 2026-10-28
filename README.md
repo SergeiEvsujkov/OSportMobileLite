@@ -48,3 +48,10 @@ powershell -Command "python -m http.server 8080"
 2. Отвечать на `OPTIONS` пустым 204 с теми же заголовками.
 3. Добавить действие `get&id=…`, которое отдаёт событие с пунктами — из него
    lite собирает отметки.
+
+
+## Сторонние библиотеки
+
+- `jsQR.js` — резервный декодер QR для браузеров без `BarcodeDetector`
+  (Safari на iPhone). Автор — Cosmo Wolfe, лицензия Apache-2.0,
+  https://github.com/cozmo/jsQR
