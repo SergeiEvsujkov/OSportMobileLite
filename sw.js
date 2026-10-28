@@ -6,7 +6,7 @@
  * скажет об ошибке — это честнее, чем показывать старую карточку.
  */
 
-const CACHE = 'osport-lite-v2';
+const CACHE = 'osport-lite-v3';
 const SHELL = [
   './',
   './index.html',
