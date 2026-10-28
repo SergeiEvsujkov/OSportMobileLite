@@ -241,17 +241,23 @@ function renderHome() {
 
   const head = document.createElement('div');
   head.className = 'event-head';
-  const icon = document.createElement('span');
-  icon.className = 'event-icon';
-  const mark = document.createElement('img');
-  mark.src = 'icons/group.png';
-  mark.alt = '';
-  mark.className = 'event-icon-img';
-  icon.append(mark);
+
+  // Значок есть только у группы: у одиночной дистанции логотипа нет
+  if (items.length > 1) {
+    const icon = document.createElement('span');
+    icon.className = 'event-icon';
+    const mark = document.createElement('img');
+    mark.src = 'icons/group.png';
+    mark.alt = '';
+    mark.className = 'event-icon-img';
+    icon.append(mark);
+    head.append(icon);
+  }
+
   const title = document.createElement('span');
   title.className = 'event-title';
   title.textContent = (group && group.number ? `№ ${group.number} ` : '') + (first.name || 'Без названия');
-  head.append(icon, title);
+  head.append(title);
   card.append(head);
   const activeId = state.activeId;
 
@@ -303,6 +309,10 @@ function renderHome() {
   const entry = item.entry || {};
 
   if (item.id === activeId) card.classList.add('active-event');
+
+  // Вся карточка открывает событие: в приложении карточка кликабельна целиком
+  card.style.cursor = 'pointer';
+  card.addEventListener('click', () => activateItem(item));
 
   if (item.kind === 'rogaine') {
     const counts = [];
