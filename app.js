@@ -1090,6 +1090,81 @@ function deactivateDistance() {
   setStatus('Дистанция выгружена, отметки не производятся');
 }
 
+/** Выход из профиля — как signOut в AppViewModel: отметки и активность снимаются. */
+function signOut() {
+  const eventId = state.activeId || (state.event && state.event.id);
+  stopWatch();
+  stopQrScanner();
+
+  // Отметки загруженной дистанции стираются вместе с профилем
+  if (eventId) {
+    try {
+      localStorage.removeItem(marksKey(eventId));
+      localStorage.removeItem(STORAGE.event);
+      localStorage.removeItem(STORAGE.event + '.' + eventId);
+    } catch (error) {
+      // приватный режим
+    }
+  }
+
+  state.activeId = null;
+  try {
+    localStorage.removeItem(STORAGE.active);
+  } catch (error) {
+    // приватный режим
+  }
+
+  state.event = null;
+  state.marks = [];
+
+  // Профиль очищается: гость может снова задать ник и код
+  try {
+    localStorage.removeItem(STORAGE.identity);
+  } catch (error) {
+    // приватный режим
+  }
+
+  $('nick').value = '';
+  $('code').value = '';
+  setStatus('Вы вышли из профиля');
+}
+
+/** Окно «Выйти из профиля?» — как в приложении. */
+function openSignOutDialog() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const title = document.createElement('h2');
+  title.textContent = 'Выйти из профиля?';
+
+  const hint = document.createElement('p');
+  hint.textContent = 'Вы точно хотите выйти? Отметки удалятся.';
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+
+  const confirm = document.createElement('button');
+  confirm.className = 'button';
+  confirm.textContent = 'Выйти';
+  confirm.addEventListener('click', () => {
+    overlay.remove();
+    signOut();
+  });
+
+  const cancel = document.createElement('button');
+  cancel.className = 'button text';
+  cancel.textContent = 'Отмена';
+  cancel.addEventListener('click', () => overlay.remove());
+
+  actions.append(confirm, cancel);
+  modal.append(title, hint, actions);
+  overlay.append(modal);
+  document.body.append(overlay);
+}
+
 /** Окно «Удалить событие?» — как в приложении. */
 function openDeleteDialog(eventId) {
   const name = ($('detailTitle') && $('detailTitle').textContent) || 'Событие';
@@ -2697,6 +2772,7 @@ function bind() {
     renderProtocol(state.event.distance || {});
   });
   $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
+  $('profileSignOut').addEventListener('click', openSignOutDialog);
   $('detailMarksButton').addEventListener('click', openMyProgress);
   $('detailDelete').addEventListener('click', () => {
     if (state.event) openDeleteDialog(state.event.id);
@@ -2737,9 +2813,14 @@ function bind() {
 
   // Отладка веба: если профиль не заведён, подставляем профиль приложения,
   // чтобы работать так, как будто вход уже выполнен
+  // Отладка: профиль приложения подставляется ОДИН раз, чтобы выход из
+  // профиля не отменялся сам собой при следующем запуске
+  const seeded = readJson('osport.lite.seeded', false);
   const seededIdentity = readJson(STORAGE.identity, null);
-  if (!seededIdentity || !seededIdentity.code || String(seededIdentity.code).length < 6) {
+  if (!seeded && (!seededIdentity || !seededIdentity.code
+    || String(seededIdentity.code).length < 6)) {
     writeJson(STORAGE.identity, { nick: 'Серёга Евс', code: 'ABCHLFLJQKPP' });
+    writeJson('osport.lite.seeded', true);
   }
 
   const saved = readJson(STORAGE.identity, { nick: '', code: '' });
