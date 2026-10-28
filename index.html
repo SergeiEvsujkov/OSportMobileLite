@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f3a5f">
+  <title>OSportMobile Lite</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>OSportMobile Lite</h1>
+    <p class="sub">Участнику: скачать событие, отметиться, отправить результат</p>
+  </header>
+
+  <main>
+    <!-- Шаг 1: найти событие по номеру -->
+    <section class="card" id="findCard">
+      <label class="label" for="number">Номер события</label>
+      <div class="row">
+        <input id="number" class="input" type="text" inputmode="numeric" placeholder="12" autocomplete="off">
+        <button id="find" class="button">Найти</button>
+      </div>
+      <p class="hint" id="findHint">Номер виден на карточке события в приложении организатора.</p>
+    </section>
+
+    <!-- Шаг 2: карточка найденного события -->
+    <section class="card hidden" id="eventCard">
+      <div class="row space">
+        <h2 class="title" id="eventName">—</h2>
+        <span class="badge" id="eventNumber"></span>
+      </div>
+      <p class="meta" id="eventOrganizer"></p>
+      <p class="meta" id="eventPeriod"></p>
+      <p class="meta" id="eventDetails"></p>
+
+      <div class="actions">
+        <button id="download" class="button">Скачать событие</button>
+        <button id="openMark" class="button secondary" disabled>Отметки</button>
+      </div>
+      <p class="hint" id="eventHint"></p>
+    </section>
+
+    <!-- Шаг 3: заглушка отметок -->
+    <section class="card hidden" id="markCard">
+      <h2 class="title">Отметки</h2>
+      <p class="meta" id="marksSummary">Пока ничего не отмечено</p>
+      <p class="hint">
+        Здесь будут QR-сканер и GPS-кнопка. Сейчас каркас: событие скачивается,
+        отметки и отправка результата — следующий шаг.
+      </p>
+    </section>
+
+    <p class="status" id="status" role="status"></p>
+  </main>
+
+  <footer class="bottom">
+    <span>OSportMobile Lite</span>
+    <span id="version">каркас</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
