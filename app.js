@@ -21,6 +21,7 @@ const STORAGE = {
   identity: 'osport.lite.identity',
   settings: 'osport.lite.settings',
   active: 'osport.lite.active',
+  screen: 'osport.lite.screen',   // какой экран был открыт
 };
 
 const state = {
@@ -193,6 +194,9 @@ function showTab(name, options = {}) {
     navStack.push(name);
     history.pushState({ depth: navStack.length }, '');
   }
+
+  // Запоминаем экран: после обновления приложения остаёмся там же, а не на главном
+  writeJson(STORAGE.screen, { name, eventId: state.event && state.event.id });
 
   if (name === 'mark') {
     if (qrMode()) {
@@ -3007,8 +3011,43 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // «Открывать экран отметки при запуске» — как в приложении
   const activeRestored = saved && saved.distance && state.activeId === saved.id;
-  const first = activeRestored && settings().showOnStart ? 'mark' : 'events';
+
+  // Экран, который был открыт до обновления: возвращаемся на него
+  const savedScreen = readJson(STORAGE.screen, null);
+  let first = 'events';
+  if (savedScreen && savedScreen.name) {
+    const name = savedScreen.name;
+    if (name === 'events' || name === 'cloud' || name === 'profile' || name === 'settings') {
+      first = name;
+    } else if (name === 'group' && readJson(STORAGE.group, null)) {
+      first = 'group';
+    } else if (name === 'detail' || name === 'mark' || name === 'participant') {
+      // Экран события: поднимаем именно это событие, даже если активна другая
+      const id = savedScreen.eventId;
+      const eventToShow = (state.event && state.event.id === id)
+        ? state.event
+        : (id ? readJson(STORAGE.event + '.' + id, null) : null);
+      if (eventToShow && eventToShow.distance) {
+        state.event = eventToShow;
+        state.marks = loadMarks(eventToShow.id);
+        updateSendState();
+        const canMark = name === 'mark' && state.activeId === eventToShow.id;
+        first = canMark ? 'mark' : 'detail';
+      }
+    }
+  }
+
+  // Если экран не запомнен — прежнее правило про экран отметки
+  if (first === 'events' && activeRestored && settings().showOnStart) first = 'mark';
+
   navStack = [first];
   history.replaceState({ depth: 1 }, '');
-  showTab(first, { push: false });
+
+  if (first === 'detail') {
+    openDetail();
+  } else if (first === 'group') {
+    openGroup();
+  } else {
+    showTab(first, { push: false });
+  }
 });
