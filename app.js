@@ -822,7 +822,10 @@ function renderDetail() {
     if (distance.description) rows.append(detailRow(distance.description));
   } else {
     const orderCodes = distance.order || [];
-    const checkpoints = orderCodes.filter((code) => Number(code) >= 31 && Number(code) <= 99).length;
+    const starts = startAliasCodes(distance);
+    const checkpoints = orderCodes
+      .filter((code) => !starts.has(String(code)))
+      .filter((code) => Number(code) >= 31 && Number(code) <= 99).length;
     rows.append(detailRow(`Количество КП: ${checkpoints}`));
     if (distance.longInMeters) rows.append(detailRow(`Дистанция: ${distance.longInMeters} м`));
     rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
@@ -1396,6 +1399,13 @@ function formatDuration(millis) {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
 
+/** Время в сплитах: ноль показывается как 0:00. */
+function formatSplitTime(millis) {
+  const value = Number.isFinite(millis) ? Math.max(0, millis) : 0;
+  const total = Math.floor(value / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
 function formatClock(millis) {
   if (!Number.isFinite(millis) || millis <= 0) return '—';
   return new Date(millis).toLocaleTimeString('ru-RU');
@@ -1413,13 +1423,14 @@ function resultStatusOf(row, distance) {
   if (!row.startTime) return 'DNS';
   if (!row.finishTime) return 'DNF';
 
+  const starts = startAliasCodes(distance);
   const route = (distance.order || []).map((code) => String(code))
-    .filter((code) => !isStart(code, false) && !isFinish(code, false));
+    .filter((code) => !starts.has(code) && !isFinish(code, false));
   if (!route.length) return 'OK';
 
   const taken = row.marks
     .map((mark) => String(mark.code))
-    .filter((code) => !isStart(code, false) && !isFinish(code, false));
+    .filter((code) => !starts.has(code) && !isFinish(code, false));
 
   if (taken.length !== route.length) return 'DSQ';
   return taken.every((code, index) => code === route[index]) ? 'OK' : 'DSQ';
@@ -1616,12 +1627,13 @@ function openParticipant(row, rogaine) {
   list.textContent = '';
   const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
 
+  const starts = startAliasCodes(distance);
   let number = 0;
   let previous = null;
 
   marks.forEach((mark) => {
     const code = String(mark.code);
-    const startPoint = isStart(code, rogaine);
+    const startPoint = starts.has(code);
     const finishPoint = isFinish(code, rogaine);
     const leg = previous === null ? null : mark.time - previous;
 
@@ -1647,12 +1659,12 @@ function openParticipant(row, rogaine) {
 
     const first = document.createElement('span');
     first.className = 'split-line';
-    first.textContent = leg === null ? label : `${label} ${formatDuration(leg)}`;
+    first.textContent = leg === null ? label : `${label} ${formatSplitTime(leg)}`;
 
     const second = document.createElement('span');
     second.className = 'split-line total';
-    const elapsed = row.startTime && mark.time ? mark.time - row.startTime : null;
-    second.textContent = elapsed === null ? '' : formatDuration(elapsed);
+    const elapsed = row.startTime && mark.time ? mark.time - row.startTime : 0;
+    second.textContent = formatSplitTime(elapsed);
 
     value.append(first, second);
     item.append(num, value);
@@ -1665,6 +1677,28 @@ function openParticipant(row, rogaine) {
 }
 
 /* ─────────────────────────── отметки ─────────────────────────── */
+
+/**
+ * Коды, которые считаются стартом.
+ *
+ * Старт и «место старта» — одна точка: кроме кода старта сюда попадают пункты,
+ * стоящие в тех же координатах (у события старт может быть записан как
+ * обычный пункт, например кодом 3).
+ */
+function startAliasCodes(distance) {
+  const codes = new Set([rogaineMode() ? '01' : '1']);
+  const lat = Number((distance || {}).latitude);
+  const lon = Number((distance || {}).longitude);
+  if (Number.isFinite(lat) && Number.isFinite(lon) && (lat || lon)) {
+    ((distance || {}).points || []).forEach((point) => {
+      if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return;
+      if (distanceMeters(lat, lon, point.latitude, point.longitude) < 3) {
+        codes.add(String(codeOf(point)));
+      }
+    });
+  }
+  return codes;
+}
 
 /** Как отмечаются в этой дистанции: «QR» или «GPS» (MarkMode в приложении). */
 function qrMode() {
