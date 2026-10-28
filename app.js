@@ -1018,6 +1018,14 @@ function activateDistance() {
     return;
   }
 
+  // Как в приложении: без профиля участник начать не может
+  const who = identity();
+  if (!who.nick || who.code.length < 6) {
+    setStatus('Сначала войдите в профиль (вкладка «Профиль»)', 'error');
+    showTab('profile');
+    return;
+  }
+
   // Участнику нельзя начать после окончания события (у автора проверки нет)
   if (entry.finishTime && Date.now() > entry.finishTime) {
     setStatus('Событие уже закончилось', 'error');
@@ -2712,6 +2720,13 @@ function bind() {
 
   $('bigMark').addEventListener('click', markCandidate);
   $('send').addEventListener('click', sendResult);
+
+  // Отладка веба: если профиль не заведён, подставляем профиль приложения,
+  // чтобы работать так, как будто вход уже выполнен
+  const seededIdentity = readJson(STORAGE.identity, null);
+  if (!seededIdentity) {
+    writeJson(STORAGE.identity, { nick: 'Серёга Евс', code: 'ABCHLFLJQKPP' });
+  }
 
   const saved = readJson(STORAGE.identity, { nick: '', code: '' });
   $('nick').value = saved.nick || '';
