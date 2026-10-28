@@ -786,8 +786,15 @@ function renderDetail() {
 
   const entry = event.entry || {};
   const distance = event.distance || {};
-  $('detailTitle').textContent = (entry.number ? `№ ${entry.number} ` : '') + (distance.name || 'Событие');
-  $('detailSub').textContent = event.kind === 'rogaine' ? 'Рогейн' : 'Дистанция';
+  $('detailTitle').textContent = distance.name || 'Событие';
+
+  // Подпись «Дистанция N» — номер дистанции внутри группы, как в приложении
+  const group = readJson(STORAGE.group, null);
+  const groupItems = (group && group.items) || [];
+  const indexInGroup = groupItems.findIndex((item) => item.id === event.id);
+  $('detailSub').textContent = event.kind === 'rogaine'
+    ? 'Рогейн'
+    : (indexInGroup >= 0 ? `Дистанция ${indexInGroup + 1}` : 'Дистанция');
 
   const rows = $('detailRows');
   rows.textContent = '';
@@ -800,18 +807,12 @@ function renderDetail() {
   const phone = distance.phone || entry.phone;
   if (phone) rows.append(detailRow(`Телефон: ${phone}`));
 
-  const startLat = Number(distance.latitude);
-  const startLon = Number(distance.longitude);
-  if (Number.isFinite(startLat) && Number.isFinite(startLon) && (startLat || startLon)) {
-    rows.append(detailRow('Место старта'));
-    rows.append(detailRow(
-      `Широта ${startLat.toFixed(5).replace('.', ',')} · Долгота ${startLon.toFixed(5).replace('.', ',')}`
-    ));
-  }
-
   if (event.kind === 'rogaine') {
     const counts = [];
-    if (points.length) counts.push(`Количество КП: ${points.length}`);
+    const rogainePoints = points.filter(
+      (point) => String(codeOf(point)) !== '01' && String(codeOf(point)) !== '02'
+    );
+    if (rogainePoints.length) counts.push(`Количество КП: ${rogainePoints.length}`);
     if (entry.maxScore) counts.push(`Макс. балл: ${entry.maxScore}`);
     if (counts.length) rows.append(detailRow(counts.join(' · ')));
     rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
@@ -819,7 +820,9 @@ function renderDetail() {
     if (distance.penaltyPerMinute) rows.append(detailRow(`Штраф: ${distance.penaltyPerMinute} балл/мин`));
     if (distance.description) rows.append(detailRow(distance.description));
   } else {
-    rows.append(detailRow(`Количество КП: ${points.length}`));
+    const orderCodes = distance.order || [];
+    const checkpoints = orderCodes.filter((code) => Number(code) >= 31 && Number(code) <= 99).length;
+    rows.append(detailRow(`Количество КП: ${checkpoints}`));
     if (distance.longInMeters) rows.append(detailRow(`Дистанция: ${distance.longInMeters} м`));
     rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
     if (distance.description) rows.append(detailRow(distance.description));
@@ -827,28 +830,8 @@ function renderDetail() {
 
   $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
 
-  renderMyMarks();
   showMap(points);
   renderProtocol(distance);
-}
-
-/** «Отметки на устройстве»: свои отметки и переход в прогресс, как в приложении. */
-function renderMyMarks() {
-  const marks = state.marks.slice().sort((left, right) => (left.time || 0) - (right.time || 0));
-  $('detailMarks').classList.remove('hidden');
-  $('detailMarksEmpty').classList.toggle('hidden', marks.length > 0);
-
-  const list = $('detailMarksList');
-  list.textContent = '';
-  if (!marks.length) return;
-
-  const intro = document.createElement('button');
-  intro.className = 'proto-row';
-  intro.innerHTML =
-    '<span class="proto-nick">Отметки на устройстве</span>' +
-    `<span class="proto-result">${marks.length}</span>`;
-  intro.addEventListener('click', () => openMyProgress());
-  list.append(intro);
 }
 
 /** Открывает прогресс по своим отметкам с устройства. */
@@ -930,15 +913,11 @@ function showMap(points) {
 
   const box = $('detailMap');
   box.textContent = '';
-  const coords = $('mapCoords');
-
   if (!mapState.points.length) {
     box.classList.add('hidden');
-    coords.classList.add('hidden');
     return;
   }
   box.classList.remove('hidden');
-  coords.classList.remove('hidden');
   box.classList.toggle('fullscreen', mapState.fullscreen);
 
   drawMap(box);
@@ -991,10 +970,14 @@ function showMap(points) {
     }
   };
 
+  // Координаты — внутри карты, как в приложении
   const lat = mapState.points.reduce((sum, point) => sum + point.latitude, 0) / mapState.points.length;
   const lon = mapState.points.reduce((sum, point) => sum + point.longitude, 0) / mapState.points.length;
+  const coords = document.createElement('span');
+  coords.className = 'map-coords';
   coords.textContent =
     `Широта ${lat.toFixed(5).replace('.', ',')} · Долгота ${lon.toFixed(5).replace('.', ',')}`;
+  box.append(coords);
 }
 
 /** Рисует тайлы, линию маршрута и значки пунктов. */
@@ -1008,6 +991,22 @@ function bearingDegrees(fromLat, fromLon, toLat, toLon) {
   const x = Math.cos(fromLatRad) * Math.sin(toLatRad)
     - Math.sin(fromLatRad) * Math.cos(toLatRad) * Math.cos(deltaLon);
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+/**
+ * Подпись пункта на карте, как checkPointOrderLabel в приложении:
+ * «1 - 31» — номер по порядку, дефис, код двумя знаками; у рогейна — код.
+ */
+function mapLabelOf(point, order) {
+  const code = String(codeOf(point));
+  if (rogaineMode()) return code;
+
+  const numbers = [];
+  order.forEach((value, index) => {
+    if (String(value) === code) numbers.push(index + 1);
+  });
+  if (!numbers.length) return code.padStart(2, '0');
+  return numbers.join('/') + ' - ' + code.padStart(2, '0');
 }
 
 function drawMap(box) {
@@ -1175,7 +1174,8 @@ function drawMap(box) {
     halo.setAttribute('fill', '#ffffff');
     halo.setAttribute('stroke', '#ffffff');
     halo.setAttribute('stroke-width', '3');
-    halo.textContent = code;
+    const markerLabel = mapLabelOf(point, order);
+    halo.textContent = markerLabel;
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('x', String(x + radius + 5));
@@ -1183,7 +1183,7 @@ function drawMap(box) {
     label.setAttribute('font-size', '15');
     label.setAttribute('font-weight', 'bold');
     label.setAttribute('fill', '#c62828');
-    label.textContent = code;
+    label.textContent = markerLabel;
 
     svg.append(halo, label);
   });
@@ -1955,6 +1955,7 @@ function bind() {
     renderProtocol(state.event.distance || {});
   });
   $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
+  $('detailMarksButton').addEventListener('click', openMyProgress);
   $('detailMark').addEventListener('click', () => showTab('mark'));
   // «Отправить отметки»: если ник и код уже заданы — отправляем сразу,
   // иначе ведём в профиль, где их вводят
