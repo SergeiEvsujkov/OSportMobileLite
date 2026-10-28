@@ -283,7 +283,7 @@ body {
 }
 .distance-card:active { background: var(--surface-container); }
 
-.distance-line { margin: 0; font-size: 16px; color: var(--on-surface); }
+.distance-line { margin: 0; font-size: 15px; color: var(--on-surface); }
 .distance-line + .distance-line { margin-top: 4px; }
 .distance-icons { margin-top: 6px; display: flex; gap: 10px; align-items: center; }
 
@@ -586,12 +586,12 @@ body.large .page-head h1 { font-size: 26px; }
 /* ───────────── полужирный текст, как в приложении ───────────── */
 
 .event-title { font-weight: 600; }
-.event-meta { font-weight: 400; }
+.event-meta { font-weight: 600; font-size: 15px; }
 
-.detail-row { font-weight: 400; }
+.detail-row { font-weight: 600; }
 
 .group-distance .title { font-weight: 600; }
-.group-distance .line { font-weight: 400; }
+.group-distance .line { font-weight: 600; }
 
 .split-summary .line span:first-child { font-weight: 600; }
 .split-summary .line span:last-child { font-weight: 400; }
