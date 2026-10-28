@@ -2464,6 +2464,19 @@ function registerServiceWorker() {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
+// Уход из приложения (сворачивание, выгрузка вкладки): сохраняем всё сразу
+function flushState() {
+  if (!state.event) return;
+  writeJson(STORAGE.event, state.event);
+  if (state.activeId) writeJson(STORAGE.active, state.activeId);
+  saveMarks();
+}
+
+window.addEventListener('pagehide', flushState);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushState();
+});
+
 // Системная кнопка «назад»: на предыдущий экран
 window.addEventListener('popstate', () => {
   // Выход кнопкой из полного экрана: экран не меняется
@@ -2493,8 +2506,31 @@ document.addEventListener('DOMContentLoaded', () => {
   applySettings();
 
   state.history = loadHistory();
-  const saved = readJson(STORAGE.event, null);
+  // Активация и отметки переживают перезапуск и перезагрузку телефона:
+  // активной считается дистанция из STORAGE.active, даже если последней
+  // открывали другую
   state.activeId = readJson(STORAGE.active, null);
+
+  let saved = readJson(STORAGE.event, null);
+  if (state.activeId && (!saved || saved.id !== state.activeId)) {
+    const activeSaved = readJson(STORAGE.event + '.' + state.activeId, null);
+    const fromHistory = (state.history || []).find((item) => item.id === state.activeId);
+    const candidate = (activeSaved && activeSaved.distance)
+      ? activeSaved
+      : (fromHistory
+        ? {
+          id: fromHistory.id,
+          kind: fromHistory.kind,
+          distance: fromHistory.distance,
+          entry: fromHistory.entry,
+        }
+        : null);
+    if (candidate) {
+      saved = candidate;
+      writeJson(STORAGE.event, candidate);
+    }
+  }
+
   if (saved && saved.distance) {
     state.event = saved;
     state.marks = loadMarks(saved.id);
