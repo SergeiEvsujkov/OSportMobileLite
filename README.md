@@ -24,11 +24,14 @@ powershell -Command "python -m http.server 8080"
 
 Открыть `http://localhost:8080`. Service worker на `localhost` работает.
 
+Живой сайт: <https://SergeiEvsujkov.github.io/OSportMobileLite/>
+
 ## Публикация на GitHub Pages
 
 1. Репозиторий `SergeiEvsujkov/OSportMobileLite`, ветка `main`.
 2. Settings → Pages → Source: «Deploy from a branch», ветка `main`, папка `/ (root)`.
-3. Через минуту сайт будет по адресу `https://sergeievujkov.github.io/OSportMobileLite/`.
+3. Через минуту сайт будет по адресу `https://SergeiEvsujkov.github.io/OSportMobileLite/`.
+   Регистр важен: с маленькими буквами в имени аккаунта GitHub Pages отдаёт 404.
 
 Пути в файлах относительные, поэтому подкаталог в адресе не мешает.
 
@@ -40,7 +43,8 @@ powershell -Command "python -m http.server 8080"
 
 Следующие шаги на стороне функции:
 
-1. Разрешить origin `https://sergeievujkov.github.io` (и `http://localhost:8080` для разработки).
+1. Разрешить origin `https://SergeiEvsujkov.github.io` (и `http://localhost:8080` для разработки).
+   Регистр в origin тоже важен: браузер присылает его ровно так, как набран адрес.
 2. Отвечать на `OPTIONS` пустым 204 с теми же заголовками.
 3. Добавить действие `get&id=…`, которое отдаёт событие с пунктами — из него
    lite собирает отметки.
