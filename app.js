@@ -1118,6 +1118,8 @@ const mapState = {
   center: null,    // { latitude, longitude }
   labels: null,    // подписи пунктов для группы: код → «1 - 31»
   showRoute: true, // у группы линия маршрута не рисуется
+  box: null,       // контейнер карты, которую сейчас показываем
+  coords: null,    // подпись координат внутри карты (у группы её нет)
 };
 
 function currentMapKind() {
@@ -1144,7 +1146,10 @@ function showMapOn(box, points) {
 
   box.textContent = '';
   box.classList.remove('fullscreen');
+  mapState.box = box;
+  mapState.coords = null;
   drawMap(box);
+  bindMapGestures(box);
 }
 
 function showMap(points) {
@@ -1205,7 +1210,7 @@ function showMap(points) {
     // Разворачиваем карту средствами страницы: системный полноэкранный режим
     // браузера не используем, иначе Chrome показывает свою подсказку о выходе
     mapState.fullscreen = !mapState.fullscreen;
-    showMap(mapState.points);
+    redrawMap();
   });
 
   const lat = mapState.points.reduce((sum, point) => sum + point.latitude, 0) / mapState.points.length;
@@ -1215,6 +1220,10 @@ function showMap(points) {
   coords.textContent =
     `Широта ${lat.toFixed(5).replace('.', ',')} · Долгота ${lon.toFixed(5).replace('.', ',')}`;
   box.append(coords);
+
+  // Карта запоминает контейнер и координаты: по ним перерисовывается при жестах
+  mapState.box = box;
+  mapState.coords = coords.textContent;
 
   // Жесты: щипок — масштаб, перетаскивание — сдвиг карты
   bindMapGestures(box);
@@ -1231,6 +1240,23 @@ function bearingDegrees(fromLat, fromLon, toLat, toLon) {
   const x = Math.cos(fromLatRad) * Math.sin(toLatRad)
     - Math.sin(fromLatRad) * Math.cos(toLatRad) * Math.cos(deltaLon);
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+/** Перерисовывает ту карту, что сейчас на экране: дистанции или группы. */
+function redrawMap() {
+  const box = mapState.box;
+  if (!box) return;
+
+  box.textContent = '';
+  box.classList.toggle('fullscreen', Boolean(mapState.fullscreen));
+  drawMap(box);
+
+  if (mapState.coords) {
+    const coords = document.createElement('span');
+    coords.className = 'map-coords';
+    coords.textContent = mapState.coords;
+    box.append(coords);
+  }
 }
 
 /** Жесты карты: щипок меняет масштаб сразу, перетаскивание сдвигает центр. */
@@ -1261,7 +1287,7 @@ function bindMapGestures(box) {
     const now = Date.now();
     if (now - lastRender < 80) return;
     lastRender = now;
-    showMap(mapState.points);
+    redrawMap();
   };
 
   box.addEventListener('pointerdown', (event) => {
@@ -1320,7 +1346,7 @@ function bindMapGestures(box) {
         const newMercator = mercator - (dy / scale) * 2 * Math.PI;
         const lat = ((2 * Math.atan(Math.exp(newMercator)) - Math.PI / 2) * 180) / Math.PI;
         mapState.center = { latitude: lat, longitude: lon };
-        showMap(mapState.points);
+        redrawMap();
       }
       startMiddle = null;
       startCenter = null;
@@ -1334,7 +1360,7 @@ function bindMapGestures(box) {
     event.preventDefault();
     const zoom = (mapState.zoom || 16) + (event.deltaY < 0 ? 1 : -1);
     mapState.zoom = Math.min(19, Math.max(3, zoom));
-    showMap(mapState.points);
+    redrawMap();
   }, { passive: false });
 }
 
