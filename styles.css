@@ -269,7 +269,20 @@ body {
 
 .distance-line { margin: 0; font-size: 16px; color: var(--on-surface); }
 .distance-line + .distance-line { margin-top: 4px; }
-.distance-icons { margin-top: 6px; display: flex; gap: 12px; font-size: 18px; }
+.distance-icons { margin-top: 6px; display: flex; gap: 10px; align-items: center; }
+
+.author-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.author-name { font-size: 15px; color: var(--on-surface); }
+.kind-tag {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  color: var(--primary);
+}
+.author-icon { color: inherit; }
+
+.distance-card.active { border: 2px solid var(--primary); }
 
 /* ───────────── экран дистанции и подтверждение ───────────── */
 

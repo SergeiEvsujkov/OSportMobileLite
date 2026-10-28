@@ -156,11 +156,11 @@ function showTab(name) {
 
 /** Карточки скачанных событий: как на главном экране приложения. */
 /**
- * Главный экран — одна карточка группы с её дистанциями.
+ * Главный экран — карточка как в приложении.
  *
- * Как в приложении: номер и название, сроки, автор, внутри — строки дистанций,
- * которые входят в эту же группу (по groupId). Нажатие на строку активирует
- * выбранную дистанцию.
+ * Одиночная запись (без groupId или одна в группе): сведения прямо в карточке,
+ * ниже значки способа отметки и автор с именем. Несколько дистанций одной
+ * группы: автор под сроками, а дистанции — вложенными рамками.
  */
 function renderHome() {
   const list = $('eventsList');
@@ -183,7 +183,6 @@ function renderHome() {
 
   const head = document.createElement('div');
   head.className = 'event-head';
-
   const icon = document.createElement('span');
   icon.className = 'event-icon';
   const mark = document.createElement('img');
@@ -191,11 +190,9 @@ function renderHome() {
   mark.alt = '';
   mark.className = 'event-icon-img';
   icon.append(mark);
-
   const title = document.createElement('span');
   title.className = 'event-title';
   title.textContent = (group && group.number ? `№ ${group.number} ` : '') + (first.name || 'Без названия');
-
   head.append(icon, title);
   card.append(head);
 
@@ -206,47 +203,120 @@ function renderHome() {
     card.append(period);
   }
 
-  const author = document.createElement('p');
-  author.className = 'event-meta';
-  author.textContent = first.organizer || 'Автор не указан';
-  card.append(author);
+  if (items.length > 1) {
+    // Группа: автор один на всю карточку, дистанции — во вложенных рамках
+    card.append(authorRow(first, true));
+    items.forEach((item) => {
+      const inner = document.createElement('div');
+      inner.className = 'distance-card';
+      if (event && event.id === item.id) inner.classList.add('active');
+      inner.append(detailsLine(item), iconsRow(false));
+      if (item.entry && item.entry.mapExt) inner.append(mapLine());
+      inner.addEventListener('click', () => activateItem(item));
+      card.append(inner);
+    });
+    list.append(card);
+    return;
+  }
 
-  items.forEach((item) => {
-    const entry = item.entry || {};
-    const distance = item.distance || {};
-    const inner = document.createElement('div');
-    inner.className = 'distance-card';
-    if (event && event.id === item.id) inner.classList.add('active');
+  // Одиночная запись: сведения прямо в карточке
+  const item = items[0];
+  const distance = item.distance || {};
+  const entry = item.entry || {};
 
-    const line = document.createElement('p');
-    line.className = 'distance-line';
-    const parts = [];
-    if (item.kind === 'rogaine') {
-      if (distance.points) parts.push(`КП: ${distance.points.length}`);
-    } else {
-      if (distance.longInMeters) parts.push(`Дистанция: ${distance.longInMeters} м`);
-      if (distance.points) parts.push(`КП: ${distance.points.length}`);
+  if (item.kind === 'rogaine') {
+    const counts = [];
+    if (distance.points) counts.push(`Количество КП: ${distance.points.length}`);
+    if (entry.maxScore) counts.push(`Макс. балл: ${entry.maxScore}`);
+    if (counts.length) card.append(plainRow(counts.join(' · ')));
+
+    const control = [];
+    if (distance.controlTimeMinutes) control.push(`Контр.время: ${distance.controlTimeMinutes} мин`);
+    if (distance.penaltyPerMinute || entry.penaltyPerMinute) {
+      control.push(`Штраф: ${distance.penaltyPerMinute || entry.penaltyPerMinute} балл/мин`);
     }
+    if (control.length) card.append(plainRow(control.join(' · ')));
+
     const results = Array.isArray(distance.results) ? distance.results.length : 0;
-    parts.push(`Участников: ${results}`);
-    line.textContent = parts.join(' · ');
+    card.append(plainRow(`Участников: ${results}`));
+  } else {
+    card.append(detailsLine(item));
+  }
 
-    const map = document.createElement('p');
-    map.className = 'distance-line';
-    map.textContent = entry.mapExt ? 'Карта: есть' : 'Карта: нет';
+  if (entry.mapExt) card.append(mapLine());
 
-    const icons = document.createElement('div');
-    icons.className = 'distance-icons';
-    icons.innerHTML =
-      '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
-      '<svg class="icon small" style="color:#c62828"><use href="icons.svg#person"></use></svg>';
-
-    inner.append(line, map, icons);
-    inner.addEventListener('click', () => activateItem(item));
-    card.append(inner);
-  });
+  const authorLine = authorRow(entry, true);
+  const kindTag = document.createElement('span');
+  kindTag.className = 'kind-tag';
+  kindTag.textContent = item.kind === 'rogaine' ? 'РОГЕЙН' : '';
+  if (kindTag.textContent) authorLine.append(kindTag);
+  card.append(authorLine);
 
   list.append(card);
+}
+
+function plainRow(text) {
+  const row = document.createElement('p');
+  row.className = 'event-meta';
+  row.textContent = text;
+  return row;
+}
+
+/** Строка сведений: «Дистанция: 640 м · КП: 3 · Участников: 1». */
+function detailsLine(item) {
+  const entry = item.entry || {};
+  const distance = item.distance || {};
+  const parts = [];
+  if (item.kind === 'rogaine') {
+    if (distance.points) parts.push(`Количество КП: ${distance.points.length}`);
+    if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
+  } else {
+    if (distance.longInMeters) parts.push(`Дистанция: ${distance.longInMeters} м`);
+    if (distance.points) parts.push(`КП: ${distance.points.length}`);
+  }
+  const results = Array.isArray(distance.results) ? distance.results.length : 0;
+  parts.push(`Участников: ${results}`);
+  return plainRow(parts.join(' · '));
+}
+
+function mapLine() {
+  return plainRow('Карта: есть');
+}
+
+/** Значки: способ отметки и автор; цвет человечка — как в приложении. */
+function iconsRow(withName) {
+  const row = document.createElement('div');
+  row.className = 'distance-icons';
+  row.innerHTML =
+    '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
+    '<svg class="icon small author-icon"><use href="icons.svg#person"></use></svg>';
+  return row;
+}
+
+/** Автор: человечек нужного цвета и имя; у своих — «— Это Вы». */
+function authorRow(entry, withName) {
+  const row = document.createElement('div');
+  row.className = 'author-row';
+
+  const person = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  person.setAttribute('class', 'icon small author-icon');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', 'icons.svg#person');
+  person.append(use);
+
+  const me = readJson(STORAGE.identity, { nick: '', code: '' });
+  const own = me.code && entry.ownerId && me.code === entry.ownerId;
+  person.style.color = !me.code ? '#000000' : own ? '#1565c0' : '#c62828';
+
+  row.append(person);
+
+  if (withName) {
+    const name = document.createElement('span');
+    name.className = 'author-name';
+    name.textContent = (entry.organizer || 'Автор не указан') + (own ? ' — Это Вы' : '');
+    row.append(name);
+  }
+  return row;
 }
 
 /** Делает активной выбранную дистанцию группы и открывает её экран. */
