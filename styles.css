@@ -54,7 +54,7 @@ body {
   gap: 16px;
   padding: 8px 16px;
 }
-.screen.hidden, .hidden { display: none; }
+.screen.hidden, .hidden { display: none !important; }
 
 .page-head { padding: 16px 0 0; }
 .page-head h1 { margin: 0; font-size: 22px; font-weight: 500; }
