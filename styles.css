@@ -99,6 +99,18 @@ body {
 
 .page-head { display: flex; align-items: center; gap: 8px; }
 
+.icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+  fill: currentColor;
+}
+.icon.small { width: 20px; height: 20px; }
+.icon-button .icon { width: 26px; height: 26px; }
+.tab-icon .icon { width: 24px; height: 24px; }
+
+.event-icon-img { width: 28px; height: 28px; display: block; }
+
 .icon-button {
   margin-left: auto;
   width: 44px;

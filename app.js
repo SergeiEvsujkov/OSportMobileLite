@@ -179,7 +179,11 @@ function renderHome() {
 
   const icon = document.createElement('span');
   icon.className = 'event-icon';
-  icon.textContent = event.kind === 'rogaine' ? '🥾' : '🗺';
+  const mark = document.createElement('img');
+  mark.src = 'icons/group.png';
+  mark.alt = '';
+  mark.className = 'event-icon-img';
+  icon.append(mark);
 
   const title = document.createElement('span');
   title.className = 'event-title';
@@ -222,7 +226,9 @@ function renderHome() {
 
   const icons = document.createElement('div');
   icons.className = 'distance-icons';
-  icons.textContent = '◎ 👤';
+  icons.innerHTML =
+    '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
+    '<svg class="icon small" style="color:#c62828"><use href="icons.svg#person"></use></svg>';
 
   inner.append(line, map, icons);
   inner.addEventListener('click', () => openDetail());
@@ -303,7 +309,9 @@ function renderCloud() {
     const downloaded = state.history.some((saved) => saved.id === entry.id);
     const action = document.createElement('span');
     action.className = 'action';
-    action.textContent = downloaded ? '✓' : '⤓';
+    action.innerHTML = downloaded
+      ? '<svg class="icon"><use href="icons.svg#check"></use></svg>'
+      : '<svg class="icon"><use href="icons.svg#download"></use></svg>';
 
     item.append(body, action);
     // Уже скачанное не загружаем заново: сразу активируем и открываем отметку
