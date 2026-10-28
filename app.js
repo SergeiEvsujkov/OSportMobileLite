@@ -716,32 +716,110 @@ function renderDetail() {
   renderProtocol(distance);
 }
 
-/** Карта пунктов: тайлы OpenStreetMap и кружки с номерами, как в приложении. */
+/**
+ * Карта пунктов — как в приложении.
+ *
+ * Тайлы OpenStreetMap или OpenTopoMap, красная линия маршрута, значки:
+ * старт — треугольник, финиш — двойная окружность, контрольный пункт —
+ * окружность с номером справа (номер с белой обводкой). Кнопки «слои» и
+ * «на весь экран», подпись источника слева сверху, координаты под картой.
+ */
+const MAP_KINDS = [
+  {
+    id: 'osm',
+    urls: ['https://tile.openstreetmap.org/'],
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+  },
+  {
+    id: 'topo',
+    urls: ['https://a.tile.opentopomap.org/', 'https://b.tile.opentopomap.org/', 'https://c.tile.opentopomap.org/'],
+    attribution: 'Kartendaten: © OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung: © OpenTopoMap (CC-BY-SA)',
+    maxZoom: 17,
+  },
+];
+
+const mapState = {
+  kind: 0,
+  fullscreen: false,
+  points: [],
+};
+
+function currentMapKind() {
+  return MAP_KINDS[mapState.kind % MAP_KINDS.length];
+}
+
 function showMap(points) {
-  const box = $('detailMap');
-  box.textContent = '';
-  const located = (points || []).filter(
+  mapState.points = (points || []).filter(
     (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
   );
-  if (!located.length) {
+
+  const box = $('detailMap');
+  box.textContent = '';
+  const coords = $('mapCoords');
+
+  if (!mapState.points.length) {
     box.classList.add('hidden');
+    coords.classList.add('hidden');
     return;
   }
   box.classList.remove('hidden');
+  coords.classList.remove('hidden');
+  box.classList.toggle('fullscreen', mapState.fullscreen);
 
-  const lat = located.reduce((sum, point) => sum + point.latitude, 0) / located.length;
-  const lon = located.reduce((sum, point) => sum + point.longitude, 0) / located.length;
-  const zoom = 12;
+  drawMap(box);
+
+  const kind = currentMapKind();
+  const attribution = document.createElement('span');
+  attribution.className = 'map-attr';
+  attribution.textContent = kind.attribution;
+  box.append(attribution);
+
+  const controls = document.createElement('div');
+  controls.className = 'map-controls';
+  controls.innerHTML =
+    '<button class="icon-button" id="mapLayers" title="Слои"><svg class="icon"><use href="icons.svg#layers"></use></svg></button>' +
+    (mapState.fullscreen
+      ? '<button class="icon-button" id="mapFull" title="Свернуть"><svg class="icon"><use href="icons.svg#fullscreen_exit"></use></svg></button>'
+      : '<button class="icon-button" id="mapFull" title="На весь экран"><svg class="icon"><use href="icons.svg#fullscreen"></use></svg></button>');
+  box.append(controls);
+
+  controls.querySelector('#mapLayers').addEventListener('click', (event) => {
+    event.stopPropagation();
+    mapState.kind = (mapState.kind + 1) % MAP_KINDS.length;
+    saveMapKind();
+    showMap(mapState.points);
+  });
+  controls.querySelector('#mapFull').addEventListener('click', (event) => {
+    event.stopPropagation();
+    mapState.fullscreen = !mapState.fullscreen;
+    showMap(mapState.points);
+  });
+
+  const lat = mapState.points.reduce((sum, point) => sum + point.latitude, 0) / mapState.points.length;
+  const lon = mapState.points.reduce((sum, point) => sum + point.longitude, 0) / mapState.points.length;
+  coords.textContent =
+    `Широта ${lat.toFixed(5).replace('.', ',')} · Долгота ${lon.toFixed(5).replace('.', ',')}`;
+}
+
+/** Рисует тайлы, линию маршрута и значки пунктов. */
+function drawMap(box) {
+  const points = mapState.points;
+  const kind = currentMapKind();
+  const zoom = kind.id === 'topo' ? 12 : 12;
+
   const width = box.clientWidth || 360;
   const height = box.clientHeight || 260;
   const scale = 256 * Math.pow(2, zoom);
 
-  const project = (y, x) => ({
-    px: ((x + 180) / 360) * scale,
-    py: ((1 - Math.log(Math.tan((y * Math.PI) / 180) + 1 / Math.cos((y * Math.PI) / 180)) / Math.PI) / 2) * scale,
+  const project = (lat, lon) => ({
+    px: ((lon + 180) / 360) * scale,
+    py: ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * scale,
   });
 
-  const center = project(lat, lon);
+  const centerLat = points.reduce((sum, point) => sum + point.latitude, 0) / points.length;
+  const centerLon = points.reduce((sum, point) => sum + point.longitude, 0) / points.length;
+  const center = project(centerLat, centerLon);
   const left = center.px - width / 2;
   const top = center.py - height / 2;
 
@@ -754,7 +832,8 @@ function showMap(points) {
     for (let y = firstY; y <= lastY; y++) {
       const tile = document.createElement('img');
       tile.className = 'tile';
-      tile.src = `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
+      const host = kind.urls[Math.abs(x + y) % kind.urls.length];
+      tile.src = `${host}${zoom}/${x}/${y}.png`;
       tile.style.left = `${x * 256 - left}px`;
       tile.style.top = `${y * 256 - top}px`;
       tile.alt = '';
@@ -762,20 +841,117 @@ function showMap(points) {
     }
   }
 
-  located.forEach((point) => {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'map-overlay');
+  svg.setAttribute('width', String(width));
+  svg.setAttribute('height', String(height));
+
+  const positionOf = (point) => {
     const p = project(point.latitude, point.longitude);
-    const marker = document.createElement('span');
-    marker.className = 'marker';
-    marker.textContent = String(codeOf(point));
-    marker.style.left = `${p.px - left}px`;
-    marker.style.top = `${p.py - top}px`;
-    box.append(marker);
+    return { x: p.px - left, y: p.py - top };
+  };
+
+  // Линия маршрута: как в приложении — красная, по порядку пунктов
+  const event = state.event;
+  const order = (event && event.distance && event.distance.order) || [];
+  if (order.length > 1) {
+    const route = order
+      .map((code) => points.find((point) => String(codeOf(point)) === String(code)))
+      .filter(Boolean);
+    if (route.length > 1) {
+      const line = document.createElementNS(svgNS, 'polyline');
+      line.setAttribute('points', route.map((point) => {
+        const p = positionOf(point);
+        return `${p.x},${p.y}`;
+      }).join(' '));
+      line.setAttribute('fill', 'none');
+      line.setAttribute('stroke', '#c62828');
+      line.setAttribute('stroke-width', '2');
+      svg.append(line);
+    }
+  }
+
+  points.forEach((point) => {
+    const { x, y } = positionOf(point);
+    const code = String(codeOf(point));
+    const start = isStart(code, rogaineMode());
+    const finish = isFinish(code, rogaineMode());
+    const radius = 14;
+
+    if (start) {
+      const triangle = document.createElementNS(svgNS, 'polygon');
+      triangle.setAttribute('points', `${x},${y - radius} ${x - radius},${y + radius} ${x + radius},${y + radius}`);
+      triangle.setAttribute('fill', 'none');
+      triangle.setAttribute('stroke', '#c62828');
+      triangle.setAttribute('stroke-width', '2.5');
+      svg.append(triangle);
+      return;
+    }
+
+    if (finish) {
+      [radius, radius * 0.55].forEach((r) => {
+        const circle = document.createElementNS(svgNS, 'circle');
+        circle.setAttribute('cx', String(x));
+        circle.setAttribute('cy', String(y));
+        circle.setAttribute('r', String(r));
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', '#c62828');
+        circle.setAttribute('stroke-width', '2.5');
+        svg.append(circle);
+      });
+      return;
+    }
+
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', String(x));
+    circle.setAttribute('cy', String(y));
+    circle.setAttribute('r', String(radius));
+    circle.setAttribute('fill', 'none');
+    circle.setAttribute('stroke', '#c62828');
+    circle.setAttribute('stroke-width', '2.5');
+    svg.append(circle);
+
+    // Номер справа от окружности: белая обводка, чтобы читался на карте
+    const halo = document.createElementNS(svgNS, 'text');
+    halo.setAttribute('x', String(x + radius + 5));
+    halo.setAttribute('y', String(y + 5));
+    halo.setAttribute('font-size', '15');
+    halo.setAttribute('font-weight', 'bold');
+    halo.setAttribute('fill', '#ffffff');
+    halo.setAttribute('stroke', '#ffffff');
+    halo.setAttribute('stroke-width', '3');
+    halo.textContent = code;
+
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', String(x + radius + 5));
+    label.setAttribute('y', String(y + 5));
+    label.setAttribute('font-size', '15');
+    label.setAttribute('font-weight', 'bold');
+    label.setAttribute('fill', '#c62828');
+    label.textContent = code;
+
+    svg.append(halo, label);
   });
 
-  const attr = document.createElement('span');
-  attr.className = 'map-attr';
-  attr.textContent = '© OpenStreetMap contributors';
-  box.append(attr);
+  box.append(svg);
+}
+
+function saveMapKind() {
+  try {
+    localStorage.setItem('osport.lite.mapkind', String(mapState.kind));
+  } catch (error) {
+    // Приватный режим может запретить запись
+  }
+}
+
+function loadMapKind() {
+  try {
+    const saved = Number(localStorage.getItem('osport.lite.mapkind'));
+    if (Number.isFinite(saved) && saved >= 0) mapState.kind = saved % MAP_KINDS.length;
+  } catch (error) {
+    mapState.kind = 0;
+  }
 }
 
 /** Протокол: участники и их результат; без правок, только просмотр. */
@@ -1035,6 +1211,8 @@ function registerServiceWorker() {
 document.addEventListener('DOMContentLoaded', () => {
   bind();
   registerServiceWorker();
+  // Выбор карты запоминается, как в приложении
+  loadMapKind();
 
   state.history = loadHistory();
   const saved = readJson(STORAGE.event, null);

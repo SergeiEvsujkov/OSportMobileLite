@@ -297,29 +297,39 @@ body {
   background: var(--surface-container);
 }
 .map .tile { position: absolute; width: 256px; height: 256px; }
-.map .marker {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  min-width: 26px;
-  padding: 1px 4px;
-  font-size: 11px;
-  font-weight: 700;
-  text-align: center;
-  color: #c62828;
-  background: #ffffff;
-  border: 2px solid #c62828;
-  border-radius: 50%;
-}
+.map .map-attr {
+.map.fullscreen { height: 75vh; }
+.map .map-overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
 .map .map-attr {
   position: absolute;
   left: 6px;
-  bottom: 4px;
+  top: 6px;
+  max-width: 190px;
   font-size: 10px;
-  color: #333333;
-  background: rgba(255, 255, 255, .8);
-  padding: 0 4px;
-  border-radius: 4px;
+  line-height: 1.2;
+  color: var(--on-surface);
+  background: rgba(255, 255, 255, .82);
+  padding: 2px 6px;
+  border-radius: 6px;
 }
+
+.map .map-controls {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.map .map-controls .icon-button {
+  margin: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .9);
+  color: #1d1b20;
+}
+.map-coords { margin: 6px 0 0; font-size: 12px; color: var(--on-surface-variant); }
 
 .proto { margin-top: 8px; }
 .proto-title { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
