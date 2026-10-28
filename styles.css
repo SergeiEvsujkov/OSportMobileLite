@@ -313,7 +313,13 @@ body {
   background: var(--surface-container);
 }
 .map .tile { position: absolute; width: 256px; height: 256px; }
-.map.fullscreen { height: 75vh; }
+.map.fullscreen {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  border-radius: 0;
+  z-index: 30;
+}
 .map .map-overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
 .map .map-attr {
   position: absolute;

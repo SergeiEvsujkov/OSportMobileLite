@@ -964,11 +964,32 @@ function showMap(points) {
     saveMapKind();
     showMap(mapState.points);
   });
-  controls.querySelector('#mapFull').addEventListener('click', (event) => {
+  controls.querySelector('#mapFull').addEventListener('click', async (event) => {
     event.stopPropagation();
     mapState.fullscreen = !mapState.fullscreen;
-    showMap(mapState.points);
+
+    // Настоящий полноэкранный режим браузера, если он доступен
+    try {
+      if (mapState.fullscreen && !document.fullscreenElement) {
+        await box.requestFullscreen();
+      } else if (!mapState.fullscreen && document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      // Не разрешили — останется карта на весь экран средствами страницы
+    }
+
+    // Перерисовываем после смены размера: тайлы считаются от новых границ
+    requestAnimationFrame(() => showMap(mapState.points));
   });
+
+  // Выход из полноэкранного режима кнопкой «назад»/жестом — вернуть вид
+  document.onfullscreenchange = () => {
+    if (!document.fullscreenElement && mapState.fullscreen) {
+      mapState.fullscreen = false;
+      if (state.tab === 'detail') showMap(mapState.points);
+    }
+  };
 
   const lat = mapState.points.reduce((sum, point) => sum + point.latitude, 0) / mapState.points.length;
   const lon = mapState.points.reduce((sum, point) => sum + point.longitude, 0) / mapState.points.length;
