@@ -7,7 +7,7 @@
   <title>OSportMobile Lite</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
 </head>
 <body>
   <main id="app">
@@ -34,9 +34,10 @@
 
       <div class="detail-rows" id="groupRows"></div>
 
+      <div class="map hidden" id="groupMap"></div>
+
       <h2 class="proto-title">Дистанции группы</h2>
-      <p class="hint">Отличаются только порядком и количеством пунктов</p>
-      <div class="points" id="groupDistances"></div>
+      <div class="group-distances" id="groupDistances"></div>
     </section>
 
     <!-- Настройки -->
@@ -203,8 +204,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=25"></script>
-  <script src="marking.js?v=25"></script>
-  <script src="app.js?v=25"></script>
+  <script src="jsQR.js?v=26"></script>
+  <script src="marking.js?v=26"></script>
+  <script src="app.js?v=26"></script>
 </body>
 </html>
