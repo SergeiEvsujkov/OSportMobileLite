@@ -274,7 +274,7 @@ function renderHome() {
 
   if (items.length > 1) {
     // Группа: автор один на всю карточку, дистанции — во вложенных рамках
-    card.append(authorRow(first, true, false));
+    card.append(authorRow(first, true, false, items[0].distance));
     items.forEach((item) => {
       const inner = document.createElement('div');
       inner.className = 'distance-card';
@@ -282,7 +282,7 @@ function renderHome() {
 
       // Начатая дистанция внутри группы подсвечивается сама, а не вся карточка
       if (item.id === activeId) inner.classList.add('active-event');
-      inner.append(detailsLine(item), iconsRow(false, item.entry));
+      inner.append(detailsLine(item), iconsRow(false, item.entry, item.distance));
       if (item.entry && item.entry.mapExt) inner.append(mapLine());
       inner.addEventListener('click', (event) => {
         // Дистанция внутри карточки: не даём событию дойти до группы
@@ -333,7 +333,7 @@ function renderHome() {
     }
   }
 
-  const authorLine = authorRow(entry, true);
+  const authorLine = authorRow(entry, true, true, distance);
   const kindTag = document.createElement('span');
   kindTag.className = 'kind-tag';
   kindTag.textContent = item.kind === 'rogaine' ? 'РОГЕЙН' : '';
@@ -376,25 +376,37 @@ function mapLine() {
   return plainRow('Карта: есть');
 }
 
+/**
+ * Цвет человечка — как tint в EventsScreen: без профиля чёрный, свой синий,
+ * с моим результатом зелёный, чужой красный.
+ */
+function personColor(entry, distance) {
+  const me = readJson(STORAGE.identity, { nick: '', code: '' });
+  if (!me.code) return '#000000';
+  if (entry && entry.ownerId && me.code === entry.ownerId) return '#1565c0';
+
+  const results = (distance && distance.results) || [];
+  const mine = results.some((row) => row && row.userId === me.code);
+  return mine ? '#2e7d32' : '#c62828';
+}
+
 /** Значки: способ отметки и автор; цвет человечка — как в приложении. */
-function iconsRow(withName, entry = {}) {
+function iconsRow(withName, entry = {}, distance = {}) {
   const row = document.createElement('div');
   row.className = 'distance-icons';
   row.innerHTML =
     '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
     '<svg class="icon small author-icon"><use href="icons.svg#person"></use></svg>';
 
-  // Человечек красится как в приложении: свой — синий, чужой — красный,
-  // без профиля — чёрный
-  const me = readJson(STORAGE.identity, { nick: '', code: '' });
-  const own = me.code && entry.ownerId && me.code === entry.ownerId;
+  // Цвет как в приложении: чёрный без профиля, синий свой, зелёный с моим
+  // результатом, красный чужой
   const person = row.querySelector('.author-icon');
-  if (person) person.style.color = !me.code ? '#000000' : own ? '#1565c0' : '#c62828';
+  if (person) person.style.color = personColor(entry, distance);
   return row;
 }
 
 /** Автор: человечек нужного цвета и имя; у своих — «— Это Вы». */
-function authorRow(entry, withName, withIcon = true) {
+function authorRow(entry, withName, withIcon = true, distance = {}) {
   const row = document.createElement('div');
   row.className = 'author-row';
 
@@ -406,7 +418,7 @@ function authorRow(entry, withName, withIcon = true) {
 
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
   const own = me.code && entry.ownerId && me.code === entry.ownerId;
-  person.style.color = !me.code ? '#000000' : own ? '#1565c0' : '#c62828';
+  person.style.color = personColor(entry, distance);
 
   if (withIcon) row.append(person);
 
@@ -677,7 +689,7 @@ function authorRowCloud(entry) {
 
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
   const own = me.code && entry.ownerId && me.code === entry.ownerId;
-  person.style.color = !me.code ? '#000000' : own ? '#1565c0' : '#c62828';
+  person.style.color = personColor(entry);
 
   const name = document.createElement('span');
   name.className = 'author-name';
