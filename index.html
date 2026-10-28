@@ -3,16 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1f3a5f">
+  <meta name="theme-color" content="#6650a4">
   <title>OSportMobile Lite</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Верхняя строка как в приложении: название события становится заголовком -->
   <header class="top">
-    <h1>OSportMobile Lite</h1>
-    <p class="sub">Участнику: скачать событие, отметиться, отправить результат</p>
+    <div>
+      <h1 id="screenTitle">OSportMobile Lite</h1>
+      <p class="sub" id="screenSub">Участнику: скачать событие, отметиться, отправить</p>
+    </div>
   </header>
 
   <main>
@@ -36,33 +39,38 @@
       <p class="meta" id="eventPeriod"></p>
       <p class="meta" id="eventDetails"></p>
 
-      <div class="actions">
-        <button id="download" class="button">Скачать событие</button>
-        <button id="openMark" class="button secondary" disabled>Отметки</button>
+      <div class="row" style="margin-top:12px">
+        <button id="download" class="button" style="flex:1">Скачать событие</button>
+        <button id="openMark" class="button tonal" disabled>Отметки</button>
       </div>
       <p class="hint" id="eventHint"></p>
     </section>
 
-    <!-- Шаг 3: отметки -->
+    <!-- Шаг 3: отметки. Раскладка повторяет экран приложения:
+         название события, время, большая кнопка, список пунктов -->
     <section class="card hidden" id="markCard">
-      <h2 class="title">Отметки</h2>
-      <p class="meta" id="marksSummary">Пока ничего не отмечено</p>
-
-      <div class="row" style="margin-top:12px">
-        <button id="markStart" class="button">Старт</button>
-        <button id="markFinish" class="button secondary">Финиш</button>
+      <div class="row space">
+        <h2 class="title" id="markTitle">Отметки</h2>
+        <span class="badge" id="markBadge"></span>
       </div>
-
+      <p class="meta" id="marksSummary">Пока ничего не отмечено</p>
       <p class="hint" id="markPeriod"></p>
+
+      <button id="bigMark" class="mark-button" style="margin-top:16px">Старт</button>
+      <p class="hint" id="markHint"></p>
       <p class="hint" id="markPosition"></p>
 
       <div id="pointsList" class="points"></div>
 
-      <div class="card inner hidden" id="sendCard">
+      <div class="row" style="margin-top:12px">
+        <button id="finishBtn" class="button tonal" style="flex:1" disabled>Финиш</button>
+      </div>
+
+      <div class="card hidden" id="sendCard" style="background:transparent;padding:0;margin-top:16px">
         <p class="label">Кто отправил</p>
         <input id="nick" class="input" type="text" placeholder="Ник">
         <input id="code" class="input" type="text" placeholder="Код профиля (12 знаков)" style="margin-top:8px">
-        <button id="send" class="button" style="margin-top:12px">Отправить результат</button>
+        <button id="send" class="button" style="margin-top:12px;width:100%">Отправить результат</button>
         <p class="hint">Код профиля виден в приложении на вкладке «Профиль».</p>
       </div>
     </section>

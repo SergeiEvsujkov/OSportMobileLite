@@ -139,6 +139,14 @@ function openMarks(event) {
   state.marks = loadMarks();
   $('markCard').classList.remove('hidden');
   $('openMark').disabled = false;
+
+  // Заголовок — как на экране отметки в приложении: название события
+  const distance = event.distance || {};
+  $('screenTitle').textContent = distance.name || 'Событие';
+  $('screenSub').textContent = 'Отметка · ' + (event.kind === 'rogaine' ? 'рогейн' : 'ориентирование');
+  $('markTitle').textContent = distance.name || 'Отметки';
+  $('markBadge').textContent = distance.id ? '№ ' + distance.id.slice(-4) : '';
+
   renderMarks();
   startWatch();
 }
@@ -246,8 +254,46 @@ function renderMarks() {
       : period === 'BEFORE' ? 'Проведение ещё не началось'
         : 'Время проведения закончилось';
 
-  $('markStart').disabled = Boolean(startMark);
-  $('markFinish').disabled = !startMark || Boolean(finishMark);
+  // Куда можно отметиться прямо сейчас: пункт в пределах допуска
+  const near = points.find((point) => {
+    const code = codeOf(point);
+    if (isStart(code, rogaineMode()) || isFinish(code, rogaineMode())) return false;
+    if (marked.has(code)) return false;
+    return canMark(point, state.position).ok;
+  });
+
+  const big = $('bigMark');
+  big.className = 'mark-button';
+
+  if (finishMark) {
+    big.textContent = 'Финиш отмечен';
+    big.disabled = true;
+    big.classList.add('done');
+    $('markHint').textContent = 'Результат можно отправить.';
+  } else if (!startMark) {
+    big.textContent = 'Старт';
+    big.disabled = false;
+    $('markHint').textContent = 'Нажмите, чтобы начать.';
+  } else if (near) {
+    big.textContent = `Отметить КП ${codeOf(near)}`;
+    big.disabled = false;
+    big.classList.add('ready');
+    $('markHint').textContent = 'Кнопка зелёная — вы у пункта.';
+  } else {
+    big.textContent = 'Отметить';
+    big.disabled = true;
+    if (!state.position) {
+      $('markHint').textContent = 'Ждём сигнал GPS.';
+    } else if (state.position.accuracy > MAX_ACCURACY_METERS) {
+      $('markHint').textContent =
+        `Погрешность ${Math.round(state.position.accuracy)} м больше ${MAX_ACCURACY_METERS} м — ждём уточнения.`;
+    } else {
+      $('markHint').textContent = 'Подойдите к пункту — кнопка станет зелёной.';
+    }
+  }
+  state.nearPoint = near || null;
+
+  $('finishBtn').disabled = !startMark || Boolean(finishMark);
   $('sendCard').classList.toggle('hidden', !finishMark);
 
   const list = $('pointsList');
@@ -262,21 +308,15 @@ function renderMarks() {
       const row = document.createElement('div');
       row.className = 'point' + (done ? ' done' : '');
 
-      const label = document.createElement('span');
-      label.className = 'code';
-      label.textContent = orderIndex >= 0 ? `${orderIndex + 1}. №${code}` : `№${code}`;
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = orderIndex >= 0 ? `${orderIndex + 1}. №${code}` : `№${code}`;
 
       const stateText = document.createElement('span');
       stateText.className = 'state';
       stateText.textContent = done ? 'отмечен' : '';
 
-      const button = document.createElement('button');
-      button.className = 'button secondary';
-      button.textContent = done ? 'отмечен' : 'Отметить';
-      button.disabled = done;
-      button.addEventListener('click', () => markPoint(point));
-
-      row.append(label, stateText, button);
+      row.append(num, stateText);
       list.append(row);
     });
 }
@@ -384,8 +424,16 @@ function bind() {
     }
   });
 
-  $('markStart').addEventListener('click', markStart);
-  $('markFinish').addEventListener('click', markFinish);
+  // Одна большая кнопка, как в приложении: старт → отметка пункта → финиш отмечен
+  $('bigMark').addEventListener('click', () => {
+    if (!state.marks.some((mark) => mark.start)) {
+      markStart();
+      return;
+    }
+    if (state.nearPoint) markPoint(state.nearPoint);
+  });
+
+  $('finishBtn').addEventListener('click', markFinish);
   $('send').addEventListener('click', sendResult);
 
   const identity = readIdentity();
