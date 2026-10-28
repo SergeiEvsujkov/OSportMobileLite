@@ -643,7 +643,17 @@ function bind() {
 
   $('detailBack').addEventListener('click', () => showTab('events'));
   $('detailMark').addEventListener('click', () => showTab('mark'));
-  $('detailSend').addEventListener('click', () => showTab('profile'));
+  // «Отправить отметки»: если ник и код уже заданы — отправляем сразу,
+  // иначе ведём в профиль, где их вводят
+  $('detailSend').addEventListener('click', () => {
+    const who = identity();
+    if (!who.nick || who.code.length < 6) {
+      setStatus('Укажите ник и код профиля', 'error');
+      showTab('profile');
+      return;
+    }
+    sendResult();
+  });
   $('detailPoints').addEventListener('click', openPoints);
   $('detailDeactivate').addEventListener('click', askDeactivate);
   $('pointsBack').addEventListener('click', () => openDetail());
