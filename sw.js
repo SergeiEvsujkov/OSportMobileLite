@@ -6,7 +6,7 @@
  * скажет об ошибке — это честнее, чем показывать старую карточку.
  */
 
-const CACHE = 'osport-lite-v1';
+const CACHE = 'osport-lite-v2';
 const SHELL = [
   './',
   './index.html',
@@ -14,6 +14,8 @@ const SHELL = [
   './marking.js',
   './app.js',
   './manifest.json',
+  './icons/group.png',
+  './icons.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];
