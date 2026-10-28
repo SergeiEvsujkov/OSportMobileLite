@@ -269,7 +269,7 @@ function renderHome() {
 
   if (items.length > 1) {
     // Группа: автор один на всю карточку, дистанции — во вложенных рамках
-    card.append(authorRow(first, true));
+    card.append(authorRow(first, true, false));
     items.forEach((item) => {
       const inner = document.createElement('div');
       inner.className = 'distance-card';
@@ -377,7 +377,7 @@ function iconsRow(withName) {
 }
 
 /** Автор: человечек нужного цвета и имя; у своих — «— Это Вы». */
-function authorRow(entry, withName) {
+function authorRow(entry, withName, withIcon = true) {
   const row = document.createElement('div');
   row.className = 'author-row';
 
@@ -391,7 +391,7 @@ function authorRow(entry, withName) {
   const own = me.code && entry.ownerId && me.code === entry.ownerId;
   person.style.color = !me.code ? '#000000' : own ? '#1565c0' : '#c62828';
 
-  row.append(person);
+  if (withIcon) row.append(person);
 
   if (withName) {
     const name = document.createElement('span');
