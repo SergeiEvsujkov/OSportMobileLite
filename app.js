@@ -14,6 +14,7 @@ const $ = (id) => document.getElementById(id);
 const STORAGE = {
   event: 'osport.lite.event',
   history: 'osport.lite.events',
+  group: 'osport.lite.group',
   marks: 'osport.lite.marks',
   identity: 'osport.lite.identity',
 };
@@ -155,22 +156,28 @@ function showTab(name) {
 
 /** Карточки скачанных событий: как на главном экране приложения. */
 /**
- * Главный экран — одна запись: активное событие.
+ * Главный экран — одна карточка группы с её дистанциями.
  *
- * В приложении карточек много, в вебе показываем только активное событие:
- * по нему и проходят дистанцию. Архива и фильтров в вебе нет.
+ * Как в приложении: номер и название, сроки, автор, внутри — строки дистанций,
+ * которые входят в эту же группу (по groupId). Нажатие на строку активирует
+ * выбранную дистанцию.
  */
 function renderHome() {
   const list = $('eventsList');
   list.textContent = '';
 
+  const group = readJson(STORAGE.group, null);
   const event = state.event;
-  $('homeHint').classList.toggle('hidden', Boolean(event && event.distance));
-  if (!event || !event.distance) return;
+  const items = group && group.items && group.items.length
+    ? group.items
+    : (event && event.distance
+      ? [{ id: event.id, kind: event.kind, entry: event.entry, distance: event.distance }]
+      : []);
 
-  const entry = event.entry || {};
-  const distance = event.distance || {};
+  $('homeHint').classList.toggle('hidden', items.length > 0);
+  if (!items.length) return;
 
+  const first = items[0].entry || {};
   const card = document.createElement('div');
   card.className = 'event-card';
 
@@ -187,54 +194,76 @@ function renderHome() {
 
   const title = document.createElement('span');
   title.className = 'event-title';
-  title.textContent = (entry.number ? `№ ${entry.number} ` : '') + (distance.name || 'Без названия');
+  title.textContent = (group && group.number ? `№ ${group.number} ` : '') + (first.name || 'Без названия');
 
   head.append(icon, title);
   card.append(head);
 
-  if (entry.startTime) {
+  if (first.startTime) {
     const period = document.createElement('p');
     period.className = 'event-meta';
-    period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
+    period.textContent = formatDate(first.startTime) + ' - ' + formatDate(first.finishTime);
     card.append(period);
   }
 
   const author = document.createElement('p');
   author.className = 'event-meta';
-  author.textContent = entry.organizer || 'Автор не указан';
+  author.textContent = first.organizer || 'Автор не указан';
   card.append(author);
 
-  const inner = document.createElement('div');
-  inner.className = 'distance-card';
+  items.forEach((item) => {
+    const entry = item.entry || {};
+    const distance = item.distance || {};
+    const inner = document.createElement('div');
+    inner.className = 'distance-card';
+    if (event && event.id === item.id) inner.classList.add('active');
 
-  const line = document.createElement('p');
-  line.className = 'distance-line';
-  const parts = [];
-  if (event.kind === 'rogaine') {
-    if (distance.points) parts.push(`КП: ${distance.points.length}`);
-  } else {
-    if (distance.longInMeters) parts.push(`Дистанция: ${distance.longInMeters} м`);
-    if (distance.points) parts.push(`КП: ${distance.points.length}`);
-  }
-  const results = Array.isArray(distance.results) ? distance.results.length : 0;
-  parts.push(`Участников: ${results}`);
-  line.textContent = parts.join(' · ');
+    const line = document.createElement('p');
+    line.className = 'distance-line';
+    const parts = [];
+    if (item.kind === 'rogaine') {
+      if (distance.points) parts.push(`КП: ${distance.points.length}`);
+    } else {
+      if (distance.longInMeters) parts.push(`Дистанция: ${distance.longInMeters} м`);
+      if (distance.points) parts.push(`КП: ${distance.points.length}`);
+    }
+    const results = Array.isArray(distance.results) ? distance.results.length : 0;
+    parts.push(`Участников: ${results}`);
+    line.textContent = parts.join(' · ');
 
-  const map = document.createElement('p');
-  map.className = 'distance-line';
-  map.textContent = entry.mapExt ? 'Карта: есть' : 'Карта: нет';
+    const map = document.createElement('p');
+    map.className = 'distance-line';
+    map.textContent = entry.mapExt ? 'Карта: есть' : 'Карта: нет';
 
-  const icons = document.createElement('div');
-  icons.className = 'distance-icons';
-  icons.innerHTML =
-    '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
-    '<svg class="icon small" style="color:#c62828"><use href="icons.svg#person"></use></svg>';
+    const icons = document.createElement('div');
+    icons.className = 'distance-icons';
+    icons.innerHTML =
+      '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
+      '<svg class="icon small" style="color:#c62828"><use href="icons.svg#person"></use></svg>';
 
-  inner.append(line, map, icons);
-  inner.addEventListener('click', () => openDetail());
-  card.append(inner);
+    inner.append(line, map, icons);
+    inner.addEventListener('click', () => activateItem(item));
+    card.append(inner);
+  });
 
   list.append(card);
+}
+
+/** Делает активной выбранную дистанцию группы и открывает её экран. */
+function activateItem(item) {
+  const saved = readJson(STORAGE.event + '.' + item.id, null);
+  const event = saved || {
+    id: item.id,
+    kind: item.kind,
+    key: 'distances/' + item.id + (item.kind === 'rogaine' ? '.rogaine' : '.osport'),
+    distance: item.distance,
+    entry: item.entry,
+  };
+  writeJson(STORAGE.event, event);
+  state.event = event;
+  state.marks = loadMarks(item.id);
+  updateSendState();
+  openDetail();
 }
 
 /* ─────────────────────────── облако ─────────────────────────── */
@@ -341,6 +370,11 @@ async function downloadEvent(entry) {
     writeJson(STORAGE.event + '.' + entry.id, event);
     rememberEvent(event);
 
+    // Группа — карточка с несколькими дистанциями: в приложении они лежат
+    // вместе по groupId (или по общему номеру), и на главном видны все.
+    // Поэтому скачиваем не только выбранную запись, но и её соседей
+    await downloadGroup(entry, event);
+
     state.event = event;
     state.marks = loadMarks(entry.id);
     setStatus('');
@@ -349,6 +383,50 @@ async function downloadEvent(entry) {
   } catch (error) {
     setStatus(error.message, 'error');
   }
+}
+
+/**
+ * Скачивает все дистанции одной группы.
+ *
+ * Правило взято из приложения: записи считаются одной группой, если у них
+ * совпадает непустой groupId, а если его нет — общий номер события.
+ */
+async function downloadGroup(entry, downloaded) {
+  let entries = cloudEntries;
+  if (!entries.length) {
+    const data = await callFunction('action=list&full=1&rogaine=1');
+    entries = data.entries || [];
+    cloudEntries = entries;
+  }
+
+  // Группа определяется ТОЛЬКО groupId. Пустой groupId — запись одиночная,
+  // совпадение номеров группой не делает.
+  const sameGroup = (candidate) =>
+    Boolean(entry.groupId) && candidate.groupId === entry.groupId && candidate.id !== entry.id;
+
+  const items = [{ id: entry.id, kind: downloaded.kind, entry, distance: downloaded.distance }];
+  const siblings = entries.filter(sameGroup);
+
+  for (const sibling of siblings) {
+    const saved = readJson(STORAGE.event + '.' + sibling.id, null);
+    if (saved && saved.distance) {
+      items.push({ id: sibling.id, kind: saved.kind, entry: sibling, distance: saved.distance });
+      continue;
+    }
+    try {
+      const data = await callFunction('action=get&id=' + encodeURIComponent(sibling.id));
+      if (!data.distance) continue;
+      const key = 'distances/' + sibling.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
+      const item = { id: sibling.id, kind: data.kind, key, distance: data.distance, entry: sibling };
+      writeJson(STORAGE.event + '.' + sibling.id, item);
+      rememberEvent(item);
+      items.push({ id: sibling.id, kind: data.kind, entry: sibling, distance: data.distance });
+    } catch (error) {
+      // Одна недоступная дистанция не должна ломать всю группу
+    }
+  }
+
+  writeJson(STORAGE.group, { number: entry.number, items });
 }
 
 /* ─────────────────────────── экран дистанции ─────────────────────────── */
