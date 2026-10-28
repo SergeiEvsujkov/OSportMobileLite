@@ -253,6 +253,17 @@ function renderHome() {
   card.append(head);
   const activeId = state.activeId;
 
+  // Корзина в углу карточки: удаление скачанного события
+  const trash = document.createElement('button');
+  trash.className = 'card-delete';
+  trash.title = 'Удалить';
+  trash.innerHTML = '<svg class="icon"><use href="icons.svg#delete"></use></svg>';
+  trash.addEventListener('click', (clickEvent) => {
+    clickEvent.stopPropagation();
+    openDeleteDialog(items[0].id);
+  });
+  card.append(trash);
+
   if (items.length > 1) {
     // Вся карточка группы открывает группу, как в приложении
     card.style.cursor = 'pointer';
@@ -688,6 +699,15 @@ function authorRowCloud(entry) {
 /** Скачивает одно событие: оно становится активным, но отметку не открывает. */
 async function downloadEvent(entry) {
   if (!entry) return;
+
+  // На главном помещается одно событие: пока скачанное не удалено корзиной,
+  // новое не скачиваем
+  const downloaded = (state.history || []).filter((item) => item.id !== entry.id);
+  if (downloaded.length) {
+    setStatus('Сначала удалите скачанное событие корзиной', 'error');
+    return;
+  }
+
   setStatus('Скачиваю событие…');
   try {
     const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
@@ -1053,6 +1073,88 @@ function deactivateDistance() {
   renderDetail();
   showTab('events');
   setStatus('Дистанция выгружена, отметки не производятся');
+}
+
+/** Окно «Удалить событие?» — как в приложении. */
+function openDeleteDialog(eventId) {
+  const name = ($('detailTitle') && $('detailTitle').textContent) || 'Событие';
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const title = document.createElement('h2');
+  title.textContent = 'Удалить событие?';
+
+  const hint = document.createElement('p');
+  hint.textContent = `Дистанция «${name}» будет удалена с устройства вместе со своими отметками и результатами. `
+    + 'Вы можете снова загрузить её из облака.';
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+
+  const confirm = document.createElement('button');
+  confirm.className = 'button';
+  confirm.textContent = 'Удалить';
+  confirm.addEventListener('click', () => {
+    overlay.remove();
+    deleteEvent(eventId);
+  });
+
+  const cancel = document.createElement('button');
+  cancel.className = 'button text';
+  cancel.textContent = 'Отмена';
+  cancel.addEventListener('click', () => overlay.remove());
+
+  actions.append(confirm, cancel);
+  modal.append(title, hint, actions);
+  overlay.append(modal);
+  document.body.append(overlay);
+}
+
+/** Удаляет событие с устройства: запись, отметки, активность и группу. */
+function deleteEvent(eventId) {
+  stopWatch();
+  stopQrScanner();
+
+  try {
+    localStorage.removeItem(marksKey(eventId));
+    localStorage.removeItem(STORAGE.event + '.' + eventId);
+  } catch (error) {
+    // приватный режим
+  }
+
+  state.history = (state.history || []).filter((item) => item.id !== eventId);
+  saveHistory();
+
+  if (state.activeId === eventId) {
+    state.activeId = null;
+    try {
+      localStorage.removeItem(STORAGE.active);
+    } catch (error) {
+      // приватный режим
+    }
+  }
+
+  if (state.event && state.event.id === eventId) {
+    state.event = null;
+    state.marks = [];
+    try {
+      localStorage.removeItem(STORAGE.event);
+    } catch (error) {
+      // приватный режим
+    }
+  }
+
+  const group = readJson(STORAGE.group, null);
+  if (group && (group.items || []).some((item) => item.id === eventId)) {
+    localStorage.removeItem(STORAGE.group);
+  }
+
+  renderHome();
+  showTab('events');
+  setStatus('Событие удалено');
 }
 
 /** Окно подтверждения деактивации — как UnloadDialog в приложении. */
@@ -2494,6 +2596,9 @@ function bind() {
   });
   $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
   $('detailMarksButton').addEventListener('click', openMyProgress);
+  $('detailDelete').addEventListener('click', () => {
+    if (state.event) openDeleteDialog(state.event.id);
+  });
   $('detailActivate').addEventListener('click', () => {
     if (state.activeId === state.event.id) {
       openDeactivateDialog();

@@ -646,3 +646,16 @@ html[data-theme="dark"] .event-card.active-event { background: #1d3527; }
 html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
 
 .button.text { background: transparent; color: var(--primary); }
+
+/* Корзина в углу карточки — удаление скачанного события, как в приложении */
+.card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 20px;
+  background: transparent;
+  color: var(--on-surface-variant);
+}
