@@ -582,3 +582,24 @@ body.large .page-head h1 { font-size: 26px; }
 }
 .status.error { color: var(--error); }
 .status.good { color: var(--mark-green); }
+
+/* ───────────── полужирный текст, как в приложении ───────────── */
+
+.event-title { font-weight: 600; }
+.event-meta { font-weight: 500; }
+
+.detail-row { font-weight: 500; }
+
+.group-distance .title { font-weight: 600; }
+.group-distance .line { font-weight: 500; }
+
+.split-summary .line span:first-child { font-weight: 500; }
+.split-summary .line span:last-child { font-weight: 400; }
+.split-head { font-weight: 500; }
+
+.proto-row.head span { font-weight: 500; }
+.proto-nick { font-weight: 500; }
+
+.cloud-item .name { font-weight: 600; }
+.cloud-item .period { font-weight: 400; }
+.cloud-item .line { font-weight: 400; }
