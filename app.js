@@ -251,7 +251,13 @@ function renderHome() {
   if (items.length > 1) {
     // Вся карточка группы открывает группу, как в приложении
     card.style.cursor = 'pointer';
-    card.addEventListener('click', () => openGroup());
+    card.addEventListener('click', () => {
+    try {
+      openGroup();
+    } catch (error) {
+      setStatus('Ошибка экрана группы: ' + error.message, 'error');
+    }
+  });
   }
 
   if (first.startTime) {
@@ -740,7 +746,12 @@ async function downloadGroup(entry, downloaded) {
 
 /** Экран группы — как в приложении: сроки, количество дистанций, автор, карта и дистанции. */
 function openGroup() {
-  renderGroup();
+  try {
+    renderGroup();
+  } catch (error) {
+    setStatus('Ошибка экрана группы: ' + error.message, 'error');
+    return;
+  }
   showTab('group');
 }
 
@@ -748,7 +759,7 @@ function renderGroup() {
   const group = readJson(STORAGE.group, null);
   const items = (group && group.items) || [];
   if (!items.length) {
-    showTab('events');
+    setStatus('Группа не найдена: скачайте событие заново', 'error');
     return;
   }
 
