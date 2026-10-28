@@ -1148,42 +1148,11 @@ async function downloadCloudMap() {
       return;
     }
 
-    // Файл лежит в хранилище: maps/<id>.<ext>
+    // Файл лежит в хранилище: maps/<id>.<ext>. Открываем его браузером:
+    // скачать в «Загрузки» нельзя — хранилище не разрешает чтение из браузера
     const url = `${CONFIG.mapBucketUrl}/maps/${encodeURIComponent(state.event.id)}.${ext}`;
-    const number = (state.event.entry && state.event.entry.number) || 0;
-    const name = number ? `карта_${number}.${ext}` : `карта.${ext}`;
-
-    setStatus('Скачиваю карту…');
-
-    // Имя файла сохраняем, как в приложении: «карта_<номер>.<расширение>».
-    // Если хранилище разрешит чтение из браузера — скачаем с этим именем,
-    // иначе отдадим файл браузеру: он положит его в «Загрузки»
-    try {
-      const response = await fetch(url, { mode: 'cors' });
-      if (!response.ok) throw new Error('нет файла');
-      const blob = await response.blob();
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = name;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(link.href);
-      setStatus('Карта сохранена в загрузки');
-      return;
-    } catch (error) {
-      // Хранилище закрыто для чтения из браузера — открываем файл напрямую
-    }
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setStatus('Карта сохраняется в загрузки');
+    setStatus('Открываю карту…');
+    window.open(url, '_blank');
   } catch (error) {
     setStatus('Не удалось скачать карту. Попробуйте позже.', 'error');
   }
