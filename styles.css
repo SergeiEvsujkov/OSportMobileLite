@@ -590,7 +590,7 @@ body.large .page-head h1 { font-size: 26px; }
 /* ───────────── полужирный текст, как в приложении ───────────── */
 
 .event-title { font-weight: 600; }
-.event-meta { font-weight: 600; font-size: 15px; }
+.event-meta { font-weight: 400; font-size: 16px; }
 
 .detail-row { font-weight: 600; }
 

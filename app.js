@@ -373,6 +373,11 @@ function iconsRow(withName) {
   row.innerHTML =
     '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
     '<svg class="icon small author-icon"><use href="icons.svg#person"></use></svg>';
+
+  // Человечек красится как в приложении: свой — синий, чужой — красный
+  const me = readJson(STORAGE.identity, { nick: '', code: '' });
+  const person = row.querySelector('.author-icon');
+  if (person) person.style.color = !me.code ? '#000000' : '#c62828';
   return row;
 }
 
