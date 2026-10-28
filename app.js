@@ -833,14 +833,33 @@ function renderDetail() {
 
   // В файле дистанции старта часто нет: он лежит в координатах события.
   // Добавляем его как точку карты, иначе треугольника не видно
+  // Точки карты — только те, что есть в маршруте, плюс старт из координат
+  // события. Точка, совпавшая со стартом, не рисуется: это тот же старт
   const startCode = event.kind === 'rogaine' ? '01' : '1';
   const startLat = Number(distance.latitude);
   const startLon = Number(distance.longitude);
-  const hasStart = points.some((point) => String(codeOf(point)) === startCode);
-  const mapPoints = (!hasStart && Number.isFinite(startLat) && Number.isFinite(startLon)
-    && (startLat || startLon))
-    ? [{ code: startCode, latitude: startLat, longitude: startLon, accuracyMeters: 0 }, ...points]
-    : points;
+  const orderCodes = distance.order || [];
+  const byCode = new Map(points.map((point) => [String(codeOf(point)), point]));
+
+  let mapPoints = orderCodes
+    .map((code) => byCode.get(String(code)))
+    .filter((point) => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
+
+  const startPoint = byCode.get(startCode);
+  const hasStart = Boolean(startPoint);
+  const startLocation = startPoint
+    ? { latitude: startPoint.latitude, longitude: startPoint.longitude }
+    : (Number.isFinite(startLat) && Number.isFinite(startLon) && (startLat || startLon)
+      ? { latitude: startLat, longitude: startLon }
+      : null);
+
+  const near = (a, b) => a && b && distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude) < 3;
+  mapPoints = mapPoints.filter((point) => String(codeOf(point)) === startCode
+    || !near(point, startLocation));
+
+  if (!hasStart && startLocation) {
+    mapPoints = [{ code: startCode, ...startLocation, accuracyMeters: 0 }, ...mapPoints];
+  }
 
   showMap(mapPoints);
   renderProtocol(distance);
@@ -1116,14 +1135,28 @@ function bindMapGestures(box) {
  */
 function mapLabelOf(point, order) {
   const code = String(codeOf(point));
-  if (rogaineMode()) return code;
 
-  const numbers = [];
-  order.forEach((value, index) => {
-    if (String(value) === code) numbers.push(index + 1);
-  });
-  if (!numbers.length) return code.padStart(2, '0');
-  return numbers.join('/') + ' - ' + code.padStart(2, '0');
+  // Номер по порядку получают только контрольные пункты (31…99), как
+  // routeOrderNumbers: у старта, финиша и служебных кодов подписи нет
+  if (!rogaineMode()) {
+    let position = 0;
+    const numbers = [];
+    order.forEach((value) => {
+      const numeric = Number(value);
+      const isCheckpoint = numeric >= 31 && numeric <= 99;
+      if (isCheckpoint) {
+        position += 1;
+        if (String(value) === code) numbers.push(position);
+      }
+    });
+    if (!numbers.length) return null;
+    return numbers.join('/') + ' - ' + code.padStart(2, '0');
+  }
+
+  // Рогейн: подпись — сам код, старт и финиш без подписи
+  const start = isStart(code, true);
+  const finish = isFinish(code, true);
+  return start || finish ? null : code;
 }
 
 function drawMap(box) {
@@ -1297,6 +1330,9 @@ function drawMap(box) {
     circle.setAttribute('stroke-width', '2.5');
     svg.append(circle);
 
+    const markerLabel = mapLabelOf(point, order);
+    if (!markerLabel) return;
+
     // Номер справа от окружности: белая обводка, чтобы читался на карте
     const halo = document.createElementNS(svgNS, 'text');
     halo.setAttribute('x', String(x + radius + 5));
@@ -1306,7 +1342,6 @@ function drawMap(box) {
     halo.setAttribute('fill', '#ffffff');
     halo.setAttribute('stroke', '#ffffff');
     halo.setAttribute('stroke-width', '3');
-    const markerLabel = mapLabelOf(point, order);
     halo.textContent = markerLabel;
 
     const label = document.createElementNS(svgNS, 'text');
