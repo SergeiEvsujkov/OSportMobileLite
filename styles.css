@@ -289,6 +289,41 @@ body {
 .head-text { flex: 1; min-width: 0; }
 .head-text .sub { margin: 0; font-size: 13px; color: var(--on-surface-variant); }
 
+.map {
+  position: relative;
+  height: 260px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface-container);
+}
+.map .tile { position: absolute; width: 256px; height: 256px; }
+.map .marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 26px;
+  padding: 1px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: #c62828;
+  background: #ffffff;
+  border: 2px solid #c62828;
+  border-radius: 50%;
+}
+.map .map-attr {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  font-size: 10px;
+  color: #333333;
+  background: rgba(255, 255, 255, .8);
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.proto { margin-top: 8px; }
+.proto-title { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
+
 .detail-rows { display: flex; flex-direction: column; gap: 10px; }
 .detail-row { margin: 0; font-size: 16px; color: var(--on-surface); }
 

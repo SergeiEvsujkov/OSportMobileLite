@@ -635,16 +635,128 @@ function renderDetail() {
   if (entry.startTime) {
     rows.append(detailRow(formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime)));
   }
+
   const points = distance.points || [];
-  rows.append(detailRow(`Количество КП: ${points.length}`));
   if (event.kind === 'rogaine') {
-    if (distance.maxScore) rows.append(detailRow(`Макс. балл: ${distance.maxScore}`));
-  } else if (distance.longInMeters) {
-    rows.append(detailRow(`Дистанция: ${distance.longInMeters} м`));
+    const counts = [];
+    if (points.length) counts.push(`Количество КП: ${points.length}`);
+    if (entry.maxScore) counts.push(`Макс. балл: ${entry.maxScore}`);
+    if (counts.length) rows.append(detailRow(counts.join(' · ')));
+    rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
+    if (distance.controlTimeMinutes) rows.append(detailRow(`Контр.время: ${distance.controlTimeMinutes} мин`));
+    if (distance.penaltyPerMinute) rows.append(detailRow(`Штраф: ${distance.penaltyPerMinute} балл/мин`));
+    if (distance.description) rows.append(detailRow(distance.description));
+  } else {
+    rows.append(detailRow(`Количество КП: ${points.length}`));
+    if (distance.longInMeters) rows.append(detailRow(`Дистанция: ${distance.longInMeters} м`));
+    rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
+    if (distance.description) rows.append(detailRow(distance.description));
   }
-  rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
 
   $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
+
+  showMap(points);
+  renderProtocol(distance);
+}
+
+/** Карта пунктов: тайлы OpenStreetMap и кружки с номерами, как в приложении. */
+function showMap(points) {
+  const box = $('detailMap');
+  box.textContent = '';
+  const located = (points || []).filter(
+    (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
+  );
+  if (!located.length) {
+    box.classList.add('hidden');
+    return;
+  }
+  box.classList.remove('hidden');
+
+  const lat = located.reduce((sum, point) => sum + point.latitude, 0) / located.length;
+  const lon = located.reduce((sum, point) => sum + point.longitude, 0) / located.length;
+  const zoom = 12;
+  const width = box.clientWidth || 360;
+  const height = box.clientHeight || 260;
+  const scale = 256 * Math.pow(2, zoom);
+
+  const project = (y, x) => ({
+    px: ((x + 180) / 360) * scale,
+    py: ((1 - Math.log(Math.tan((y * Math.PI) / 180) + 1 / Math.cos((y * Math.PI) / 180)) / Math.PI) / 2) * scale,
+  });
+
+  const center = project(lat, lon);
+  const left = center.px - width / 2;
+  const top = center.py - height / 2;
+
+  const firstX = Math.floor(left / 256);
+  const lastX = Math.floor((left + width) / 256);
+  const firstY = Math.floor(top / 256);
+  const lastY = Math.floor((top + height) / 256);
+
+  for (let x = firstX; x <= lastX; x++) {
+    for (let y = firstY; y <= lastY; y++) {
+      const tile = document.createElement('img');
+      tile.className = 'tile';
+      tile.src = `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
+      tile.style.left = `${x * 256 - left}px`;
+      tile.style.top = `${y * 256 - top}px`;
+      tile.alt = '';
+      box.append(tile);
+    }
+  }
+
+  located.forEach((point) => {
+    const p = project(point.latitude, point.longitude);
+    const marker = document.createElement('span');
+    marker.className = 'marker';
+    marker.textContent = String(codeOf(point));
+    marker.style.left = `${p.px - left}px`;
+    marker.style.top = `${p.py - top}px`;
+    box.append(marker);
+  });
+
+  const attr = document.createElement('span');
+  attr.className = 'map-attr';
+  attr.textContent = '© OpenStreetMap contributors';
+  box.append(attr);
+}
+
+/** Протокол: участники и их результат; без правок, только просмотр. */
+function renderProtocol(distance) {
+  const results = Array.isArray(distance.results) ? distance.results : [];
+  $('detailProtocol').classList.remove('hidden');
+  $('protoEmpty').classList.toggle('hidden', results.length > 0);
+
+  const list = $('protoList');
+  list.textContent = '';
+
+  results
+    .slice()
+    .sort((a, b) => (b.finishTime || 0) - (a.finishTime || 0))
+    .forEach((row) => {
+      const item = document.createElement('div');
+      item.className = 'point';
+
+      const name = document.createElement('span');
+      name.className = 'num';
+      name.textContent = row.nick || row.userId || 'Участник';
+
+      const marks = Array.isArray(row.marks) ? row.marks : [];
+      const score = marks.reduce((sum, mark) => {
+        const value = Number(String(mark.code || '')[0]);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      const minutes = row.startTime && row.finishTime
+        ? Math.round((row.finishTime - row.startTime) / 60000)
+        : 0;
+
+      const info = document.createElement('span');
+      info.className = 'state';
+      info.textContent = `баллов: ${score} · ${minutes} мин`;
+
+      item.append(name, info);
+      list.append(item);
+    });
 }
 
 /* ─────────────────────────── отметки ─────────────────────────── */
