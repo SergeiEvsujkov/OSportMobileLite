@@ -151,6 +151,144 @@ function showTab(name) {
 
 /* ─────────────────────────── главный экран ─────────────────────────── */
 
+/**
+ * Главный экран — одна запись: активное событие, как требует владелец.
+ *
+ * В приложении карточек много, в вебе показываем только то событие, которое
+ * сейчас активно: его и проходят. Архива и фильтров в вебе нет.
+ */
+function renderHome() {
+  const list = $('eventsList');
+  list.textContent = '';
+
+  const event = state.event;
+  $('homeHint').classList.toggle('hidden', Boolean(event && event.distance));
+  if (!event || !event.distance) return;
+
+  const entry = event.entry || {};
+  const card = document.createElement('div');
+  card.className = 'event-card';
+
+  const head = document.createElement('div');
+  head.className = 'event-head';
+
+  const icon = document.createElement('span');
+  icon.className = 'event-icon';
+  icon.textContent = event.kind === 'rogaine' ? '🥾' : '🗺';
+
+  const title = document.createElement('span');
+  title.className = 'event-title';
+  title.textContent = (entry.number ? `№ ${entry.number} ` : '') + (entry.name || 'Без названия');
+
+  head.append(icon, title);
+  card.append(head);
+
+  if (entry.startTime) {
+    const period = document.createElement('p');
+    period.className = 'event-meta';
+    period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
+    card.append(period);
+  }
+
+  const author = document.createElement('p');
+  author.className = 'event-meta';
+  author.textContent = entry.organizer || 'Автор не указан';
+  card.append(author);
+
+  const inner = document.createElement('div');
+  inner.className = 'distance-card';
+
+  const line = document.createElement('p');
+  line.className = 'distance-line';
+  const distance = event.distance || {};
+  const parts = [];
+  if (event.kind === 'rogaine') {
+    if (distance.points) parts.push(`КП: ${distance.points.length}`);
+  } else {
+    if (distance.longInMeters) parts.push(`Дистанция: ${distance.longInMeters} м`);
+    if (distance.points) parts.push(`КП: ${distance.points.length}`);
+  }
+  const results = Array.isArray(distance.results) ? distance.results.length : 0;
+  parts.push(`Участников: ${results}`);
+  line.textContent = parts.join(' · ');
+
+  const map = document.createElement('p');
+  map.className = 'distance-line';
+  map.textContent = entry.hasMap ? 'Карта: есть' : 'Карта: нет';
+
+  const icons = document.createElement('div');
+  icons.className = 'distance-icons';
+  icons.textContent = '◎ 👤';
+
+  inner.append(line, map, icons);
+  inner.addEventListener('click', () => showTab('mark'));
+  card.append(inner);
+
+  list.append(card);
+}
+
+/* ─────────────────────────── облако ─────────────────────────── */
+
+function setStatus(text, kind = '') {
+  const node = $('status');
+  node.textContent = text;
+  node.className = 'status' + (kind ? ' ' + kind : '');
+}
+
+async function callFunction(query, body = null) {
+  const url = `${CONFIG.functionUrl}?${query}`;
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body === null ? '{}' : JSON.stringify(body),
+    });
+  } catch (error) {
+    throw new Error('Сервис не разрешил запрос из браузера (CORS).');
+  }
+  const text = await response.text();
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    parsed = null;
+  }
+  if (!response.ok) {
+    throw new Error(parsed && parsed.error ? parsed.error : `Ошибка ${response.status}`);
+  }
+  return parsed;
+}
+
+function formatDate(value) {
+  if (!value) return '';
+  return new Date(value).toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+/* ─────────────────────────── вкладки ─────────────────────────── */
+
+function showTab(name) {
+  $('homeScreen').classList.toggle('hidden', name !== 'events');
+  $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
+  $('markScreen').classList.toggle('hidden', name !== 'mark');
+  $('profileScreen').classList.toggle('hidden', name !== 'profile');
+
+  $('tabEvents').classList.toggle('active', name === 'events' || name === 'cloud');
+  $('tabMark').classList.toggle('active', name === 'mark');
+  $('tabProfile').classList.toggle('active', name === 'profile');
+
+  if (name === 'mark') {
+    startWatch();
+    renderMark();
+  }
+  if (name === 'profile') updateSendState();
+  if (name === 'events') renderHome();
+}
+
+/* ─────────────────────────── главный экран ─────────────────────────── */
+
 /** Карточки скачанных событий: как на главном экране приложения. */
 function renderHome() {
   const list = $('eventsList');
