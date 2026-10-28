@@ -1477,7 +1477,7 @@ function openParticipant(row, rogaine) {
 
     const name = document.createElement('span');
     name.className = 'split-name';
-    name.textContent = startPoint ? 'Старт' : finishPoint ? 'Финиш' : `КП ${code}`;
+    name.textContent = startPoint ? 'Старт' : finishPoint ? 'Финиш' : String(code);
 
     const clock = document.createElement('span');
     clock.className = 'split-clock';
@@ -1519,11 +1519,12 @@ function rogaineMode() {
   return Boolean(state.event && state.event.kind === 'rogaine');
 }
 
+/** Подпись пункта по правилам Labels.kt: «Старт», «Финиш» или код. */
 function labelOf(point) {
   const code = codeOf(point);
   if (isStart(code, rogaineMode())) return 'Старт';
   if (isFinish(code, rogaineMode())) return 'Финиш';
-  return rogaineMode() ? `№${code}` : `КП ${code}`;
+  return String(code);
 }
 
 function markedCodes() {
