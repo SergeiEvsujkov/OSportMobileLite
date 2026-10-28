@@ -696,6 +696,18 @@ function renderDetail() {
   }
 
   const points = distance.points || [];
+  const phone = distance.phone || entry.phone;
+  if (phone) rows.append(detailRow(`Телефон: ${phone}`));
+
+  const startLat = Number(distance.latitude);
+  const startLon = Number(distance.longitude);
+  if (Number.isFinite(startLat) && Number.isFinite(startLon) && (startLat || startLon)) {
+    rows.append(detailRow('Место старта'));
+    rows.append(detailRow(
+      `Широта ${startLat.toFixed(5).replace('.', ',')} · Долгота ${startLon.toFixed(5).replace('.', ',')}`
+    ));
+  }
+
   if (event.kind === 'rogaine') {
     const counts = [];
     if (points.length) counts.push(`Количество КП: ${points.length}`);
@@ -752,9 +764,25 @@ function currentMapKind() {
 }
 
 function showMap(points) {
-  mapState.points = (points || []).filter(
+  const current = state.event;
+  const distance = (current && current.distance) || {};
+  const routeVisible = distance.routeVisible !== false;
+
+  const all = (points || []).filter(
     (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
   );
+
+  // Как в приложении: при скрытом маршруте на карте остаётся только старт
+  let visible = all;
+  if (!routeVisible) {
+    const start = all.find((point) => isStart(String(codeOf(point)), rogaineMode()));
+    const fallback = (Number(distance.latitude) || Number(distance.longitude))
+      ? [{ latitude: Number(distance.latitude), longitude: Number(distance.longitude) }]
+      : [];
+    visible = start ? [start] : fallback;
+  }
+
+  mapState.points = visible;
 
   const box = $('detailMap');
   box.textContent = '';
@@ -808,19 +836,42 @@ function showMap(points) {
 function drawMap(box) {
   const points = mapState.points;
   const kind = currentMapKind();
-  const zoom = kind.id === 'topo' ? 12 : 12;
 
   const width = box.clientWidth || 360;
   const height = box.clientHeight || 260;
+
+  // Подбор масштаба по границам: карта показывает весь маршрут целиком
+  const lats = points.map((point) => point.latitude);
+  const lons = points.map((point) => point.longitude);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons);
+  const maxLon = Math.max(...lons);
+
+  const projectAt = (level) => {
+    const s = 256 * Math.pow(2, level);
+    return (lat, lon) => ({
+      px: ((lon + 180) / 360) * s,
+      py: ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * s,
+    });
+  };
+
+  let zoom = 16;
+  for (let candidate = points.length === 1 ? 15 : 18; candidate >= 3; candidate--) {
+    const probe = projectAt(candidate);
+    const topLeft = probe(maxLat, minLon);
+    const bottomRight = probe(minLat, maxLon);
+    const fits = Math.abs(bottomRight.px - topLeft.px) <= width - 60
+      && Math.abs(bottomRight.py - topLeft.py) <= height - 60;
+    zoom = candidate;
+    if (fits) break;
+  }
+
   const scale = 256 * Math.pow(2, zoom);
+  const project = projectAt(zoom);
 
-  const project = (lat, lon) => ({
-    px: ((lon + 180) / 360) * scale,
-    py: ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * scale,
-  });
-
-  const centerLat = points.reduce((sum, point) => sum + point.latitude, 0) / points.length;
-  const centerLon = points.reduce((sum, point) => sum + point.longitude, 0) / points.length;
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLon = (minLon + maxLon) / 2;
   const center = project(centerLat, centerLon);
   const left = center.px - width / 2;
   const top = center.py - height / 2;
@@ -855,9 +906,10 @@ function drawMap(box) {
   };
 
   // Линия маршрута: как в приложении — красная, по порядку пунктов
-  const event = state.event;
-  const order = (event && event.distance && event.distance.order) || [];
-  if (order.length > 1) {
+  const current = state.event || {};
+  const order = (current.distance && current.distance.order) || [];
+  const routeVisible = !(current.distance && current.distance.routeVisible === false);
+  if (routeVisible && order.length > 1) {
     const route = order
       .map((code) => points.find((point) => String(codeOf(point)) === String(code)))
       .filter(Boolean);
@@ -1153,36 +1205,103 @@ function protocolRow(row, rogaine) {
   return item;
 }
 
-/** Экран участника: сплиты из его отметок. */
+/**
+ * Экран участника: сплиты как в приложении.
+ *
+ * Время отметки, время на этапе (от предыдущей отметки), отставание от
+ * лидера по этому же пункту и пометка «не по маршруту», если отметка стоит
+ * не в свою очередь.
+ */
 function openParticipant(row, rogaine) {
+  const distance = (state.event && state.event.distance) || {};
+  const rows = buildProtocol(distance);
+  const leader = rows.find((item) => item.status === 'OK');
+
+  const leaderTimes = new Map();
+  if (leader && leader !== row) {
+    (leader.marks || []).forEach((mark) => {
+      leaderTimes.set(String(mark.code), mark.time);
+    });
+  }
+
   $('participantTitle').textContent = row.nick;
   $('participantSub').textContent = rogaine
-    ? `Баллы: ${row.score} · штраф ${row.penalty} · место ${row.place}`
-    : `Результат: ${formatDuration(row.elapsed)} · место ${row.place}`;
+    ? `Баллы: ${row.total} · штраф ${row.penalty} · место ${row.place || '—'}`
+    : `Результат: ${formatDuration(row.elapsed)} · место ${row.place || '—'}`;
 
   const list = $('participantMarks');
   list.textContent = '';
 
-  const codeLabel = (code) => {
-    if (isStart(String(code), rogaine)) return 'Старт';
-    if (isFinish(String(code), rogaine)) return 'Финиш';
-    return `КП ${code}`;
-  };
+  const route = (distance.order || []).map((code) => String(code))
+    .filter((code) => !isStart(code, rogaine) && !isFinish(code, rogaine));
 
-  row.marks.forEach((mark) => {
+  const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  let previous = null;
+  let expected = 0;
+
+  marks.forEach((mark) => {
+    const code = String(mark.code);
+    const startPoint = isStart(code, rogaine);
+    const finishPoint = isFinish(code, rogaine);
+
+    // Номер по порядку получают только отметки в свою очередь, как в
+    // progressRows: лишняя остаётся без номера и помечается
+    let orderNumber = '';
+    let offRoute = false;
+    if (startPoint) {
+      orderNumber = 'Старт';
+    } else if (finishPoint) {
+      orderNumber = 'Финиш';
+    } else if (route.length) {
+      if (route[expected] === code) {
+        expected += 1;
+        orderNumber = String(expected);
+      } else {
+        offRoute = true;
+        orderNumber = '—';
+      }
+    } else {
+      orderNumber = '—';
+    }
+
+    const leg = previous ? (mark.time - previous) : null;
+    const leaderTime = leaderTimes.get(code);
+    const behind = leaderTime && previous ? (mark.time - leaderTime) : null;
+
     const item = document.createElement('div');
-    item.className = 'proto-row static';
+    item.className = 'split-row' + (offRoute ? ' off-route' : '');
+
+    const order = document.createElement('span');
+    order.className = 'split-order';
+    order.textContent = orderNumber;
 
     const name = document.createElement('span');
-    name.className = 'proto-nick';
-    name.textContent = codeLabel(mark.code);
+    name.className = 'split-name';
+    name.textContent = startPoint ? 'Старт' : finishPoint ? 'Финиш' : `КП ${code}`;
 
-    const time = document.createElement('span');
-    time.className = 'proto-result';
-    time.textContent = formatClock(mark.time);
+    const clock = document.createElement('span');
+    clock.className = 'split-clock';
+    clock.textContent = formatClock(mark.time);
 
-    item.append(name, time);
+    const legText = document.createElement('span');
+    legText.className = 'split-leg';
+    legText.textContent = leg === null ? '—' : formatDuration(leg);
+
+    const behindText = document.createElement('span');
+    behindText.className = 'split-behind';
+    if (offRoute) {
+      behindText.textContent = 'не по маршруту';
+    } else if (behind === null) {
+      behindText.textContent = '';
+    } else if (behind === 0) {
+      behindText.textContent = 'лидер';
+    } else {
+      behindText.textContent = (behind > 0 ? '+' : '−') + formatDuration(Math.abs(behind));
+    }
+
+    item.append(order, name, clock, legText, behindText);
     list.append(item);
+    previous = mark.time;
   });
 
   showTab('participant');
