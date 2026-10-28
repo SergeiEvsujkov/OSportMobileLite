@@ -3049,7 +3049,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Если экран не запомнен — прежнее правило про экран отметки
   if (first === 'events' && activeRestored && settings().showOnStart) first = 'mark';
 
-  navStack = [first];
+  // Под текущим экраном всегда лежит главный: «назад» из события ведёт
+  // на список событий, а не закрывает приложение
+  navStack = ['events'];
   history.replaceState({ depth: 1 }, '');
 
   if (first === 'detail') {
@@ -3057,6 +3059,6 @@ document.addEventListener('DOMContentLoaded', () => {
   } else if (first === 'group') {
     openGroup();
   } else {
-    showTab(first, { push: false });
+    showTab(first, { push: first !== 'events' });
   }
 });
