@@ -10,78 +10,89 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Верхняя строка как в приложении: название события становится заголовком -->
-  <header class="top">
-    <div>
-      <h1 id="screenTitle">OSportMobile Lite</h1>
-      <p class="sub" id="screenSub">Участнику: скачать событие, отметиться, отправить</p>
-    </div>
-  </header>
+  <main id="app">
+    <!-- Вкладка «События»: поиск и карточка события -->
+    <section class="screen" id="homeScreen">
+      <header class="page-head">
+        <h1>События</h1>
+      </header>
 
-  <main>
-    <!-- Шаг 1: найти событие по номеру -->
-    <section class="card" id="findCard">
-      <label class="label" for="number">Номер события</label>
-      <div class="row">
-        <input id="number" class="input" type="text" inputmode="numeric" placeholder="12" autocomplete="off">
-        <button id="find" class="button">Найти</button>
+      <div class="card">
+        <label class="label" for="number">Номер события</label>
+        <div class="row">
+          <input id="number" class="input" type="text" inputmode="numeric" placeholder="12" autocomplete="off">
+          <button id="find" class="button">Найти</button>
+        </div>
+        <p class="hint">Номер виден на карточке события в приложении организатора.</p>
       </div>
-      <p class="hint" id="findHint">Номер виден на карточке события в приложении организатора.</p>
+
+      <div class="card hidden" id="eventCard">
+        <div class="row space">
+          <h2 class="title" id="eventName">—</h2>
+          <span class="badge" id="eventNumber"></span>
+        </div>
+        <p class="meta" id="eventOrganizer"></p>
+        <p class="meta" id="eventPeriod"></p>
+        <p class="meta" id="eventDetails"></p>
+        <button id="download" class="button" style="margin-top:12px;width:100%">Скачать событие</button>
+        <p class="hint" id="eventHint"></p>
+      </div>
     </section>
 
-    <!-- Шаг 2: карточка найденного события -->
-    <section class="card hidden" id="eventCard">
-      <div class="row space">
-        <h2 class="title" id="eventName">—</h2>
-        <span class="badge" id="eventNumber"></span>
+    <!-- Вкладка «Отметить»: как в приложении — название, погрешность, круг, подсказка -->
+    <section class="screen hidden" id="markScreen">
+      <div class="mark-top">
+        <h2 class="mark-title" id="markTitle">Событие</h2>
+        <p class="mark-sub" id="markAccuracy">Координаты пока не получены</p>
+        <p class="mark-ready hidden" id="markReady"></p>
+        <p class="mark-mode">Отметка ручная</p>
       </div>
-      <p class="meta" id="eventOrganizer"></p>
-      <p class="meta" id="eventPeriod"></p>
-      <p class="meta" id="eventDetails"></p>
 
-      <div class="row" style="margin-top:12px">
-        <button id="download" class="button" style="flex:1">Скачать событие</button>
-        <button id="openMark" class="button tonal" disabled>Отметки</button>
+      <div class="mark-center">
+        <button id="bigMark" class="mark-circle" disabled>
+          <span id="markButtonLabel">Подойдите к пункту</span>
+        </button>
       </div>
-      <p class="hint" id="eventHint"></p>
+
+      <p class="mark-hint" id="markHint">Кнопка станет зелёной у пункта — тогда нажмите</p>
     </section>
 
-    <!-- Шаг 3: отметки. Раскладка повторяет экран приложения:
-         название события, время, большая кнопка, список пунктов -->
-    <section class="card hidden" id="markCard">
-      <div class="row space">
-        <h2 class="title" id="markTitle">Отметки</h2>
-        <span class="badge" id="markBadge"></span>
-      </div>
-      <p class="meta" id="marksSummary">Пока ничего не отмечено</p>
-      <p class="hint" id="markPeriod"></p>
-
-      <button id="bigMark" class="mark-button" style="margin-top:16px">Старт</button>
-      <p class="hint" id="markHint"></p>
-      <p class="hint" id="markPosition"></p>
-
-      <div id="pointsList" class="points"></div>
-
-      <div class="row" style="margin-top:12px">
-        <button id="finishBtn" class="button tonal" style="flex:1" disabled>Финиш</button>
-      </div>
-
-      <div class="card hidden" id="sendCard" style="background:transparent;padding:0;margin-top:16px">
-        <p class="label">Кто отправил</p>
+    <!-- Вкладка «Профиль»: кто отправляет результат -->
+    <section class="screen hidden" id="profileScreen">
+      <header class="page-head">
+        <h1>Профиль</h1>
+      </header>
+      <div class="card">
+        <label class="label" for="nick">Ник</label>
         <input id="nick" class="input" type="text" placeholder="Ник">
-        <input id="code" class="input" type="text" placeholder="Код профиля (12 знаков)" style="margin-top:8px">
-        <button id="send" class="button" style="margin-top:12px;width:100%">Отправить результат</button>
-        <p class="hint">Код профиля виден в приложении на вкладке «Профиль».</p>
+        <label class="label" for="code" style="margin-top:12px">Код профиля</label>
+        <input id="code" class="input" type="text" placeholder="12 знаков">
+        <p class="hint">Код виден в приложении на вкладке «Профиль».</p>
+      </div>
+      <div class="card">
+        <button id="send" class="button" style="width:100%">Отправить результат</button>
+        <p class="hint" id="sendHint">Сначала отметьте финиш на дистанции.</p>
       </div>
     </section>
 
     <p class="status" id="status" role="status"></p>
   </main>
 
-  <footer class="bottom">
-    <span>OSportMobile Lite</span>
-    <span id="version">каркас</span>
-  </footer>
+  <!-- Нижняя навигация, как в приложении -->
+  <nav class="bottom-bar">
+    <button class="tab" id="tabEvents" data-tab="events">
+      <span class="tab-icon">⌂</span>
+      <span class="tab-label">События</span>
+    </button>
+    <button class="tab" id="tabMark" data-tab="mark">
+      <span class="tab-icon">☰</span>
+      <span class="tab-label">Отметить</span>
+    </button>
+    <button class="tab" id="tabProfile" data-tab="profile">
+      <span class="tab-icon">👤</span>
+      <span class="tab-label">Профиль</span>
+    </button>
+  </nav>
 
   <script src="marking.js"></script>
   <script src="app.js"></script>

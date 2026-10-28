@@ -1,8 +1,9 @@
 /**
  * OSportMobile Lite — участник: нашёл событие, скачал, отметился, отправил.
  *
- * Всё хранится на устройстве (localStorage): событие, отметки, кто отправляет.
- * Создавать и править события нельзя — это только прохождение.
+ * Экран отметки повторяет приложение: название события, погрешность, режим
+ * отметки, большой круг по центру и подсказка внизу. Круг красный, пока пункт
+ * далеко, и зелёный, когда можно отмечаться.
  */
 
 const CONFIG = {
@@ -19,10 +20,12 @@ const STORAGE = {
 
 const state = {
   entry: null,
-  event: null,       // { id, kind, key, distance }
+  event: null,
   marks: [],
-  position: null,    // { lat, lon, accuracy }
+  position: null,
   watchId: null,
+  candidate: null,
+  tab: 'events',
 };
 
 /* ─────────────────────────── хранилище ─────────────────────────── */
@@ -53,32 +56,20 @@ function saveEvent(event) {
   writeJson(STORAGE.event, event);
 }
 
-function loadSavedEvent() {
-  return readJson(STORAGE.event, null);
-}
-
 function saveMarks() {
-  if (!state.event) return;
-  writeJson(marksKey(state.event.id), state.marks);
+  if (state.event) writeJson(marksKey(state.event.id), state.marks);
 }
 
 function loadMarks() {
-  if (!state.event) return [];
-  return readJson(marksKey(state.event.id), []);
+  return state.event ? readJson(marksKey(state.event.id), []) : [];
 }
 
 /* ─────────────────────────── облако ─────────────────────────── */
 
-function setStatus(text, isError = false) {
+function setStatus(text, kind = '') {
   const node = $('status');
   node.textContent = text;
-  node.classList.toggle('error', isError);
-}
-
-function formatPeriod(start, finish) {
-  if (!start || !finish) return '';
-  const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-  return `${new Date(start).toLocaleString('ru-RU', options)} — ${new Date(finish).toLocaleString('ru-RU', options)}`;
+  node.className = 'status' + (kind ? ' ' + kind : '');
 }
 
 async function callFunction(query, body = null) {
@@ -101,13 +92,39 @@ async function callFunction(query, body = null) {
     parsed = null;
   }
   if (!response.ok) {
-    const reason = parsed && parsed.reason ? `: ${parsed.reason}` : '';
-    throw new Error((parsed && parsed.error ? parsed.error : `Ошибка ${response.status}`) + reason);
+    throw new Error(parsed && parsed.error ? parsed.error : `Ошибка ${response.status}`);
   }
   return parsed;
 }
 
+/* ─────────────────────────── вкладки ─────────────────────────── */
+
+function showTab(name) {
+  state.tab = name;
+  $('homeScreen').classList.toggle('hidden', name !== 'events');
+  $('markScreen').classList.toggle('hidden', name !== 'mark');
+  $('profileScreen').classList.toggle('hidden', name !== 'profile');
+
+  for (const [id, tab] of [['tabEvents', 'events'], ['tabMark', 'mark'], ['tabProfile', 'profile']]) {
+    $(id).classList.toggle('active', name === tab);
+  }
+
+  if (name === 'mark') {
+    startWatch();
+    renderMark();
+  }
+  if (name === 'profile') {
+    updateSendState();
+  }
+}
+
 /* ─────────────────────────── событие ─────────────────────────── */
+
+function formatPeriod(start, finish) {
+  if (!start || !finish) return '';
+  const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+  return `${new Date(start).toLocaleString('ru-RU', options)} — ${new Date(finish).toLocaleString('ru-RU', options)}`;
+}
 
 async function findByNumber(number) {
   const data = await callFunction('action=list&full=1&rogaine=1');
@@ -131,24 +148,24 @@ function renderEntry(entry) {
   if (entry.kind === 'distance' && entry.lengthMeters) details.push(`${entry.lengthMeters} м`);
   if (entry.participants) details.push(`участников: ${entry.participants}`);
   $('eventDetails').textContent = details.join(' · ');
-  $('eventHint').textContent = 'Скачивание сохраняет событие на устройстве: после этого его можно пройти без сети.';
+  $('eventHint').textContent = 'Скачивание сохраняет событие на устройстве: дальше оно работает без сети.';
 }
 
-function openMarks(event) {
-  saveEvent(event);
-  state.marks = loadMarks();
-  $('markCard').classList.remove('hidden');
-  $('openMark').disabled = false;
-
-  // Заголовок — как на экране отметки в приложении: название события
-  const distance = event.distance || {};
-  $('screenTitle').textContent = distance.name || 'Событие';
-  $('screenSub').textContent = 'Отметка · ' + (event.kind === 'rogaine' ? 'рогейн' : 'ориентирование');
-  $('markTitle').textContent = distance.name || 'Отметки';
-  $('markBadge').textContent = distance.id ? '№ ' + distance.id.slice(-4) : '';
-
-  renderMarks();
-  startWatch();
+async function downloadEvent() {
+  const entry = state.entry;
+  if (!entry) return;
+  setStatus('Скачиваю событие…');
+  try {
+    const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
+    if (!data.distance) throw new Error('Сервис не отдал событие');
+    const key = 'distances/' + entry.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
+    saveEvent({ id: entry.id, kind: data.kind, key, distance: data.distance });
+    state.marks = loadMarks();
+    setStatus('Событие скачано', 'good');
+    showTab('mark');
+  } catch (error) {
+    setStatus(error.message, 'error');
+  }
 }
 
 /* ─────────────────────────── отметки ─────────────────────────── */
@@ -157,168 +174,119 @@ function rogaineMode() {
   return Boolean(state.event && state.event.kind === 'rogaine');
 }
 
-function eventStartCode() {
-  return rogaineMode() ? START_CODE_ROGAINE : START_CODE;
-}
-
-function eventFinishCode() {
-  return rogaineMode() ? FINISH_CODE_ROGAINE : FINISH_CODE;
-}
-
-function eventPeriodState() {
-  const distance = state.event && state.event.distance;
-  return distance ? periodState(distance) : 'OK';
-}
-
-function markStart() {
-  if (eventPeriodState() !== 'OK') {
-    setStatus('Сейчас вне промежутка проведения — отметиться нельзя', true);
-    return;
-  }
-  if (state.marks.some((mark) => mark.start)) {
-    setStatus('Старт уже отмечен');
-    return;
-  }
-  state.marks.push({ code: eventStartCode(), time: Date.now(), start: true });
-  saveMarks();
-  renderMarks();
-  setStatus('Старт отмечен');
-}
-
-function markFinish() {
-  if (!state.marks.some((mark) => mark.start)) {
-    setStatus('Сначала отметьте старт', true);
-    return;
-  }
-  if (state.marks.some((mark) => mark.finish)) {
-    setStatus('Финиш уже отмечен');
-    return;
-  }
-  if (eventPeriodState() === 'BEFORE') {
-    setStatus('Время проведения ещё не наступило', true);
-    return;
-  }
-  state.marks.push({ code: eventFinishCode(), time: Date.now(), finish: true });
-  saveMarks();
-  renderMarks();
-  setStatus('Финиш отмечен — можно отправлять результат');
-}
-
-function markPoint(point) {
-  if (!state.marks.some((mark) => mark.start)) {
-    setStatus('Сначала отметьте старт', true);
-    return;
-  }
-  if (state.marks.some((mark) => mark.finish)) {
-    setStatus('Вы уже финишировали', true);
-    return;
-  }
-  if (eventPeriodState() !== 'OK') {
-    setStatus('Сейчас вне промежутка проведения — отметиться нельзя', true);
-    return;
-  }
-  const verdict = canMark(point, state.position);
-  if (!verdict.ok) {
-    setStatus(verdict.reason, true);
-    return;
-  }
+function labelOf(point) {
   const code = codeOf(point);
-  state.marks.push({ code, time: Date.now(), start: false, finish: false });
-  saveMarks();
-  renderMarks();
-  setStatus(`Пункт ${code} отмечен`);
+  if (isStart(code, rogaineMode())) return 'Старт';
+  if (isFinish(code, rogaineMode())) return 'Финиш';
+  return rogaineMode() ? `№${code}` : `КП ${code}`;
 }
 
-function renderMarks() {
-  const event = state.event;
-  if (!event) return;
-  const distance = event.distance || {};
-  const points = distance.points || [];
-  const order = distance.order || [];
-
-  const startMark = state.marks.find((mark) => mark.start);
-  const finishMark = state.marks.find((mark) => mark.finish);
-  const marked = new Set(
+function markedCodes() {
+  return new Set(
     state.marks.filter((mark) => !mark.start && !mark.finish).map((mark) => String(mark.code))
   );
+}
 
-  const parts = [];
-  if (startMark) parts.push(`старт ${new Date(startMark.time).toLocaleTimeString('ru-RU')}`);
-  parts.push(`отмечено ${marked.size} из ${points.length}`);
-  if (finishMark) parts.push(`финиш ${new Date(finishMark.time).toLocaleTimeString('ru-RU')}`);
-  $('marksSummary').textContent = parts.join(' · ');
+/** Пункт, у которого мы сейчас стоим: первый, куда можно отметиться. */
+function findCandidate() {
+  if (!state.event) return null;
+  const points = (state.event.distance && state.event.distance.points) || [];
+  const marked = markedCodes();
+  const started = state.marks.some((mark) => mark.start);
+  const finished = state.marks.some((mark) => mark.finish);
+  if (finished) return null;
 
-  const period = eventPeriodState();
-  $('markPeriod').textContent =
-    period === 'OK' ? 'Промежуток проведения идёт'
-      : period === 'BEFORE' ? 'Проведение ещё не началось'
-        : 'Время проведения закончилось';
-
-  // Куда можно отметиться прямо сейчас: пункт в пределах допуска
-  const near = points.find((point) => {
+  for (const point of points) {
     const code = codeOf(point);
-    if (isStart(code, rogaineMode()) || isFinish(code, rogaineMode())) return false;
-    if (marked.has(code)) return false;
-    return canMark(point, state.position).ok;
-  });
-
-  const big = $('bigMark');
-  big.className = 'mark-button';
-
-  if (finishMark) {
-    big.textContent = 'Финиш отмечен';
-    big.disabled = true;
-    big.classList.add('done');
-    $('markHint').textContent = 'Результат можно отправить.';
-  } else if (!startMark) {
-    big.textContent = 'Старт';
-    big.disabled = false;
-    $('markHint').textContent = 'Нажмите, чтобы начать.';
-  } else if (near) {
-    big.textContent = `Отметить КП ${codeOf(near)}`;
-    big.disabled = false;
-    big.classList.add('ready');
-    $('markHint').textContent = 'Кнопка зелёная — вы у пункта.';
-  } else {
-    big.textContent = 'Отметить';
-    big.disabled = true;
-    if (!state.position) {
-      $('markHint').textContent = 'Ждём сигнал GPS.';
-    } else if (state.position.accuracy > MAX_ACCURACY_METERS) {
-      $('markHint').textContent =
-        `Погрешность ${Math.round(state.position.accuracy)} м больше ${MAX_ACCURACY_METERS} м — ждём уточнения.`;
-    } else {
-      $('markHint').textContent = 'Подойдите к пункту — кнопка станет зелёной.';
-    }
+    const start = isStart(code, rogaineMode());
+    const finish = isFinish(code, rogaineMode());
+    if (start && started) continue;
+    if (finish && !started) continue;
+    if (!start && !finish && marked.has(code)) continue;
+    if (canMark(point, state.position).ok) return point;
   }
-  state.nearPoint = near || null;
+  return null;
+}
 
-  $('finishBtn').disabled = !startMark || Boolean(finishMark);
-  $('sendCard').classList.toggle('hidden', !finishMark);
+function renderMark() {
+  const event = state.event;
+  if (!event) {
+    $('markTitle').textContent = 'Сначала активируйте событие';
+    $('markAccuracy').textContent = 'Скачайте событие на вкладке «События».';
+    $('markReady').classList.add('hidden');
+    setCircle(null, 'Подойдите к пункту', false);
+    return;
+  }
 
-  const list = $('pointsList');
-  list.textContent = '';
-  points
-    .filter((point) => !isStart(codeOf(point), rogaineMode()) && !isFinish(codeOf(point), rogaineMode()))
-    .forEach((point) => {
-      const code = codeOf(point);
-      const done = marked.has(code);
-      const orderIndex = order.findIndex((value) => String(value) === code);
+  const distance = event.distance || {};
+  $('markTitle').textContent = distance.name || 'Событие';
 
-      const row = document.createElement('div');
-      row.className = 'point' + (done ? ' done' : '');
+  const position = state.position;
+  if (position) {
+    const accuracy = Math.round(position.accuracy * 10) / 10;
+    $('markAccuracy').textContent = `Погрешность: ${String(accuracy).replace('.', ',')} м`;
+  } else {
+    $('markAccuracy').textContent = 'Координаты пока не получены';
+  }
 
-      const num = document.createElement('span');
-      num.className = 'num';
-      num.textContent = orderIndex >= 0 ? `${orderIndex + 1}. №${code}` : `№${code}`;
+  const ready = $('markReady');
+  const candidate = findCandidate();
+  state.candidate = candidate;
 
-      const stateText = document.createElement('span');
-      stateText.className = 'state';
-      stateText.textContent = done ? 'отмечен' : '';
+  if (!position) {
+    ready.textContent = 'Ждём сигнал GPS';
+    ready.classList.remove('hidden', 'ok');
+  } else if (position.accuracy > MAX_ACCURACY_METERS) {
+    ready.textContent = `Точность пока грубая: ±${Math.round(position.accuracy)} м`;
+    ready.classList.remove('hidden', 'ok');
+  } else if (candidate) {
+    ready.textContent = 'Готово — можно отмечать';
+    ready.classList.remove('hidden');
+    ready.classList.add('ok');
+  } else {
+    ready.classList.add('hidden');
+  }
 
-      row.append(num, stateText);
-      list.append(row);
-    });
+  if (candidate) {
+    setCircle(candidate, labelOf(candidate), true);
+  } else {
+    setCircle(null, 'Подойдите к пункту', false);
+  }
+}
+
+function setCircle(point, label, ready) {
+  const circle = $('bigMark');
+  $('markButtonLabel').textContent = label;
+  circle.classList.toggle('ready', Boolean(ready));
+  circle.disabled = !ready;
+}
+
+function markCandidate() {
+  const point = state.candidate;
+  if (!point || !state.event) return;
+
+  const period = periodState(state.event.distance);
+  if (period !== 'OK') {
+    setStatus(period === 'BEFORE' ? 'Проведение ещё не началось' : 'Время проведения закончилось', 'error');
+    return;
+  }
+
+  const code = codeOf(point);
+  const started = state.marks.some((mark) => mark.start);
+  if (isFinish(code, rogaineMode()) && !started) {
+    setStatus('Сначала отметьте старт', 'error');
+    return;
+  }
+
+  state.marks.push({
+    code,
+    time: Date.now(),
+    start: isStart(code, rogaineMode()),
+    finish: isFinish(code, rogaineMode()),
+  });
+  saveMarks();
+  renderMark();
+  setStatus(`Отметка записана: ${labelOf(point)}`, 'good');
 }
 
 function startWatch() {
@@ -330,63 +298,73 @@ function startWatch() {
         lon: position.coords.longitude,
         accuracy: position.coords.accuracy,
       };
-      $('markPosition').textContent =
-        `GPS: погрешность ${Math.round(position.coords.accuracy)} м` +
-        ` · ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+      renderMark();
     },
     (error) => {
-      $('markPosition').textContent = 'GPS недоступен: ' + error.message;
+      $('markAccuracy').textContent = 'GPS недоступен: ' + error.message;
     },
     { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 }
   );
 }
 
-/* ─────────────────────────── отправка ─────────────────────────── */
+/* ─────────────────────────── профиль и отправка ─────────────────────────── */
 
-function readIdentity() {
-  return readJson(STORAGE.identity, { nick: '', code: '' });
+function identity() {
+  return { nick: $('nick').value.trim(), code: $('code').value.trim().toUpperCase() };
 }
 
-function saveIdentity(identity) {
-  writeJson(STORAGE.identity, identity);
+function saveIdentity() {
+  writeJson(STORAGE.identity, identity());
+}
+
+function updateSendState() {
+  const finished = state.marks.some((mark) => mark.finish);
+  $('send').disabled = !state.event || !finished;
+  $('sendHint').textContent = finished
+    ? 'Результат готов к отправке.'
+    : 'Сначала отметьте финиш на дистанции.';
 }
 
 async function sendResult() {
-  const identity = {
-    nick: $('nick').value.trim(),
-    code: $('code').value.trim().toUpperCase(),
-  };
-  if (!identity.nick) {
-    setStatus('Укажите ник', true);
+  const who = identity();
+  if (!who.nick) {
+    setStatus('Укажите ник', 'error');
+    showTab('profile');
     return;
   }
-  if (identity.code.length < 6) {
-    setStatus('Укажите код профиля (он в приложении на вкладке «Профиль»)', true);
+  if (who.code.length < 6) {
+    setStatus('Укажите код профиля', 'error');
+    showTab('profile');
     return;
   }
-  saveIdentity(identity);
+  saveIdentity();
 
   const event = state.event;
-  const result = buildResult(event.distance, state.marks, identity);
-  const payload = Object.assign({}, event.distance, { results: [result] });
+  const payload = Object.assign({}, event.distance, {
+    results: [buildResult(event.distance, state.marks, who)],
+  });
 
   setStatus('Отправляю результат…');
   try {
     await callFunction('action=result&key=' + encodeURIComponent(event.key), payload);
-    setStatus('Результат отправлен');
+    setStatus('Результат отправлен', 'good');
     $('send').disabled = true;
   } catch (error) {
-    setStatus(error.message, true);
+    setStatus(error.message, 'error');
   }
 }
 
 /* ─────────────────────────── запуск ─────────────────────────── */
 
 function bind() {
+  $('tabEvents').addEventListener('click', () => showTab('events'));
+  $('tabMark').addEventListener('click', () => showTab('mark'));
+  $('tabProfile').addEventListener('click', () => showTab('profile'));
+
   $('find').addEventListener('click', async () => {
     const number = $('number').value.trim();
     if (!number) {
-      setStatus('Введите номер события', true);
+      setStatus('Введите номер события', 'error');
       return;
     }
     setStatus('Ищу событие…');
@@ -394,7 +372,7 @@ function bind() {
       await findByNumber(number);
       setStatus('');
     } catch (error) {
-      setStatus(error.message, true);
+      setStatus(error.message, 'error');
     }
   });
 
@@ -402,43 +380,13 @@ function bind() {
     if (event.key === 'Enter') $('find').click();
   });
 
-  $('download').addEventListener('click', async () => {
-    const entry = state.entry;
-    if (!entry) return;
-    setStatus('Скачиваю событие…');
-    try {
-      const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
-      if (!data.distance) throw new Error('Сервис не отдал событие');
-      const key = 'distances/' + entry.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
-      openMarks({ id: entry.id, kind: data.kind, key, distance: data.distance });
-      setStatus('Событие скачано');
-    } catch (error) {
-      setStatus(error.message, true);
-    }
-  });
-
-  $('openMark').addEventListener('click', () => {
-    if (state.event) {
-      $('markCard').classList.remove('hidden');
-      startWatch();
-    }
-  });
-
-  // Одна большая кнопка, как в приложении: старт → отметка пункта → финиш отмечен
-  $('bigMark').addEventListener('click', () => {
-    if (!state.marks.some((mark) => mark.start)) {
-      markStart();
-      return;
-    }
-    if (state.nearPoint) markPoint(state.nearPoint);
-  });
-
-  $('finishBtn').addEventListener('click', markFinish);
+  $('download').addEventListener('click', downloadEvent);
+  $('bigMark').addEventListener('click', markCandidate);
   $('send').addEventListener('click', sendResult);
 
-  const identity = readIdentity();
-  $('nick').value = identity.nick || '';
-  $('code').value = identity.code || '';
+  const saved = readJson(STORAGE.identity, { nick: '', code: '' });
+  $('nick').value = saved.nick || '';
+  $('code').value = saved.code || '';
 }
 
 function registerServiceWorker() {
@@ -449,14 +397,12 @@ function registerServiceWorker() {
 document.addEventListener('DOMContentLoaded', () => {
   bind();
   registerServiceWorker();
-  $('version').textContent = 'каркас 0.3';
+  showTab('events');
 
-  const saved = loadSavedEvent();
+  const saved = readJson(STORAGE.event, null);
   if (saved && saved.distance) {
     state.event = saved;
     state.marks = loadMarks();
-    $('markCard').classList.remove('hidden');
-    $('openMark').disabled = false;
-    renderMarks();
+    updateSendState();
   }
 });

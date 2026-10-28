@@ -1,12 +1,8 @@
-/* OSportMobile Lite — вид как в приложении: Material 3, фиолетовый акцент. */
-
 :root {
   --primary: #6650a4;
   --on-primary: #ffffff;
   --primary-container: #eaddff;
   --on-primary-container: #21005d;
-  --secondary-container: #e8def8;
-  --on-secondary-container: #1d192b;
   --surface: #fef7ff;
   --surface-container: #f3edf7;
   --on-surface: #1d1b20;
@@ -14,11 +10,7 @@
   --outline: #79747e;
   --outline-variant: #cac4d0;
   --error: #b3261e;
-  --success: #2e6b2f;
-  --success-container: #b7f0b1;
-  --radius-card: 16px;
-  --radius-button: 20px;
-  --gap: 16px;
+  --mark-green: #2e7d32;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,8 +19,6 @@
     --on-primary: #381e72;
     --primary-container: #4f378b;
     --on-primary-container: #eaddff;
-    --secondary-container: #4a4458;
-    --on-secondary-container: #e8def8;
     --surface: #141218;
     --surface-container: #211f26;
     --on-surface: #e6e0e9;
@@ -36,8 +26,7 @@
     --outline: #938f99;
     --outline-variant: #49454f;
     --error: #f2b8b5;
-    --success: #b7f0b1;
-    --success-container: #1f3d20;
+    --mark-green: #2e7d32;
   }
 }
 
@@ -46,40 +35,35 @@
 body {
   margin: 0;
   min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
   background: var(--surface);
   color: var(--on-surface);
-  font: 16px/1.5 Roboto, "Segoe UI", system-ui, sans-serif;
+  font: 16px/1.4 Roboto, "Segoe UI", system-ui, sans-serif;
 }
 
-/* Верхняя строка — как TopAppBar */
-.top {
+#app {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--outline-variant);
+  flex-direction: column;
+  min-height: 100dvh;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
-.top h1 { margin: 0; font-size: 22px; font-weight: 500; }
-.sub { margin: 2px 0 0; color: var(--on-surface-variant); font-size: 13px; }
 
-main {
+.screen {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
-  padding: 16px;
+  gap: 16px;
+  padding: 8px 16px;
 }
+.screen.hidden, .hidden { display: none; }
+
+.page-head { padding: 16px 0 0; }
+.page-head h1 { margin: 0; font-size: 22px; font-weight: 500; }
 
 .card {
   background: var(--surface-container);
-  border-radius: var(--radius-card);
+  border-radius: 16px;
   padding: 16px;
 }
-
-.hidden { display: none; }
 
 .label { display: block; font-size: 14px; color: var(--on-surface-variant); margin-bottom: 8px; }
 .title { margin: 0; font-size: 20px; font-weight: 500; }
@@ -108,38 +92,10 @@ main {
   color: var(--on-primary);
   background: var(--primary);
   border: none;
-  border-radius: var(--radius-button);
+  border-radius: 20px;
   cursor: pointer;
 }
 .button:disabled { opacity: .5; cursor: default; }
-.button.tonal {
-  color: var(--on-secondary-container);
-  background: var(--secondary-container);
-}
-.button.outlined {
-  color: var(--primary);
-  background: transparent;
-  border: 1px solid var(--outline);
-}
-
-/* Большая кнопка отметки — как в приложении */
-.mark-button {
-  width: 100%;
-  padding: 28px 20px;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: .2px;
-  color: var(--on-primary);
-  background: var(--outline);
-  border: none;
-  border-radius: 28px;
-  cursor: pointer;
-  transition: background-color .15s ease, transform .08s ease;
-}
-.mark-button:active { transform: scale(.99); }
-.mark-button.ready { background: var(--success); color: #ffffff; }
-.mark-button.done { background: var(--primary); }
-.mark-button:disabled { cursor: default; }
 
 .badge {
   padding: 2px 10px;
@@ -150,35 +106,102 @@ main {
   white-space: nowrap;
 }
 
-.points { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+/* ───────────── экран отметки: как в приложении ───────────── */
 
-.point {
+.mark-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding-top: 24px;
+  text-align: center;
+}
+.mark-title { margin: 0; font-size: 20px; font-weight: 500; }
+.mark-sub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+.mark-ready { margin: 0; font-size: 13px; color: var(--on-surface-variant); }
+.mark-ready.ok { color: var(--mark-green); }
+.mark-mode { margin: 0; font-size: 12px; color: var(--on-surface-variant); }
+
+.mark-center {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border: 1px solid var(--outline-variant);
-  border-radius: 12px;
+  justify-content: center;
 }
-.point.done { background: var(--success-container); border-color: var(--success); }
-.point .num {
-  min-width: 44px;
-  font-weight: 600;
-  color: var(--primary);
-}
-.point .state { flex: 1; font-size: 14px; color: var(--on-surface-variant); }
-.point.done .state { color: var(--success); }
 
-.status { min-height: 24px; font-size: 14px; text-align: center; color: var(--on-surface-variant); }
-.status.error { color: var(--error); }
-.status.good { color: var(--success); }
-
-.bottom {
+.mark-circle {
+  width: 240px;
+  height: 240px;
+  max-width: 63vw;
+  max-height: 63vw;
+  padding: 24px;
   display: flex;
-  justify-content: space-between;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-  font-size: 13px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  border: none;
+  border-radius: 50%;
+  background: var(--error);
+  transition: background-color .15s ease, transform .08s ease;
+}
+.mark-circle:active { transform: scale(.98); }
+.mark-circle.ready { background: var(--mark-green); }
+.mark-circle:disabled { opacity: 1; cursor: default; }
+
+.mark-hint {
+  margin: 8px 24px 16px;
+  text-align: center;
+  font-size: 14px;
   color: var(--on-surface-variant);
+}
+
+/* ───────────── нижняя навигация ───────────── */
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: var(--surface-container);
   border-top: 1px solid var(--outline-variant);
 }
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 18px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  color: var(--on-surface-variant);
+  font-size: 12px;
+  cursor: pointer;
+}
+.tab .tab-icon { font-size: 18px; line-height: 1; }
+.tab.active { background: var(--primary-container); color: var(--on-primary-container); }
+
+.status {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  pointer-events: none;
+}
+.status.error { color: var(--error); }
+.status.good { color: var(--mark-green); }
