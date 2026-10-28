@@ -180,7 +180,16 @@ async function downloadEvent(entry = state.entry) {
 
 /* ─────────────────────────── облако ─────────────────────────── */
 
-/** Показывает все события из облака: как экран облака в приложении. */
+/** Экран облака: все события списком, скачивается одно — как в приложении. */
+let cloudEntries = [];
+
+function formatDate(value) {
+  if (!value) return '';
+  return new Date(value).toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
 async function openCloud() {
   showTab('cloud');
   $('cloudHint').textContent = 'Загружаю список…';
@@ -188,47 +197,73 @@ async function openCloud() {
 
   try {
     const data = await callFunction('action=list&full=1&rogaine=1');
-    const entries = (data.entries || []).slice().sort((a, b) => {
+    cloudEntries = (data.entries || []).slice().sort((a, b) => {
       const left = a.number === undefined ? 0 : Number(a.number);
       const right = b.number === undefined ? 0 : Number(b.number);
       return left - right;
     });
-
-    if (entries.length === 0) {
-      $('cloudHint').textContent = 'В облаке пока нет событий.';
-      return;
-    }
-
-    $('cloudHint').textContent = `Событий в облаке: ${entries.length}`;
-    const list = $('cloudList');
-    entries.forEach((entry) => {
-      const item = document.createElement('button');
-      item.className = 'cloud-item';
-
-      const kind = document.createElement('span');
-      kind.className = 'kind';
-      kind.textContent = entry.kind === 'rogaine' ? 'рогейн' : 'дистанция';
-
-      const name = document.createElement('span');
-      name.className = 'name';
-      name.textContent = (entry.number ? `№ ${entry.number} ` : '') + (entry.name || 'Без названия');
-
-      const line = document.createElement('span');
-      line.className = 'line';
-      const parts = [];
-      if (entry.organizer) parts.push(entry.organizer);
-      if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
-      if (entry.participants) parts.push(`участников: ${entry.participants}`);
-      if (entry.finishTime) parts.push(new Date(entry.finishTime).toLocaleDateString('ru-RU'));
-      line.textContent = parts.join(' · ');
-
-      item.append(kind, name, line);
-      item.addEventListener('click', () => downloadEvent(entry));
-      list.append(item);
-    });
+    renderCloud();
   } catch (error) {
     $('cloudHint').textContent = error.message;
   }
+}
+
+function renderCloud() {
+  const filter = $('cloudSearch').value.trim();
+  const entries = cloudEntries.filter(
+    (entry) => !filter || String(entry.number || '').startsWith(filter)
+  );
+
+  $('cloudHint').textContent = entries.length === 0
+    ? 'Ничего не найдено'
+    : `Событий в облаке: ${entries.length}`;
+
+  const list = $('cloudList');
+  list.textContent = '';
+
+  entries.forEach((entry) => {
+    const item = document.createElement('button');
+    item.className = 'cloud-item';
+
+    const body = document.createElement('div');
+    body.className = 'body';
+
+    const title = document.createElement('span');
+    title.className = 'name';
+    title.textContent = (entry.number ? `№ ${entry.number}  ` : '') + (entry.name || 'Без названия');
+
+    const period = document.createElement('span');
+    period.className = 'period';
+    period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
+
+    const details = document.createElement('span');
+    details.className = 'line';
+    const parts = [];
+    if (entry.kind === 'rogaine') {
+      if (entry.checkPointCount) parts.push(`Количество КП: ${entry.checkPointCount}`);
+      if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
+    } else {
+      if (entry.lengthMeters) parts.push(`Длина: ${entry.lengthMeters} м`);
+      if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
+    }
+    if (entry.participants) parts.push(`Участников: ${entry.participants}`);
+    details.textContent = parts.join(' · ');
+
+    const author = document.createElement('span');
+    author.className = 'line muted';
+    author.textContent = entry.organizer || 'Автор не указан';
+
+    body.append(title, period, details, author);
+
+    // Отметка справа: галочка у уже скачанного события, стрелка — у остальных
+    const action = document.createElement('span');
+    action.className = 'action';
+    action.textContent = state.event && state.event.id === entry.id ? '✓' : '⤓';
+
+    item.append(body, action);
+    item.addEventListener('click', () => downloadEvent(entry));
+    list.append(item);
+  });
 }
 
 /* ─────────────────────────── отметки ─────────────────────────── */
@@ -445,7 +480,9 @@ function bind() {
 
   $('download').addEventListener('click', () => downloadEvent());
   $('openCloud').addEventListener('click', openCloud);
+  $('cloudRefresh').addEventListener('click', openCloud);
   $('cloudBack').addEventListener('click', () => showTab('events'));
+  $('cloudSearch').addEventListener('input', renderCloud);
   $('bigMark').addEventListener('click', markCandidate);
   $('send').addEventListener('click', sendResult);
 

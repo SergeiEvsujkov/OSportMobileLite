@@ -43,9 +43,16 @@
     <!-- Экран облака: все события, как в приложении, скачивается одно -->
     <section class="screen hidden" id="cloudScreen">
       <header class="page-head">
-        <button id="cloudBack" class="icon-button" title="Назад">←</button>
-        <h1>Облако</h1>
+        <button id="cloudBack" class="icon-button left" title="Назад">←</button>
+        <h1>Дистанции в облаке</h1>
+        <button id="cloudRefresh" class="icon-button" title="Обновить">↻</button>
       </header>
+
+      <div class="search">
+        <span class="search-icon">⌕</span>
+        <input id="cloudSearch" class="search-input" type="text" inputmode="numeric" placeholder="Поиск по номеру">
+      </div>
+
       <p class="meta" id="cloudHint">Загружаю список…</p>
       <div class="cloud-list" id="cloudList"></div>
     </section>
