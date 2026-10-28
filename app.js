@@ -149,6 +149,12 @@ function formatDate(value) {
 /* ─────────────────────────── вкладки ─────────────────────────── */
 
 function showTab(name) {
+  // Экран отметки без активного события не открывается: сначала скачайте
+  if (name === 'mark' && !state.event) {
+    setStatus('Сначала активируйте событие', 'error');
+    return;
+  }
+
   // Переход на другой экран убирает прошлое сообщение
   setStatus('');
   $('homeScreen').classList.toggle('hidden', name !== 'events');

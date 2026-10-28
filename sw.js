@@ -6,14 +6,14 @@
  * скажет об ошибке — это честнее, чем показывать старую карточку.
  */
 
-const CACHE = 'osport-lite-v14';
+const CACHE = 'osport-lite-v15';
 const SHELL = [
   './',
   './index.html',
-  './styles.css?v=13',
-  './jsQR.js?v=13',
-  './marking.js?v=13',
-  './app.js?v=13',
+  './styles.css?v=14',
+  './jsQR.js?v=14',
+  './marking.js?v=14',
+  './app.js?v=14',
   './manifest.json',
   './icons/group.png',
   './icons.svg',
