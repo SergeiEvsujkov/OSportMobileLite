@@ -1055,7 +1055,7 @@ function deactivateDistance() {
   setStatus('Дистанция выгружена, отметки не производятся');
 }
 
-/** Окно подтверждения деактивации — как диалог в приложении. */
+/** Окно подтверждения деактивации — как UnloadDialog в приложении. */
 function openDeactivateDialog() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -1069,32 +1069,100 @@ function openDeactivateDialog() {
   const hint = document.createElement('p');
   hint.textContent = 'Отметиться по ней больше нельзя, пока не загрузите её снова. ВАШИ ОТМЕТКИ БУДУТ ОЧИЩЕНЫ.';
 
+  const warning = document.createElement('p');
+  warning.textContent = 'Если Вы не отправили результат прохождения дистанции, то он будет удалён с устройства.';
+
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
 
-  const cancel = document.createElement('button');
-  cancel.className = 'button outlined';
-  cancel.textContent = 'Отмена';
-  cancel.addEventListener('click', () => overlay.remove());
-
+  // «Отправить отметки» — сначала отправка, потом деактивация
   const sendAndExit = document.createElement('button');
-  sendAndExit.className = 'button tonal';
-  sendAndExit.textContent = 'Отправить и деактивировать';
+  sendAndExit.className = 'button';
+  sendAndExit.textContent = 'Отправить отметки';
   sendAndExit.addEventListener('click', async () => {
     overlay.remove();
+
+    // Без отметок отправлять нечего: деактивируем и говорим об этом
+    if (!state.marks.length) {
+      deactivateDistance();
+      setStatus('Отметок нет: по этой дистанции ничего не отмечено, отправлять нечего.', 'error');
+      return;
+    }
+
+    // Отметки не от этой дистанции: спрашиваем отдельно
+    if (!marksMatchDistance()) {
+      openMismatchDialog();
+      return;
+    }
+
     await sendResult();
     deactivateDistance();
   });
 
   const exit = document.createElement('button');
-  exit.className = 'button';
+  exit.className = 'button outlined';
   exit.textContent = 'Не отправлять отметки и деактивировать';
   exit.addEventListener('click', () => {
     overlay.remove();
     deactivateDistance();
   });
 
-  actions.append(cancel, sendAndExit, exit);
+  const cancel = document.createElement('button');
+  cancel.className = 'button text';
+  cancel.textContent = 'Отмена';
+  cancel.addEventListener('click', () => overlay.remove());
+
+  actions.append(sendAndExit, exit, cancel);
+  modal.append(title, hint, warning, actions);
+  overlay.append(modal);
+  document.body.append(overlay);
+}
+
+/** Подходят ли отметки этой дистанции: коды из маршрута, старт или финиш. */
+function marksMatchDistance() {
+  const distance = (state.event && state.event.distance) || {};
+  const rogaine = rogaineMode();
+  const starts = startAliasCodes(distance);
+  const allowed = new Set((distance.order || []).map((code) => String(code)));
+  starts.forEach((code) => allowed.add(code));
+
+  const finishCode = rogaine ? '02' : '2';
+  allowed.add(finishCode);
+
+  return state.marks.every((mark) => allowed.has(String(mark.code)));
+}
+
+/** «Отметки не от этой дистанции?» — как в приложении. */
+function openMismatchDialog() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const title = document.createElement('h2');
+  title.textContent = 'Отметки не от этой дистанции?';
+
+  const hint = document.createElement('p');
+  hint.textContent = 'Отметки не соответствуют этой дистанции. Отправлять их нельзя. Отменить деактивацию или всё равно деактивировать?';
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+
+  const confirm = document.createElement('button');
+  confirm.className = 'button';
+  confirm.textContent = 'Всё равно деактивировать';
+  confirm.addEventListener('click', () => {
+    overlay.remove();
+    deactivateDistance();
+  });
+
+  const cancel = document.createElement('button');
+  cancel.className = 'button text';
+  cancel.textContent = 'Отменить деактивацию';
+  cancel.addEventListener('click', () => overlay.remove());
+
+  actions.append(confirm, cancel);
   modal.append(title, hint, actions);
   overlay.append(modal);
   document.body.append(overlay);

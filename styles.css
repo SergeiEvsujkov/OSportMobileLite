@@ -645,3 +645,4 @@ html[data-theme="dark"] .event-card.active-event { background: #1d3527; }
 .distance-card.active-event { background: #e2f3e5; }
 html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
 
+.button.text { background: transparent; color: var(--primary); }
