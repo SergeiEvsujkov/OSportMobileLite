@@ -253,16 +253,6 @@ function renderHome() {
   card.append(head);
   const activeId = state.activeId;
 
-  /** Значок бегущего человека в углу — метка начатой дистанции. */
-  function runnerIcon() {
-    const runner = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    runner.setAttribute('class', 'icon run-icon');
-    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-    use.setAttribute('href', 'icons.svg#run');
-    runner.append(use);
-    return runner;
-  }
-
   if (items.length > 1) {
     // Вся карточка группы открывает группу, как в приложении
     card.style.cursor = 'pointer';
@@ -291,10 +281,7 @@ function renderHome() {
       if (event && event.id === item.id) inner.classList.add('active');
 
       // Начатая дистанция внутри группы подсвечивается сама, а не вся карточка
-      if (item.id === activeId) {
-        inner.classList.add('active-event');
-        inner.append(runnerIcon());
-      }
+      if (item.id === activeId) inner.classList.add('active-event');
       inner.append(detailsLine(item), iconsRow(false));
       if (item.entry && item.entry.mapExt) inner.append(mapLine());
       inner.addEventListener('click', (event) => {
@@ -313,10 +300,7 @@ function renderHome() {
   const distance = item.distance || {};
   const entry = item.entry || {};
 
-  if (item.id === activeId) {
-    card.classList.add('active-event');
-    card.append(runnerIcon());
-  }
+  if (item.id === activeId) card.classList.add('active-event');
 
   if (item.kind === 'rogaine') {
     const counts = [];
