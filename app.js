@@ -830,7 +830,18 @@ function renderDetail() {
 
   $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
 
-  showMap(points);
+  // В файле дистанции старта часто нет: он лежит в координатах события.
+  // Добавляем его как точку карты, иначе треугольника не видно
+  const startCode = event.kind === 'rogaine' ? '01' : '1';
+  const startLat = Number(distance.latitude);
+  const startLon = Number(distance.longitude);
+  const hasStart = points.some((point) => String(codeOf(point)) === startCode);
+  const mapPoints = (!hasStart && Number.isFinite(startLat) && Number.isFinite(startLon)
+    && (startLat || startLon))
+    ? [{ code: startCode, latitude: startLat, longitude: startLon, accuracyMeters: 0 }, ...points]
+    : points;
+
+  showMap(mapPoints);
   renderProtocol(distance);
 }
 
@@ -1089,7 +1100,12 @@ function drawMap(box) {
   // на радиус значка (14) с обеих сторон — как RouteLineOverlay
   const MARKER_RADIUS = 14;
   if (routeVisible && order.length > 1) {
-    const route = order
+    const startCode = rogaineMode() ? '01' : '1';
+    const hasStartInOrder = order.some((code) => String(code) === startCode);
+    const hasStartPoint = points.some((point) => String(codeOf(point)) === startCode);
+    const routeCodes = (!hasStartInOrder && hasStartPoint) ? [startCode, ...order] : order;
+
+    const route = routeCodes
       .map((code) => points.find((point) => String(codeOf(point)) === String(code)))
       .filter(Boolean);
 
