@@ -636,3 +636,16 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .modal h2 { margin: 0 0 8px; font-size: 19px; font-weight: 600; }
 .modal p { margin: 0 0 16px; font-size: 15px; color: var(--on-surface-variant); }
 .modal .modal-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* Начатая дистанция: карточка зеленеет, в углу бежит человечек — как в приложении */
+.event-card.active-event { background: #e2f3e5; }
+html[data-theme="dark"] .event-card.active-event { background: #1d3527; }
+
+.event-card .run-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  color: #2e7d32;
+}

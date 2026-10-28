@@ -250,6 +250,19 @@ function renderHome() {
   title.textContent = (group && group.number ? `№ ${group.number} ` : '') + (first.name || 'Без названия');
   head.append(icon, title);
   card.append(head);
+  // Начатая дистанция: карточка зеленеет и в углу бежит человек, как в приложении
+  const activeId = state.activeId;
+  const isActiveCard = items.some((item) => item.id === activeId);
+  if (isActiveCard) {
+    card.classList.add('active-event');
+    const runner = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    runner.setAttribute('class', 'icon run-icon');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', 'icons.svg#run');
+    runner.append(use);
+    card.append(runner);
+  }
+
   if (items.length > 1) {
     // Вся карточка группы открывает группу, как в приложении
     card.style.cursor = 'pointer';
