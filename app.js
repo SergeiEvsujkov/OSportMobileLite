@@ -2820,8 +2820,10 @@ function bind() {
   if (!seeded && (!seededIdentity || !seededIdentity.code
     || String(seededIdentity.code).length < 6)) {
     writeJson(STORAGE.identity, { nick: 'Серёга Евс', code: 'ABCHLFLJQKPP' });
-    writeJson('osport.lite.seeded', true);
   }
+  // Признак ставим и тогда, когда профиль уже был: выход не должен
+  // отменяться подстановкой при следующем запуске
+  if (!seeded) writeJson('osport.lite.seeded', true);
 
   const saved = readJson(STORAGE.identity, { nick: '', code: '' });
   $('nick').value = saved.nick || '';
