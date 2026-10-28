@@ -360,52 +360,73 @@ async function openCloud() {
 
 function renderCloud() {
   const filter = $('cloudSearch').value.trim();
-  const entries = cloudEntries.filter(
+  const matched = cloudEntries.filter(
     (entry) => !filter || String(entry.number || '').startsWith(filter)
   );
 
-  $('cloudHint').textContent = entries.length === 0
+  // Группа — только по groupId; без него запись одиночная, как в приложении
+  const groups = new Map();
+  matched.forEach((entry) => {
+    const key = entry.groupId ? 'g:' + entry.groupId : 's:' + entry.id;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(entry);
+  });
+
+  const total = groups.size;
+  $('cloudHint').textContent = total === 0
     ? 'Ничего не найдено'
-    : `Событий в облаке: ${entries.length}`;
+    : `Событий в облаке: ${total}`;
 
   const list = $('cloudList');
   list.textContent = '';
 
-  entries.forEach((entry) => {
+  [...groups.values()].forEach((items) => {
+    const first = items[0];
     const item = document.createElement('button');
     item.className = 'cloud-item';
 
     const body = document.createElement('div');
     body.className = 'body';
 
+    // У группы впереди значок маршрута, у одиночной записи его нет
+    if (items.length > 1) {
+      const mark = document.createElement('img');
+      mark.src = 'icons/group.png';
+      mark.alt = '';
+      mark.className = 'cloud-icon';
+      body.append(mark);
+    }
+
     const title = document.createElement('span');
     title.className = 'name';
-    title.textContent = (entry.number ? `№ ${entry.number}  ` : '') + (entry.name || 'Без названия');
+    title.textContent = (first.number ? `№ ${first.number}  ` : '') + (first.name || 'Без названия');
+    body.append(title);
 
     const period = document.createElement('span');
     period.className = 'period';
-    period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
+    period.textContent = formatDate(first.startTime) + ' - ' + formatDate(first.finishTime);
+    body.append(period);
 
-    const details = document.createElement('span');
-    details.className = 'line';
-    const parts = [];
-    if (entry.kind === 'rogaine') {
-      if (entry.checkPointCount) parts.push(`Количество КП: ${entry.checkPointCount}`);
-      if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
+    if (items.length > 1) {
+      // Дистанции группы: каждая строкой со значком прицела
+      items.forEach((entry) => {
+        const line = document.createElement('span');
+        line.className = 'line with-icon';
+        line.innerHTML = '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>';
+        const text = document.createElement('span');
+        text.textContent = groupDetails(entry);
+        line.append(text);
+        body.append(line);
+      });
     } else {
-      if (entry.lengthMeters) parts.push(`Длина: ${entry.lengthMeters} м`);
-      if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
+      body.append(detailsBlock(first));
+      body.append(mapLineCloud(first));
     }
-    if (entry.participants) parts.push(`Участников: ${entry.participants}`);
-    details.textContent = parts.join(' · ');
 
-    const author = document.createElement('span');
-    author.className = 'line muted';
-    author.textContent = entry.organizer || 'Автор не указан';
+    body.append(authorRowCloud(first));
 
-    body.append(title, period, details, author);
-
-    const downloaded = state.history.some((saved) => saved.id === entry.id);
+    // Справа: галочка, если все дистанции записи уже скачаны, иначе стрелка
+    const downloaded = items.every((entry) => state.history.some((saved) => saved.id === entry.id));
     const action = document.createElement('span');
     action.className = 'action';
     action.innerHTML = downloaded
@@ -413,16 +434,99 @@ function renderCloud() {
       : '<svg class="icon"><use href="icons.svg#download"></use></svg>';
 
     item.append(body, action);
-    // Уже скачанное не загружаем заново: сразу активируем и открываем отметку
     item.addEventListener('click', () => {
       if (downloaded) {
-        activateEvent(entry.id);
+        activateItem({ id: first.id, kind: first.kind, entry: first, distance: null });
       } else {
-        downloadEvent(entry);
+        downloadEvent(first);
       }
     });
     list.append(item);
   });
+}
+
+/** Сведения о дистанции в строке группы. */
+function groupDetails(entry) {
+  const parts = [];
+  if (entry.kind === 'rogaine') {
+    if (entry.checkPointCount) parts.push(`Количество КП: ${entry.checkPointCount}`);
+    if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
+    if (entry.penaltyPerMinute) parts.push(`Штраф: ${entry.penaltyPerMinute} балл/мин`);
+  } else {
+    if (entry.lengthMeters) parts.push(`Длина: ${entry.lengthMeters} м`);
+    parts.push(`Карта: ${entry.mapExt ? 'есть' : 'нет'}`);
+    if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
+  }
+  parts.push(`Участников: ${entry.participants || 0}`);
+  return parts.join(' · ');
+}
+
+/** Сведения об одиночной записи: как на карточке облака в приложении. */
+function detailsBlock(entry) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cloud-details';
+
+  if (entry.kind === 'rogaine') {
+    const line = document.createElement('span');
+    line.className = 'line';
+    const parts = [];
+    if (entry.checkPointCount) parts.push(`Количество КП: ${entry.checkPointCount}`);
+    if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
+    if (entry.penaltyPerMinute) parts.push(`Штраф: ${entry.penaltyPerMinute} балл/мин`);
+    line.textContent = parts.join(' · ');
+    wrap.append(line);
+
+    const row = document.createElement('span');
+    row.className = 'line row-line';
+    const people = document.createElement('span');
+    people.textContent = `Участников: ${entry.participants || 0}`;
+    const tag = document.createElement('span');
+    tag.className = 'kind-tag';
+    tag.textContent = 'Рогейн';
+    row.append(people, tag);
+    wrap.append(row);
+  } else {
+    const line = document.createElement('span');
+    line.className = 'line';
+    const parts = [];
+    if (entry.lengthMeters) parts.push(`Длина: ${entry.lengthMeters} м`);
+    if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
+    parts.push(`Участников: ${entry.participants || 0}`);
+    line.textContent = parts.join(' · ');
+    wrap.append(line);
+  }
+  return wrap;
+}
+
+/** «Карта: есть/нет» — в облаке строка есть всегда. */
+function mapLineCloud(entry) {
+  const line = document.createElement('span');
+  line.className = 'line';
+  line.textContent = `Карта: ${entry.mapExt ? 'есть' : 'нет'}`;
+  return line;
+}
+
+/** Автор: значок нужного цвета и имя, у своих — «— Это Вы». */
+function authorRowCloud(entry) {
+  const row = document.createElement('div');
+  row.className = 'author-row';
+
+  const person = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  person.setAttribute('class', 'icon small author-icon');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', 'icons.svg#person');
+  person.append(use);
+
+  const me = readJson(STORAGE.identity, { nick: '', code: '' });
+  const own = me.code && entry.ownerId && me.code === entry.ownerId;
+  person.style.color = !me.code ? '#000000' : own ? '#1565c0' : '#c62828';
+
+  const name = document.createElement('span');
+  name.className = 'author-name';
+  name.textContent = (entry.organizer || 'Автор не указан') + (own ? ' — Это Вы' : '');
+
+  row.append(person, name);
+  return row;
 }
 
 /** Скачивает одно событие: оно становится активным, но отметку не открывает. */

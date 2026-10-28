@@ -294,6 +294,14 @@ body {
 
 .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 
+.cloud-icon { width: 24px; height: 24px; margin-bottom: 6px; display: block; }
+
+.cloud-item .body { display: flex; flex-direction: column; gap: 2px; }
+.cloud-details { display: flex; flex-direction: column; gap: 2px; }
+.cloud-item .line.with-icon { display: flex; align-items: flex-start; gap: 8px; }
+.cloud-item .line.with-icon .icon { margin-top: 3px; flex: 0 0 auto; }
+.cloud-item .row-line { display: flex; align-items: center; justify-content: space-between; }
+
 .bottom-bar {
   position: fixed;
   left: 0;
