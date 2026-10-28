@@ -473,26 +473,6 @@ function renderDetail() {
   $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
 }
 
-/** Деактивация: отметки снимаются, событие остаётся скачанным. */
-function deactivateEvent() {
-  if (!state.event) return;
-  writeJson(marksKey(state.event.id), []);
-  state.marks = [];
-  localStorage.removeItem(STORAGE.event);
-  state.event = null;
-  updateSendState();
-  renderHome();
-  showTab('events');
-  setStatus('Событие деактивировано', 'good');
-}
-
-function askDeactivate() {
-  const name = (state.event && state.event.distance && state.event.distance.name) || 'это событие';
-  $('dialogText').textContent =
-    `Отметиться по «${name}» больше нельзя, пока не активируете снова. Ваши отметки будут очищены.`;
-  $('dialog').classList.remove('hidden');
-}
-
 /* ─────────────────────────── отметки ─────────────────────────── */
 
 function rogaineMode() {
@@ -695,13 +675,6 @@ function bind() {
     }
     sendResult();
   });
-  $('detailDeactivate').addEventListener('click', askDeactivate);
-  $('dialogCancel').addEventListener('click', () => $('dialog').classList.add('hidden'));
-  $('dialogOk').addEventListener('click', () => {
-    $('dialog').classList.add('hidden');
-    deactivateEvent();
-  });
-
   $('bigMark').addEventListener('click', markCandidate);
   $('send').addEventListener('click', sendResult);
 
