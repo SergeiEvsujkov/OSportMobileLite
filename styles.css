@@ -377,6 +377,9 @@ body {
 .proto-place { min-width: 28px; font-weight: 600; color: var(--on-surface-variant); }
 .proto-nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proto-result { font-variant-numeric: tabular-nums; font-weight: 500; min-width: 64px; text-align: right; }
+.proto-time { font-variant-numeric: tabular-nums; min-width: 96px; text-align: right; }
+.proto-score { font-variant-numeric: tabular-nums; font-weight: 500; min-width: 48px; text-align: right; }
+.proto-row.rogaine .proto-place { min-width: 44px; text-align: right; }
 .proto-behind { font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; color: var(--on-surface-variant); }
 .group-distances { display: flex; flex-direction: column; gap: 12px; }
 

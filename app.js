@@ -2232,21 +2232,54 @@ function renderProtocol(distance) {
 
   if (rows.length) {
     const head = document.createElement('div');
-    head.className = 'proto-row head';
-    head.innerHTML =
-      '<span class="proto-place">Место</span>' +
-      '<span class="proto-nick">Ник</span>' +
-      `<span class="proto-result">${rogaine ? 'Баллы' : 'Результат'}</span>` +
-      `<span class="proto-behind">${rogaine ? 'Штраф' : 'Отст.'}</span>`;
+    head.className = 'proto-row head' + (rogaine ? ' rogaine' : '');
+    head.innerHTML = rogaine
+      ? '<span class="proto-nick">Ник</span>' +
+        '<span class="proto-time">Время (результат)</span>' +
+        '<span class="proto-score">Баллы</span>' +
+        '<span class="proto-place">Место</span>'
+      : '<span class="proto-place">Место</span>' +
+        '<span class="proto-nick">Ник</span>' +
+        '<span class="proto-result">Результат</span>' +
+        '<span class="proto-behind">Отст.</span>';
     list.append(head);
 
     const shown = protocolExpanded ? rows : rows.slice(0, PROTOCOL_PREVIEW_ROWS);
-    shown.forEach((row) => list.append(protocolRow(row, rogaine)));
+    shown.forEach((row) => list.append(rogaine ? protocolRowRogaine(row) : protocolRow(row, false)));
   }
 
   const more = $('protoMore');
   more.classList.toggle('hidden', rows.length <= PROTOCOL_PREVIEW_ROWS);
   more.textContent = protocolExpanded ? 'Свернуть' : `Показать всех (${rows.length})`;
+}
+
+/**
+ * Строка протокола рогейна: ник, время от старта до финиша, баллы после
+ * штрафа и место. У DNF времени нет — прочерк, вместо места — статус.
+ */
+function protocolRowRogaine(row) {
+  const item = document.createElement('button');
+  item.className = 'proto-row rogaine';
+
+  const nick = document.createElement('span');
+  nick.className = 'proto-nick';
+  nick.textContent = row.nick;
+
+  const time = document.createElement('span');
+  time.className = 'proto-time';
+  time.textContent = row.status === 'OK' ? formatDuration(row.elapsed) : '—';
+
+  const score = document.createElement('span');
+  score.className = 'proto-score';
+  score.textContent = String(row.total);
+
+  const place = document.createElement('span');
+  place.className = 'proto-place';
+  place.textContent = row.status === 'OK' ? String(row.place) : row.status;
+
+  item.append(nick, time, score, place);
+  item.addEventListener('click', () => openParticipant(row, true));
+  return item;
 }
 
 /** Строка протокола: место (или статус), ник, результат, отставание. */
