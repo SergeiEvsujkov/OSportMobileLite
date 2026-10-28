@@ -1040,9 +1040,18 @@ function renderDetail() {
   const orderCodes = distance.order || [];
   const byCode = new Map(points.map((point) => [String(codeOf(point)), point]));
 
-  let mapPoints = orderCodes
-    .map((code) => byCode.get(String(code)))
-    .filter((point) => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
+  let mapPoints;
+  if (event.kind === 'rogaine') {
+    // У рогейна порядка пунктов нет: на карте показываем ВСЕ пункты
+    mapPoints = points.filter(
+      (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
+    );
+    mapState.showRoute = false;
+  } else {
+    mapPoints = orderCodes
+      .map((code) => byCode.get(String(code)))
+      .filter((point) => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
+  }
 
   const startPoint = byCode.get(startCode);
   const hasStart = Boolean(startPoint);
