@@ -989,10 +989,26 @@ function renderDetail() {
 function activateDistance() {
   if (!state.event) return;
   const entry = state.event.entry || {};
+  const distance = state.event.distance || {};
+
+  // Одна активная дистанция на оба вида спорта: как anotherDistanceActive в приложении
+  if (state.activeId && state.activeId !== state.event.id) {
+    setStatus('Сначала деактивируйте активную дистанцию', 'error');
+    return;
+  }
 
   // Участнику нельзя начать после окончания события (у автора проверки нет)
   if (entry.finishTime && Date.now() > entry.finishTime) {
     setStatus('Событие уже закончилось', 'error');
+    return;
+  }
+
+  // Без координат всех пунктов дистанцию начинать нельзя
+  const missing = (distance.points || []).some(
+    (point) => !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)
+  );
+  if (missing) {
+    setStatus('Не все координаты указаны: такую дистанцию нельзя загрузить для прохождения', 'error');
     return;
   }
 
@@ -1001,22 +1017,34 @@ function activateDistance() {
   state.marks = loadMarks(state.event.id);
   updateSendState();
   renderDetail();
-  setStatus('Дистанция активирована', 'good');
+  setStatus('Теперь Вы можете производить отметку на этой дистанции', 'good');
 }
 
 /** Деактивация: отметки остаются на устройстве, дистанция перестаёт быть активной. */
 function deactivateDistance() {
   stopWatch();
   stopQrScanner();
+  const eventId = state.event && state.event.id;
   state.activeId = null;
   try {
     localStorage.removeItem(STORAGE.active);
   } catch (error) {
     // приватный режим — просто не сохраняем
   }
+
+  // В приложении выгрузка стирает отметки этой дистанции
+  if (eventId) {
+    try {
+      localStorage.removeItem(marksKey(eventId));
+    } catch (error) {
+      // ничего страшного
+    }
+  }
+  state.marks = [];
+
   renderDetail();
   showTab('events');
-  setStatus('Дистанция деактивирована');
+  setStatus('Дистанция выгружена, отметки не производятся');
 }
 
 /** Окно подтверждения деактивации — как диалог в приложении. */
@@ -1031,7 +1059,7 @@ function openDeactivateDialog() {
   title.textContent = 'Деактивировать дистанцию?';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Отметки останутся на устройстве. Отправить их перед деактивацией?';
+  hint.textContent = 'Отметиться по ней больше нельзя, пока не загрузите её снова. ВАШИ ОТМЕТКИ БУДУТ ОЧИЩЕНЫ.';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
