@@ -282,7 +282,7 @@ function renderHome() {
 
       // Начатая дистанция внутри группы подсвечивается сама, а не вся карточка
       if (item.id === activeId) inner.classList.add('active-event');
-      inner.append(detailsLine(item), iconsRow(false));
+      inner.append(detailsLine(item), iconsRow(false, item.entry));
       if (item.entry && item.entry.mapExt) inner.append(mapLine());
       inner.addEventListener('click', (event) => {
         // Дистанция внутри карточки: не даём событию дойти до группы
@@ -377,17 +377,19 @@ function mapLine() {
 }
 
 /** Значки: способ отметки и автор; цвет человечка — как в приложении. */
-function iconsRow(withName) {
+function iconsRow(withName, entry = {}) {
   const row = document.createElement('div');
   row.className = 'distance-icons';
   row.innerHTML =
     '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
     '<svg class="icon small author-icon"><use href="icons.svg#person"></use></svg>';
 
-  // Человечек красится как в приложении: свой — синий, чужой — красный
+  // Человечек красится как в приложении: свой — синий, чужой — красный,
+  // без профиля — чёрный
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
+  const own = me.code && entry.ownerId && me.code === entry.ownerId;
   const person = row.querySelector('.author-icon');
-  if (person) person.style.color = !me.code ? '#000000' : '#c62828';
+  if (person) person.style.color = !me.code ? '#000000' : own ? '#1565c0' : '#c62828';
   return row;
 }
 
