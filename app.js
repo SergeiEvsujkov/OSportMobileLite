@@ -1177,6 +1177,7 @@ function showMapOn(box, points) {
   mapState.box = box;
   mapState.coords = null;
   drawMap(box);
+  addMapChrome(box);
   bindMapGestures(box);
 }
 
@@ -1212,34 +1213,7 @@ function showMap(points) {
 
   drawMap(box);
 
-  const kind = currentMapKind();
-  const attribution = document.createElement('span');
-  attribution.className = 'map-attr';
-  attribution.textContent = kind.attribution;
-  box.append(attribution);
-
-  const controls = document.createElement('div');
-  controls.className = 'map-controls';
-  controls.innerHTML =
-    '<button class="icon-button" id="mapLayers" title="Слои"><svg class="icon"><use href="icons.svg#layers"></use></svg></button>' +
-    (mapState.fullscreen
-      ? '<button class="icon-button" id="mapFull" title="Свернуть"><svg class="icon"><use href="icons.svg#fullscreen_exit"></use></svg></button>'
-      : '<button class="icon-button" id="mapFull" title="На весь экран"><svg class="icon"><use href="icons.svg#fullscreen"></use></svg></button>');
-  box.append(controls);
-
-  controls.querySelector('#mapLayers').addEventListener('click', (event) => {
-    event.stopPropagation();
-    mapState.kind = (mapState.kind + 1) % MAP_KINDS.length;
-    saveMapKind();
-    showMap(mapState.points);
-  });
-  controls.querySelector('#mapFull').addEventListener('click', (event) => {
-    event.stopPropagation();
-    // Разворачиваем карту средствами страницы: системный полноэкранный режим
-    // браузера не используем, иначе Chrome показывает свою подсказку о выходе
-    mapState.fullscreen = !mapState.fullscreen;
-    redrawMap();
-  });
+  addMapChrome(box);
 
   const lat = mapState.points.reduce((sum, point) => sum + point.latitude, 0) / mapState.points.length;
   const lon = mapState.points.reduce((sum, point) => sum + point.longitude, 0) / mapState.points.length;
@@ -1270,6 +1244,39 @@ function bearingDegrees(fromLat, fromLon, toLat, toLon) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
+/** Значки карты: название подложки и кнопки «слои» и «на весь экран». */
+function addMapChrome(box) {
+  const kind = currentMapKind();
+  const attribution = document.createElement('span');
+  attribution.className = 'map-attr';
+  attribution.textContent = kind.attribution;
+  box.append(attribution);
+
+  const controls = document.createElement('div');
+  controls.className = 'map-controls';
+  controls.innerHTML =
+    '<button class="icon-button" id="mapLayers" title="Слои"><svg class="icon"><use href="icons.svg#layers"></use></svg></button>' +
+    (mapState.fullscreen
+      ? '<button class="icon-button" id="mapFull" title="Свернуть"><svg class="icon"><use href="icons.svg#fullscreen_exit"></use></svg></button>'
+      : '<button class="icon-button" id="mapFull" title="На весь экран"><svg class="icon"><use href="icons.svg#fullscreen"></use></svg></button>');
+  box.append(controls);
+
+  controls.querySelector('#mapLayers').addEventListener('click', (event) => {
+    event.stopPropagation();
+    mapState.kind = (mapState.kind + 1) % MAP_KINDS.length;
+    saveMapKind();
+    redrawMap();
+  });
+
+  controls.querySelector('#mapFull').addEventListener('click', (event) => {
+    event.stopPropagation();
+    // Разворачиваем карту средствами страницы: системный полноэкранный режим
+    // браузера не используем, иначе Chrome показывает свою подсказку о выходе
+    mapState.fullscreen = !mapState.fullscreen;
+    redrawMap();
+  });
+}
+
 /** Перерисовывает ту карту, что сейчас на экране: дистанции или группы. */
 function redrawMap() {
   const box = mapState.box;
@@ -1285,6 +1292,8 @@ function redrawMap() {
     coords.textContent = mapState.coords;
     box.append(coords);
   }
+
+  addMapChrome(box);
 }
 
 /** Жесты карты: щипок меняет масштаб сразу, перетаскивание сдвигает центр. */
