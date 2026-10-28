@@ -377,19 +377,21 @@ async function openCloud() {
 
 function renderCloud() {
   const filter = $('cloudSearch').value.trim();
-  const matched = cloudEntries.filter(
-    (entry) => !filter || String(entry.number || '').startsWith(filter)
-  );
 
   // Группа — только по groupId; без него запись одиночная, как в приложении
   const groups = new Map();
-  matched.forEach((entry) => {
+  cloudEntries.forEach((entry) => {
     const key = entry.groupId ? 'g:' + entry.groupId : 's:' + entry.id;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(entry);
   });
 
-  const total = groups.size;
+  // Поиск по номеру: группа остаётся целиком, если совпал хотя бы один её
+  // член — как в CloudFilter.kt
+  const matched = [...groups.values()].filter((items) => !filter
+    || items.some((entry) => String(entry.number || '').startsWith(filter)));
+
+  const total = matched.length;
   $('cloudHint').textContent = total === 0
     ? 'Ничего не найдено'
     : `Событий в облаке: ${total}`;
@@ -397,7 +399,7 @@ function renderCloud() {
   const list = $('cloudList');
   list.textContent = '';
 
-  [...groups.values()].forEach((items) => {
+  matched.forEach((items) => {
     const first = items[0];
     const item = document.createElement('button');
     item.className = 'cloud-item';
