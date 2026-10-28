@@ -43,14 +43,28 @@
       <p class="hint" id="eventHint"></p>
     </section>
 
-    <!-- Шаг 3: заглушка отметок -->
+    <!-- Шаг 3: отметки -->
     <section class="card hidden" id="markCard">
       <h2 class="title">Отметки</h2>
       <p class="meta" id="marksSummary">Пока ничего не отмечено</p>
-      <p class="hint">
-        Здесь будут QR-сканер и GPS-кнопка. Сейчас каркас: событие скачивается,
-        отметки и отправка результата — следующий шаг.
-      </p>
+
+      <div class="row" style="margin-top:12px">
+        <button id="markStart" class="button">Старт</button>
+        <button id="markFinish" class="button secondary">Финиш</button>
+      </div>
+
+      <p class="hint" id="markPeriod"></p>
+      <p class="hint" id="markPosition"></p>
+
+      <div id="pointsList" class="points"></div>
+
+      <div class="card inner hidden" id="sendCard">
+        <p class="label">Кто отправил</p>
+        <input id="nick" class="input" type="text" placeholder="Ник">
+        <input id="code" class="input" type="text" placeholder="Код профиля (12 знаков)" style="margin-top:8px">
+        <button id="send" class="button" style="margin-top:12px">Отправить результат</button>
+        <p class="hint">Код профиля виден в приложении на вкладке «Профиль».</p>
+      </div>
     </section>
 
     <p class="status" id="status" role="status"></p>
@@ -61,6 +75,7 @@
     <span id="version">каркас</span>
   </footer>
 
+  <script src="marking.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

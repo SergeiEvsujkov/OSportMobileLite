@@ -105,6 +105,24 @@ main {
 .status { min-height: 24px; font-size: 14px; text-align: center; color: var(--muted); }
 .status.error { color: var(--error); }
 
+.points { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+
+.point {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--muted);
+  border-radius: 10px;
+}
+.point.done { border-color: var(--primary); }
+.point .code { font-weight: 700; }
+.point .state { font-size: 13px; color: var(--muted); }
+.point .button { padding: 8px 12px; font-size: 14px; }
+
+.card.inner { background: transparent; box-shadow: none; padding: 0; margin-top: 16px; }
+
 .bottom {
   display: flex;
   justify-content: space-between;
