@@ -6,6 +6,8 @@
  */
 
 const CONFIG = {
+  // Хранилище, откуда берутся карты дистанций (как DEFAULT_BUCKET в приложении)
+  mapBucketUrl: 'https://storage.yandexcloud.net/osport-mobile',
   functionUrl: 'https://functions.yandexcloud.net/d4eebmhdf007eak5nkbo',
 };
 
@@ -939,6 +941,9 @@ function renderDetail() {
   // У дистанции в группе корзины нет: удаляется только вся группа
   const inGroup = indexInGroup >= 0;
   $('detailDelete').classList.toggle('hidden', inGroup);
+
+  // Карта из облака: кнопка есть только когда карта у дистанции есть
+  $('detailMapDownload').classList.toggle('hidden', !entry.mapExt);
   $('detailSub').textContent = event.kind === 'rogaine'
     ? 'Рогейн'
     : (indexInGroup >= 0 ? `Дистанция ${indexInGroup + 1}` : 'Дистанция');
@@ -1127,6 +1132,29 @@ function signOut() {
   $('nick').value = '';
   $('code').value = '';
   setStatus('Вы вышли из профиля');
+}
+
+/** Скачивает карту дистанции из облака — как downloadMap в приложении. */
+async function downloadCloudMap() {
+  if (!state.event) return;
+
+  try {
+    // Расширение спрашиваем у облака: карту могли заменить на другую
+    const answer = await callFunction('action=mapinfo&id=' + encodeURIComponent(state.event.id));
+    const ext = String((answer && answer.ext) || '');
+
+    if (!ext) {
+      setStatus('Карты в облаке нет', 'error');
+      return;
+    }
+
+    // Файл лежит в хранилище: maps/<id>.<ext>
+    const url = `${CONFIG.mapBucketUrl}/maps/${encodeURIComponent(state.event.id)}.${ext}`;
+    setStatus('Скачиваю карту…');
+    window.open(url, '_blank');
+  } catch (error) {
+    setStatus('Не удалось скачать карту. Попробуйте позже.', 'error');
+  }
 }
 
 /** Окно «Выйти из профиля?» — как в приложении. */
@@ -2774,6 +2802,7 @@ function bind() {
   $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
   $('profileSignOut').addEventListener('click', openSignOutDialog);
   $('detailMarksButton').addEventListener('click', openMyProgress);
+  $('detailMapDownload').addEventListener('click', downloadCloudMap);
   $('detailDelete').addEventListener('click', () => {
     if (state.event) openDeleteDialog(state.event.id);
   });
