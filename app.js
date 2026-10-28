@@ -976,8 +976,53 @@ function formatClock(millis) {
 const PROTOCOL_PREVIEW_ROWS = 8;
 
 /**
- * Протокол собирается из скачанной дистанции: её результатов, пунктов и
- * порядка. Заголовок, число участников и строки — всё из файла события.
+ * Статус результата — те же правила, что в приложении:
+ * DNS — не было старта, DNF — нет финиша, DSQ — отметки не по маршруту,
+ * иначе «финиш».
+ */
+function resultStatusOf(row, distance) {
+  if (!row.startTime) return 'DNS';
+  if (!row.finishTime) return 'DNF';
+
+  const route = (distance.order || []).map((code) => String(code))
+    .filter((code) => !isStart(code, false) && !isFinish(code, false));
+  if (!route.length) return 'OK';
+
+  const taken = row.marks
+    .map((mark) => String(mark.code))
+    .filter((code) => !isStart(code, false) && !isFinish(code, false));
+
+  if (taken.length !== route.length) return 'DSQ';
+  return taken.every((code, index) => code === route[index]) ? 'OK' : 'DSQ';
+}
+
+/** Баллы рогейна: очки пунктов без повторов, старт и финиш не считаются. */
+function rogainePoints(marks) {
+  const seen = new Set();
+  let total = 0;
+  (marks || []).forEach((mark) => {
+    const code = String(mark.code || '');
+    if (!/^[1-9]/.test(code)) return;
+    if (seen.has(code)) return;
+    seen.add(code);
+    total += Number(code[0]) || 0;
+  });
+  return total;
+}
+
+/** Штраф рогейна: неполная минута считается целой, ровно в срок — ноль. */
+function rogainePenaltyOf(finishTime, startTime, controlMinutes, penaltyPerMinute) {
+  const limit = startTime + (controlMinutes || 0) * 60000;
+  const late = finishTime - limit;
+  if (late <= 0) return { minutes: 0, points: 0 };
+  const minutes = Math.ceil(late / 60000);
+  return { minutes, points: minutes * (penaltyPerMinute || 0) };
+}
+
+/**
+ * Протокол из скачанной дистанции — по правилам приложения:
+ * сначала финишировавшие, места с пропуском при равенстве, у рогейна
+ * сортировка по баллам и затем по времени.
  */
 function buildProtocol(distance) {
   const results = Array.isArray(distance.results) ? distance.results : [];
@@ -985,41 +1030,65 @@ function buildProtocol(distance) {
 
   const rows = results.map((row) => {
     const marks = Array.isArray(row.marks) ? row.marks : [];
+    const status = rogaine ? (row.finishTime ? 'OK' : 'DNF') : resultStatusOf({ ...row, marks }, distance);
     const elapsed = row.startTime && row.finishTime ? row.finishTime - row.startTime : 0;
-
-    let score = 0;
-    marks.forEach((mark) => {
-      const value = Number(String(mark.code || '')[0]);
-      if (Number.isFinite(value)) score += value;
-    });
-
-    const penalty = rogaine && distance.penaltyPerMinute && distance.controlTimeMinutes && elapsed
-      ? Math.max(0, Math.ceil(elapsed / 60000 - distance.controlTimeMinutes) * distance.penaltyPerMinute)
-      : 0;
+    const score = rogaine ? rogainePoints(marks) : 0;
+    const penalty = rogaine && row.finishTime && row.startTime
+      ? rogainePenaltyOf(row.finishTime, row.startTime, distance.controlTimeMinutes, distance.penaltyPerMinute)
+      : { minutes: 0, points: 0 };
 
     return {
       userId: row.userId || '',
       nick: row.nick || row.userId || 'Участник',
       startTime: row.startTime || 0,
       finishTime: row.finishTime || 0,
-      elapsed,
-      score: Math.max(0, score - penalty),
-      penalty,
+      elapsed: status === 'OK' ? elapsed : 0,
+      score,
+      penalty: penalty.points,
+      penaltyMinutes: penalty.minutes,
+      total: Math.max(0, score - penalty.points),
+      status,
       marks,
+      place: null,
     };
   });
 
-  // Место: у рогейна — по баллам, у дистанции — по времени
-  rows.sort((left, right) => (rogaine ? right.score - left.score : left.elapsed - right.elapsed));
-  rows.forEach((row, index) => {
-    row.place = index + 1;
+  const ordered = rows.slice().sort((left, right) => {
+    const leftOk = left.status === 'OK' ? 0 : 1;
+    const rightOk = right.status === 'OK' ? 0 : 1;
+    if (leftOk !== rightOk) return leftOk - rightOk;
+    if (rogaine) {
+      if (right.total !== left.total) return right.total - left.total;
+      return left.elapsed - right.elapsed;
+    }
+    return left.elapsed - right.elapsed;
   });
-  return rows;
+
+  // Место — позиция в протоколе; при равенстве место повторяется, следующее
+  // идёт с пропуском (1, 2, 2, 5)
+  let lastKey = null;
+  let lastPlace = 0;
+  let best = null;
+  ordered.forEach((row, index) => {
+    if (row.status !== 'OK') return;
+    const key = rogaine ? `${row.total}/${row.elapsed}` : String(row.elapsed);
+    if (key === lastKey) {
+      row.place = lastPlace;
+    } else {
+      row.place = index + 1;
+      lastPlace = row.place;
+      lastKey = key;
+    }
+    if (best === null) best = row;
+    row.behind = rogaine ? Math.max(0, best.total - row.total) : Math.max(0, row.elapsed - best.elapsed);
+  });
+
+  return ordered;
 }
 
 let protocolExpanded = false;
 
-/** Протокол: заголовок, число участников, строки и сворачивание, как в приложении. */
+/** Протокол: заголовок, число участников, колонки и строки. */
 function renderProtocol(distance) {
   const rows = buildProtocol(distance);
   const rogaine = rogaineMode();
@@ -1030,27 +1099,34 @@ function renderProtocol(distance) {
 
   const list = $('protoList');
   list.textContent = '';
-  if (!rows.length) {
-    $('protoMore').classList.add('hidden');
-    return;
-  }
 
-  const shown = protocolExpanded ? rows : rows.slice(0, PROTOCOL_PREVIEW_ROWS);
-  shown.forEach((row) => list.append(protocolRow(row, rogaine)));
+  if (rows.length) {
+    const head = document.createElement('div');
+    head.className = 'proto-row head';
+    head.innerHTML =
+      '<span class="proto-place">Место</span>' +
+      '<span class="proto-nick">Ник</span>' +
+      `<span class="proto-result">${rogaine ? 'Баллы' : 'Результат'}</span>` +
+      `<span class="proto-behind">${rogaine ? 'Штраф' : 'Отст.'}</span>`;
+    list.append(head);
+
+    const shown = protocolExpanded ? rows : rows.slice(0, PROTOCOL_PREVIEW_ROWS);
+    shown.forEach((row) => list.append(protocolRow(row, rogaine)));
+  }
 
   const more = $('protoMore');
   more.classList.toggle('hidden', rows.length <= PROTOCOL_PREVIEW_ROWS);
   more.textContent = protocolExpanded ? 'Свернуть' : `Показать всех (${rows.length})`;
 }
 
-/** Строка протокола: место, ник, результат; нажатие открывает сплиты. */
+/** Строка протокола: место (или статус), ник, результат, отставание. */
 function protocolRow(row, rogaine) {
   const item = document.createElement('button');
   item.className = 'proto-row';
 
   const place = document.createElement('span');
   place.className = 'proto-place';
-  place.textContent = String(row.place);
+  place.textContent = row.status === 'OK' ? String(row.place) : row.status;
 
   const nick = document.createElement('span');
   nick.className = 'proto-nick';
@@ -1058,9 +1134,21 @@ function protocolRow(row, rogaine) {
 
   const result = document.createElement('span');
   result.className = 'proto-result';
-  result.textContent = rogaine ? `${row.score} б.` : formatDuration(row.elapsed);
+  result.textContent = row.status === 'OK'
+    ? (rogaine ? String(row.total) : formatDuration(row.elapsed))
+    : '—';
 
-  item.append(place, nick, result);
+  const behind = document.createElement('span');
+  behind.className = 'proto-behind';
+  if (row.status !== 'OK') {
+    behind.textContent = '';
+  } else if (rogaine) {
+    behind.textContent = row.penalty ? `−${row.penalty}` : '0';
+  } else {
+    behind.textContent = row.behind ? '+' + formatDuration(row.behind) : '—';
+  }
+
+  item.append(place, nick, result, behind);
   item.addEventListener('click', () => openParticipant(row, rogaine));
   return item;
 }

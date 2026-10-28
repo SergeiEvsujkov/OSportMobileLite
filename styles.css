@@ -350,7 +350,15 @@ body {
 .proto-row.static { cursor: default; }
 .proto-place { min-width: 28px; font-weight: 600; color: var(--on-surface-variant); }
 .proto-nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.proto-result { font-variant-numeric: tabular-nums; font-weight: 500; }
+.proto-result { font-variant-numeric: tabular-nums; font-weight: 500; min-width: 64px; text-align: right; }
+.proto-behind { font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; color: var(--on-surface-variant); }
+.proto-row.head {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  border-bottom: 1px solid var(--outline);
+  cursor: default;
+}
+.proto-row.head .proto-place, .proto-row.head .proto-nick, .proto-row.head .proto-result, .proto-row.head .proto-behind { font-weight: 500; }
 .proto-title { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
 
 .detail-rows { display: flex; flex-direction: column; gap: 10px; }
