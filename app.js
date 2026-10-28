@@ -170,9 +170,10 @@ async function downloadEvent(entry = state.entry) {
       entry,
     });
     state.marks = loadMarks();
-    // Сообщение о скачивании не показываем: сразу видно сам экран отметки
+    // Скачанное событие становится активным, но экран отметки сам не
+    // открывается: его открывают вкладкой «Отметить», как в приложении
     setStatus('');
-    showTab('mark');
+    updateSendState();
   } catch (error) {
     setStatus(error.message, 'error');
   }
@@ -511,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderEntry(saved.entry);
     }
     updateSendState();
-    showTab('mark');
+    showTab('events');
   } else {
     showTab('events');
   }
