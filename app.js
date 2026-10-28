@@ -159,7 +159,15 @@ async function downloadEvent() {
     const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
     if (!data.distance) throw new Error('Сервис не отдал событие');
     const key = 'distances/' + entry.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
-    saveEvent({ id: entry.id, kind: data.kind, key, distance: data.distance });
+    // Вместе с событием храним его карточку: после перезапуска приложения
+    // и после перезагрузки телефона видно то же событие, а не пустой список
+    saveEvent({
+      id: entry.id,
+      kind: data.kind,
+      key,
+      distance: data.distance,
+      entry,
+    });
     state.marks = loadMarks();
     // Сообщение о скачивании не показываем: сразу видно сам экран отметки
     setStatus('');
@@ -398,12 +406,20 @@ function registerServiceWorker() {
 document.addEventListener('DOMContentLoaded', () => {
   bind();
   registerServiceWorker();
-  showTab('events');
 
+  // Скачанное событие и отметки лежат на устройстве: при повторном открытии
+  // и после перезагрузки телефона они на месте
   const saved = readJson(STORAGE.event, null);
   if (saved && saved.distance) {
     state.event = saved;
     state.marks = loadMarks();
+    if (saved.entry) {
+      state.entry = saved.entry;
+      renderEntry(saved.entry);
+    }
     updateSendState();
+    showTab('mark');
+  } else {
+    showTab('events');
   }
 });
