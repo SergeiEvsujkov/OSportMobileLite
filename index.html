@@ -7,7 +7,7 @@
   <title>OSportMobile Lite</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=21">
+  <link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
   <main id="app">
@@ -95,11 +95,16 @@
       <header class="page-head">
         <button id="participantBack" class="icon-button left" title="Назад">←</button>
         <div class="head-text">
-          <h1 id="participantTitle">Участник</h1>
-          <p class="sub" id="participantSub"></p>
+          <h1>Сплит участника</h1>
         </div>
       </header>
-      <div class="points" id="participantMarks"></div>
+      <div class="split-summary" id="participantSummary"></div>
+
+      <div class="split-head">
+        <span class="split-number">№ п/п</span>
+        <span class="split-value">Время отметки (номер КП)</span>
+      </div>
+      <div class="split-table" id="participantMarks"></div>
     </section>
 
     <!-- Экран дистанции -->
@@ -198,8 +203,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=21"></script>
-  <script src="marking.js?v=21"></script>
-  <script src="app.js?v=21"></script>
+  <script src="jsQR.js?v=22"></script>
+  <script src="marking.js?v=22"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

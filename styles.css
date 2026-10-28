@@ -374,6 +374,34 @@ body {
 .proto-nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proto-result { font-variant-numeric: tabular-nums; font-weight: 500; min-width: 64px; text-align: right; }
 .proto-behind { font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; color: var(--on-surface-variant); }
+.split-summary { display: flex; flex-direction: column; }
+.split-summary .line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 16px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.split-summary .line span:last-child { text-align: right; }
+
+.split-head {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  border-bottom: 1px solid var(--outline);
+}
+.split-head .split-number { min-width: 64px; }
+.split-head .split-value { flex: 1; }
+
+.split-table { display: flex; flex-direction: column; }
+.split-value { flex: 1; display: flex; flex-direction: column; }
+.split-line { font-size: 16px; }
+.split-line.total { color: var(--on-surface-variant); }
+
 .split-row {
   display: flex;
   align-items: center;

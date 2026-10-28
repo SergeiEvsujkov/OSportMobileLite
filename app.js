@@ -1573,101 +1573,81 @@ function protocolRow(row, rogaine) {
 }
 
 /**
- * Экран участника: сплиты как в приложении.
+ * Экран «Сплит участника» — как в приложении.
  *
- * Время отметки, время на этапе (от предыдущей отметки), отставание от
- * лидера по этому же пункту и пометка «не по маршруту», если отметка стоит
- * не в свою очередь.
+ * Сверху сводка (дистанция, ник, время старта и финиша, результат, место),
+ * ниже таблица «№ п/п | Время отметки (номер КП)»: у пункта номер по порядку,
+ * время этапа и накопленное время. Старт и финиш — без номера.
  */
 function openParticipant(row, rogaine) {
   const distance = (state.event && state.event.distance) || {};
-  const rows = buildProtocol(distance);
-  const leader = rows.find((item) => item.status === 'OK');
 
-  const leaderTimes = new Map();
-  if (leader && leader !== row) {
-    (leader.marks || []).forEach((mark) => {
-      leaderTimes.set(String(mark.code), mark.time);
-    });
-  }
+  const summary = $('participantSummary');
+  summary.textContent = '';
+  const summaryRow = (label, value) => {
+    const line = document.createElement('div');
+    line.className = 'line';
+    const left = document.createElement('span');
+    left.textContent = label;
+    const right = document.createElement('span');
+    right.textContent = value;
+    line.append(left, right);
+    summary.append(line);
+  };
 
-  $('participantTitle').textContent = row.nick;
-  $('participantSub').textContent = rogaine
-    ? `Баллы: ${row.total} · штраф ${row.penalty} · место ${row.place || '—'}`
-    : `Результат: ${formatDuration(row.elapsed)} · место ${row.place || '—'}`;
+  summaryRow('Дистанция', distance.name || '—');
+  summaryRow('Ник', row.nick);
+  if (row.startTime) summaryRow('Время старта', formatClock(row.startTime));
+  if (row.finishTime) summaryRow('Время финиша', formatClock(row.finishTime));
+  summaryRow('Результат', formatDuration(row.elapsed));
+  if (row.place) summaryRow('Место', String(row.place));
 
   const list = $('participantMarks');
   list.textContent = '';
-
-  const route = (distance.order || []).map((code) => String(code))
-    .filter((code) => !isStart(code, rogaine) && !isFinish(code, rogaine));
-
   const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+
+  let number = 0;
   let previous = null;
-  let expected = 0;
 
   marks.forEach((mark) => {
     const code = String(mark.code);
     const startPoint = isStart(code, rogaine);
     const finishPoint = isFinish(code, rogaine);
+    const leg = previous === null ? null : mark.time - previous;
 
-    // Номер по порядку получают только отметки в свою очередь, как в
-    // progressRows: лишняя остаётся без номера и помечается
-    let orderNumber = '';
-    let offRoute = false;
+    let label;
     if (startPoint) {
-      orderNumber = 'Старт';
+      label = '(Старт)';
     } else if (finishPoint) {
-      orderNumber = 'Финиш';
-    } else if (route.length) {
-      if (route[expected] === code) {
-        expected += 1;
-        orderNumber = String(expected);
-      } else {
-        offRoute = true;
-        orderNumber = '—';
-      }
+      label = '(Финиш)';
     } else {
-      orderNumber = '—';
+      number += 1;
+      label = `(${code})`;
     }
-
-    const leg = previous ? (mark.time - previous) : null;
-    const leaderTime = leaderTimes.get(code);
-    const behind = leaderTime && previous ? (mark.time - leaderTime) : null;
 
     const item = document.createElement('div');
-    item.className = 'split-row' + (offRoute ? ' off-route' : '');
+    item.className = 'split-row';
 
-    const order = document.createElement('span');
-    order.className = 'split-order';
-    order.textContent = orderNumber;
+    const num = document.createElement('span');
+    num.className = 'split-number';
+    num.textContent = startPoint || finishPoint ? '' : number + '.';
 
-    const name = document.createElement('span');
-    name.className = 'split-name';
-    name.textContent = startPoint ? 'Старт' : finishPoint ? 'Финиш' : String(code);
+    const value = document.createElement('span');
+    value.className = 'split-value';
 
-    const clock = document.createElement('span');
-    clock.className = 'split-clock';
-    clock.textContent = formatClock(mark.time);
+    const first = document.createElement('span');
+    first.className = 'split-line';
+    first.textContent = leg === null ? label : `${label} ${formatDuration(leg)}`;
 
-    const legText = document.createElement('span');
-    legText.className = 'split-leg';
-    legText.textContent = leg === null ? '—' : formatDuration(leg);
+    const second = document.createElement('span');
+    second.className = 'split-line total';
+    const elapsed = row.startTime && mark.time ? mark.time - row.startTime : null;
+    second.textContent = elapsed === null ? '' : formatDuration(elapsed);
 
-    const behindText = document.createElement('span');
-    behindText.className = 'split-behind';
-    if (offRoute) {
-      behindText.textContent = 'не по маршруту';
-    } else if (behind === null) {
-      behindText.textContent = '';
-    } else if (behind === 0) {
-      behindText.textContent = 'лидер';
-    } else {
-      behindText.textContent = (behind > 0 ? '+' : '−') + formatDuration(Math.abs(behind));
-    }
-
-    item.append(order, name, clock, legText, behindText);
+    value.append(first, second);
+    item.append(num, value);
     list.append(item);
+
     previous = mark.time;
   });
 
