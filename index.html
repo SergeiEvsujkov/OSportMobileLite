@@ -11,18 +11,47 @@
 </head>
 <body>
   <main id="app">
-    <!-- Главный экран: свои события, как в приложении (без «Создать» и фильтров) -->
+    <!-- Главный экран: одна запись — активное событие -->
     <section class="screen" id="homeScreen">
       <header class="page-head">
         <h1>События</h1>
         <button id="openCloud" class="icon-button" title="Облако">☁</button>
       </header>
-
       <div class="events-list" id="eventsList"></div>
-      <p class="hint" id="homeHint">Скачанных событий пока нет: откройте облако и выберите событие.</p>
+      <p class="hint" id="homeHint">События нет: откройте облако и скачайте событие.</p>
     </section>
 
-    <!-- Экран облака -->
+    <!-- Экран дистанции -->
+    <section class="screen hidden" id="detailScreen">
+      <header class="page-head">
+        <button id="detailBack" class="icon-button left" title="Назад">←</button>
+        <div class="head-text">
+          <h1 id="detailTitle">Событие</h1>
+          <p class="sub" id="detailSub"></p>
+        </div>
+      </header>
+
+      <div class="detail-rows" id="detailRows"></div>
+
+      <div class="actions">
+        <button id="detailMark" class="button" style="width:100%">Отметить</button>
+        <button id="detailSend" class="button tonal" style="width:100%">Отправить отметки</button>
+        <button id="detailPoints" class="button tonal" style="width:100%">Все КП</button>
+        <button id="detailDeactivate" class="button outlined" style="width:100%">ДЕАКТИВИРОВАТЬ</button>
+      </div>
+    </section>
+
+    <!-- Все КП -->
+    <section class="screen hidden" id="pointsScreen">
+      <header class="page-head">
+        <button id="pointsBack" class="icon-button left" title="Назад">←</button>
+        <h1>Все КП</h1>
+      </header>
+      <p class="meta" id="pointsSummary"></p>
+      <div class="points" id="pointsList"></div>
+    </section>
+
+    <!-- Облако -->
     <section class="screen hidden" id="cloudScreen">
       <header class="page-head">
         <button id="cloudBack" class="icon-button left" title="Назад">←</button>
@@ -39,7 +68,7 @@
       <div class="cloud-list" id="cloudList"></div>
     </section>
 
-    <!-- Экран отметки -->
+    <!-- Отметка -->
     <section class="screen hidden" id="markScreen">
       <div class="mark-top">
         <h2 class="mark-title" id="markTitle">Событие</h2>
@@ -78,19 +107,22 @@
     <p class="status" id="status" role="status"></p>
   </main>
 
+  <!-- Подтверждение деактивации -->
+  <div class="overlay hidden" id="dialog">
+    <div class="dialog">
+      <h2 class="dialog-title" id="dialogTitle">Деактивировать событие?</h2>
+      <p class="dialog-text" id="dialogText"></p>
+      <div class="dialog-actions">
+        <button id="dialogCancel" class="button outlined">Отмена</button>
+        <button id="dialogOk" class="button">Деактивировать</button>
+      </div>
+    </div>
+  </div>
+
   <nav class="bottom-bar">
-    <button class="tab active" id="tabEvents">
-      <span class="tab-icon">⌂</span>
-      <span class="tab-label">События</span>
-    </button>
-    <button class="tab" id="tabMark">
-      <span class="tab-icon">☰</span>
-      <span class="tab-label">Отметить</span>
-    </button>
-    <button class="tab" id="tabProfile">
-      <span class="tab-icon">👤</span>
-      <span class="tab-label">Профиль</span>
-    </button>
+    <button class="tab active" id="tabEvents"><span class="tab-icon">⌂</span><span class="tab-label">События</span></button>
+    <button class="tab" id="tabMark"><span class="tab-icon">☰</span><span class="tab-label">Отметить</span></button>
+    <button class="tab" id="tabProfile"><span class="tab-icon">👤</span><span class="tab-label">Профиль</span></button>
   </nav>
 
   <script src="marking.js"></script>
