@@ -135,13 +135,15 @@ function formatDate(value) {
 function showTab(name) {
   $('homeScreen').classList.toggle('hidden', name !== 'events');
   $('groupScreen').classList.toggle('hidden', name !== 'group');
+  $('participantScreen').classList.toggle('hidden', name !== 'participant');
   $('detailScreen').classList.toggle('hidden', name !== 'detail');
   $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
   $('markScreen').classList.toggle('hidden', name !== 'mark');
   $('profileScreen').classList.toggle('hidden', name !== 'profile');
 
   $('tabEvents').classList.toggle('active',
-    name === 'events' || name === 'cloud' || name === 'detail' || name === 'group');
+    name === 'events' || name === 'cloud' || name === 'detail' || name === 'group'
+    || name === 'participant');
   $('tabMark').classList.toggle('active', name === 'mark');
   $('tabProfile').classList.toggle('active', name === 'profile');
 
@@ -954,42 +956,148 @@ function loadMapKind() {
   }
 }
 
-/** Протокол: участники и их результат; без правок, только просмотр. */
-function renderProtocol(distance) {
+/** Время как в приложении: чч:мм:сс или мм:сс. */
+function formatDuration(millis) {
+  if (!Number.isFinite(millis) || millis <= 0) return '—';
+  const total = Math.floor(millis / 1000);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const pad = (value) => String(value).padStart(2, '0');
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+}
+
+function formatClock(millis) {
+  if (!Number.isFinite(millis) || millis <= 0) return '—';
+  return new Date(millis).toLocaleTimeString('ru-RU');
+}
+
+/** Сколько строк протокола видно без «Показать всех». */
+const PROTOCOL_PREVIEW_ROWS = 8;
+
+/**
+ * Протокол собирается из скачанной дистанции: её результатов, пунктов и
+ * порядка. Заголовок, число участников и строки — всё из файла события.
+ */
+function buildProtocol(distance) {
   const results = Array.isArray(distance.results) ? distance.results : [];
+  const rogaine = rogaineMode();
+
+  const rows = results.map((row) => {
+    const marks = Array.isArray(row.marks) ? row.marks : [];
+    const elapsed = row.startTime && row.finishTime ? row.finishTime - row.startTime : 0;
+
+    let score = 0;
+    marks.forEach((mark) => {
+      const value = Number(String(mark.code || '')[0]);
+      if (Number.isFinite(value)) score += value;
+    });
+
+    const penalty = rogaine && distance.penaltyPerMinute && distance.controlTimeMinutes && elapsed
+      ? Math.max(0, Math.ceil(elapsed / 60000 - distance.controlTimeMinutes) * distance.penaltyPerMinute)
+      : 0;
+
+    return {
+      userId: row.userId || '',
+      nick: row.nick || row.userId || 'Участник',
+      startTime: row.startTime || 0,
+      finishTime: row.finishTime || 0,
+      elapsed,
+      score: Math.max(0, score - penalty),
+      penalty,
+      marks,
+    };
+  });
+
+  // Место: у рогейна — по баллам, у дистанции — по времени
+  rows.sort((left, right) => (rogaine ? right.score - left.score : left.elapsed - right.elapsed));
+  rows.forEach((row, index) => {
+    row.place = index + 1;
+  });
+  return rows;
+}
+
+let protocolExpanded = false;
+
+/** Протокол: заголовок, число участников, строки и сворачивание, как в приложении. */
+function renderProtocol(distance) {
+  const rows = buildProtocol(distance);
+  const rogaine = rogaineMode();
+
   $('detailProtocol').classList.remove('hidden');
-  $('protoEmpty').classList.toggle('hidden', results.length > 0);
+  $('protoEmpty').classList.toggle('hidden', rows.length > 0);
+  $('protoCount').textContent = `Участников: ${rows.length}`;
 
   const list = $('protoList');
   list.textContent = '';
+  if (!rows.length) {
+    $('protoMore').classList.add('hidden');
+    return;
+  }
 
-  results
-    .slice()
-    .sort((a, b) => (b.finishTime || 0) - (a.finishTime || 0))
-    .forEach((row) => {
-      const item = document.createElement('div');
-      item.className = 'point';
+  const shown = protocolExpanded ? rows : rows.slice(0, PROTOCOL_PREVIEW_ROWS);
+  shown.forEach((row) => list.append(protocolRow(row, rogaine)));
 
-      const name = document.createElement('span');
-      name.className = 'num';
-      name.textContent = row.nick || row.userId || 'Участник';
+  const more = $('protoMore');
+  more.classList.toggle('hidden', rows.length <= PROTOCOL_PREVIEW_ROWS);
+  more.textContent = protocolExpanded ? 'Свернуть' : `Показать всех (${rows.length})`;
+}
 
-      const marks = Array.isArray(row.marks) ? row.marks : [];
-      const score = marks.reduce((sum, mark) => {
-        const value = Number(String(mark.code || '')[0]);
-        return sum + (Number.isFinite(value) ? value : 0);
-      }, 0);
-      const minutes = row.startTime && row.finishTime
-        ? Math.round((row.finishTime - row.startTime) / 60000)
-        : 0;
+/** Строка протокола: место, ник, результат; нажатие открывает сплиты. */
+function protocolRow(row, rogaine) {
+  const item = document.createElement('button');
+  item.className = 'proto-row';
 
-      const info = document.createElement('span');
-      info.className = 'state';
-      info.textContent = `баллов: ${score} · ${minutes} мин`;
+  const place = document.createElement('span');
+  place.className = 'proto-place';
+  place.textContent = String(row.place);
 
-      item.append(name, info);
-      list.append(item);
-    });
+  const nick = document.createElement('span');
+  nick.className = 'proto-nick';
+  nick.textContent = row.nick;
+
+  const result = document.createElement('span');
+  result.className = 'proto-result';
+  result.textContent = rogaine ? `${row.score} б.` : formatDuration(row.elapsed);
+
+  item.append(place, nick, result);
+  item.addEventListener('click', () => openParticipant(row, rogaine));
+  return item;
+}
+
+/** Экран участника: сплиты из его отметок. */
+function openParticipant(row, rogaine) {
+  $('participantTitle').textContent = row.nick;
+  $('participantSub').textContent = rogaine
+    ? `Баллы: ${row.score} · штраф ${row.penalty} · место ${row.place}`
+    : `Результат: ${formatDuration(row.elapsed)} · место ${row.place}`;
+
+  const list = $('participantMarks');
+  list.textContent = '';
+
+  const codeLabel = (code) => {
+    if (isStart(String(code), rogaine)) return 'Старт';
+    if (isFinish(String(code), rogaine)) return 'Финиш';
+    return `КП ${code}`;
+  };
+
+  row.marks.forEach((mark) => {
+    const item = document.createElement('div');
+    item.className = 'proto-row static';
+
+    const name = document.createElement('span');
+    name.className = 'proto-nick';
+    name.textContent = codeLabel(mark.code);
+
+    const time = document.createElement('span');
+    time.className = 'proto-result';
+    time.textContent = formatClock(mark.time);
+
+    item.append(name, time);
+    list.append(item);
+  });
+
+  showTab('participant');
 }
 
 /* ─────────────────────────── отметки ─────────────────────────── */
@@ -1182,6 +1290,11 @@ function bind() {
   $('cloudSearch').addEventListener('input', renderCloud);
 
   $('groupBack').addEventListener('click', () => showTab('events'));
+  $('participantBack').addEventListener('click', () => openDetail());
+  $('protoMore').addEventListener('click', () => {
+    protocolExpanded = !protocolExpanded;
+    renderProtocol(state.event.distance || {});
+  });
   $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
   $('detailMark').addEventListener('click', () => showTab('mark'));
   // «Отправить отметки»: если ник и код уже заданы — отправляем сразу,

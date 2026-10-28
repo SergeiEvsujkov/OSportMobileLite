@@ -38,6 +38,18 @@
       <div class="points" id="groupDistances"></div>
     </section>
 
+    <!-- Экран участника: сплиты -->
+    <section class="screen hidden" id="participantScreen">
+      <header class="page-head">
+        <button id="participantBack" class="icon-button left" title="Назад">←</button>
+        <div class="head-text">
+          <h1 id="participantTitle">Участник</h1>
+          <p class="sub" id="participantSub"></p>
+        </div>
+      </header>
+      <div class="points" id="participantMarks"></div>
+    </section>
+
     <!-- Экран дистанции -->
     <section class="screen hidden" id="detailScreen">
       <header class="page-head">
@@ -55,8 +67,10 @@
 
       <section class="proto hidden" id="detailProtocol">
         <h2 class="proto-title">Протокол</h2>
+        <p class="meta" id="protoCount">Участников: 0</p>
+        <div class="proto" id="protoList"></div>
         <p class="meta" id="protoEmpty">Участников пока нет</p>
-        <div class="points" id="protoList"></div>
+        <button class="button outlined hidden" id="protoMore" style="margin-top:8px;width:100%">Показать всех</button>
       </section>
 
       <div class="actions">
