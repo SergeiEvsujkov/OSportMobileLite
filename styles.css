@@ -307,6 +307,7 @@ body {
 
 .map {
   position: relative;
+  touch-action: none;
   height: 260px;
   border-radius: 16px;
   overflow: hidden;

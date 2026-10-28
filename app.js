@@ -766,6 +766,7 @@ function renderGroup() {
 /* ─────────────────────────── экран дистанции ─────────────────────────── */
 
 function openDetail() {
+  resetMapView();
   renderDetail();
   showTab('detail');
 }
@@ -895,10 +896,17 @@ const mapState = {
   kind: 0,
   fullscreen: false,
   points: [],
+  zoom: null,      // null — подобрать по границам при первом показе
+  center: null,    // { latitude, longitude }
 };
 
 function currentMapKind() {
   return MAP_KINDS[mapState.kind % MAP_KINDS.length];
+}
+
+function resetMapView() {
+  mapState.zoom = null;
+  mapState.center = null;
 }
 
 function showMap(points) {
@@ -989,6 +997,9 @@ function showMap(points) {
   coords.textContent =
     `Широта ${lat.toFixed(5).replace('.', ',')} · Долгота ${lon.toFixed(5).replace('.', ',')}`;
   box.append(coords);
+
+  // Жесты: щипок — масштаб, перетаскивание — сдвиг карты
+  bindMapGestures(box);
 }
 
 /** Рисует тайлы, линию маршрута и значки пунктов. */
@@ -1002,6 +1013,101 @@ function bearingDegrees(fromLat, fromLon, toLat, toLon) {
   const x = Math.cos(fromLatRad) * Math.sin(toLatRad)
     - Math.sin(fromLatRad) * Math.cos(toLatRad) * Math.cos(deltaLon);
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+/** Жесты карты: щипок меняет масштаб, перетаскивание сдвигает центр. */
+function bindMapGestures(box) {
+  if (box.dataset.gestures === 'on') return;
+  box.dataset.gestures = 'on';
+
+  const pointers = new Map();
+  let startDistance = 0;
+  let startZoom = 0;
+  let startCenter = null;
+  let startPan = null;
+  let moved = false;
+
+  const distance = () => {
+    const values = [...pointers.values()];
+    if (values.length < 2) return 0;
+    return Math.hypot(values[0].x - values[1].x, values[0].y - values[1].y);
+  };
+
+  const middle = () => {
+    const values = [...pointers.values()];
+    if (values.length < 2) return { x: 0, y: 0 };
+    return { x: (values[0].x + values[1].x) / 2, y: (values[0].y + values[1].y) / 2 };
+  };
+
+  box.addEventListener('pointerdown', (event) => {
+    box.setPointerCapture(event.pointerId);
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    moved = false;
+
+    if (pointers.size === 1) {
+      startPan = { x: event.clientX, y: event.clientY };
+      startCenter = mapState.center ? { ...mapState.center } : null;
+    }
+    if (pointers.size === 2) {
+      startDistance = distance();
+      startZoom = mapState.zoom || 16;
+      startCenter = mapState.center ? { ...mapState.center } : null;
+      startPan = middle();
+    }
+  });
+
+  box.addEventListener('pointermove', (event) => {
+    if (!pointers.has(event.pointerId)) return;
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    moved = true;
+  });
+
+  const finish = (event) => {
+    if (!pointers.has(event.pointerId)) return;
+    const currentDistance = distance();
+    pointers.delete(event.pointerId);
+    if (!moved) {
+      startPan = null;
+      startCenter = null;
+      startDistance = 0;
+      return;
+    }
+
+    if (pointers.size === 0) {
+      if (startDistance > 0 && currentDistance > 0) {
+        // щипок завершён: масштаб по отношению расстояний между пальцами
+        const ratio = currentDistance / startDistance;
+        mapState.zoom = Math.min(19, Math.max(3, Math.round(startZoom + Math.log2(ratio))));
+      } else if (startCenter && startPan) {
+        // перетаскивание: сдвиг в пикселях переводим в координаты
+        const zoom = mapState.zoom || 16;
+        const scale = 256 * Math.pow(2, zoom);
+        const dx = startPan.x - (event.clientX || startPan.x);
+        const dy = startPan.y - (event.clientY || startPan.y);
+        const lon = startCenter.longitude + (dx / scale) * 360;
+        const latRad = (startCenter.latitude * Math.PI) / 180;
+        const mercator = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+        const newMercator = mercator - (dy / scale) * 2 * Math.PI;
+        const lat = ((2 * Math.atan(Math.exp(newMercator)) - Math.PI / 2) * 180) / Math.PI;
+        mapState.center = { latitude: lat, longitude: lon };
+      }
+      startPan = null;
+      startCenter = null;
+      startDistance = 0;
+      showMap(mapState.points);
+    }
+  };
+
+  box.addEventListener('pointerup', finish);
+  box.addEventListener('pointercancel', finish);
+
+  // Колесо мыши — тоже масштаб
+  box.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    const zoom = (mapState.zoom || 16) + (event.deltaY < 0 ? 1 : -1);
+    mapState.zoom = Math.min(19, Math.max(3, zoom));
+    showMap(mapState.points);
+  }, { passive: false });
 }
 
 /**
@@ -1054,12 +1160,22 @@ function drawMap(box) {
     if (fits) break;
   }
 
-  const scale = 256 * Math.pow(2, zoom);
-  const project = projectAt(zoom);
+  // Масштаб и центр: если пользователь уже двигал карту — берём его значения,
+  // иначе подбираем по границам и запоминаем
+  let finalZoom = zoom;
+  let finalCenter = { latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2 };
+  if (mapState.zoom && mapState.center) {
+    finalZoom = mapState.zoom;
+    finalCenter = mapState.center;
+  } else {
+    mapState.zoom = finalZoom;
+    mapState.center = finalCenter;
+  }
 
-  const centerLat = (minLat + maxLat) / 2;
-  const centerLon = (minLon + maxLon) / 2;
-  const center = project(centerLat, centerLon);
+  const scale = 256 * Math.pow(2, finalZoom);
+  const project = projectAt(finalZoom);
+  zoom = finalZoom;
+  const center = project(finalCenter.latitude, finalCenter.longitude);
   const left = center.px - width / 2;
   const top = center.py - height / 2;
 
