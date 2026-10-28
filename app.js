@@ -1,9 +1,8 @@
 /**
- * OSportMobile Lite — участник: нашёл событие, скачал, отметился, отправил.
+ * OSportMobile Lite — участник: выбрал событие в облаке, скачал, отметился, отправил.
  *
- * Экран отметки повторяет приложение: название события, погрешность, режим
- * отметки, большой круг по центру и подсказка внизу. Круг красный, пока пункт
- * далеко, и зелёный, когда можно отмечаться.
+ * Главный экран повторяет приложение: карточки событий со вложенными дистанциями.
+ * Создания, архива и фильтров нет — lite только проходит.
  */
 
 const CONFIG = {
@@ -14,18 +13,18 @@ const $ = (id) => document.getElementById(id);
 
 const STORAGE = {
   event: 'osport.lite.event',
+  history: 'osport.lite.events',
   marks: 'osport.lite.marks',
   identity: 'osport.lite.identity',
 };
 
 const state = {
-  entry: null,
   event: null,
   marks: [],
   position: null,
   watchId: null,
   candidate: null,
-  tab: 'events',
+  history: [],
 };
 
 /* ─────────────────────────── хранилище ─────────────────────────── */
@@ -51,17 +50,41 @@ function marksKey(eventId) {
   return STORAGE.marks + '.' + eventId;
 }
 
-function saveEvent(event) {
-  state.event = event;
-  writeJson(STORAGE.event, event);
+function loadMarks(eventId) {
+  return eventId ? readJson(marksKey(eventId), []) : [];
 }
 
 function saveMarks() {
   if (state.event) writeJson(marksKey(state.event.id), state.marks);
 }
 
-function loadMarks() {
-  return state.event ? readJson(marksKey(state.event.id), []) : [];
+/** Скачанные события: список карточек на главном экране. */
+function loadHistory() {
+  return readJson(STORAGE.history, []);
+}
+
+function saveHistory() {
+  writeJson(STORAGE.history, state.history);
+}
+
+function rememberEvent(event) {
+  const index = state.history.findIndex((item) => item.id === event.id);
+  const brief = { id: event.id, kind: event.kind, entry: event.entry };
+  if (index >= 0) {
+    state.history[index] = brief;
+  } else {
+    state.history.push(brief);
+  }
+  saveHistory();
+}
+
+function activateEvent(id) {
+  const saved = state.event && state.event.id === id ? state.event : readJson(STORAGE.event + '.' + id, null);
+  if (!saved) return;
+  state.event = saved;
+  state.marks = loadMarks(id);
+  updateSendState();
+  showTab('mark');
 }
 
 /* ─────────────────────────── облако ─────────────────────────── */
@@ -97,99 +120,119 @@ async function callFunction(query, body = null) {
   return parsed;
 }
 
-/* ─────────────────────────── вкладки ─────────────────────────── */
-
-function showTab(name) {
-  state.tab = name;
-  $('homeScreen').classList.toggle('hidden', name !== 'events');
-  $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
-  $('markScreen').classList.toggle('hidden', name !== 'mark');
-  $('profileScreen').classList.toggle('hidden', name !== 'profile');
-
-  for (const [id, tab] of [['tabEvents', 'events'], ['tabMark', 'mark'], ['tabProfile', 'profile']]) {
-    $(id).classList.toggle('active', name === tab);
-  }
-
-  if (name === 'mark') {
-    startWatch();
-    renderMark();
-  }
-  if (name === 'profile') {
-    updateSendState();
-  }
-}
-
-/* ─────────────────────────── событие ─────────────────────────── */
-
-function formatPeriod(start, finish) {
-  if (!start || !finish) return '';
-  const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-  return `${new Date(start).toLocaleString('ru-RU', options)} — ${new Date(finish).toLocaleString('ru-RU', options)}`;
-}
-
-async function findByNumber(number) {
-  const data = await callFunction('action=list&full=1&rogaine=1');
-  const entries = data.entries || [];
-  const found = entries.find((entry) => String(entry.number) === String(number));
-  if (!found) throw new Error(`Событие с номером ${number} не найдено`);
-  state.entry = found;
-  renderEntry(found);
-}
-
-function renderEntry(entry) {
-  $('eventCard').classList.remove('hidden');
-  $('eventName').textContent = entry.name || 'Без названия';
-  $('eventNumber').textContent = entry.number ? `№ ${entry.number}` : 'без номера';
-  $('eventOrganizer').textContent = entry.organizer ? `Организатор: ${entry.organizer}` : 'Организатор не указан';
-  $('eventPeriod').textContent = formatPeriod(entry.startTime, entry.finishTime);
-
-  const details = [];
-  if (entry.checkPointCount) details.push(`${entry.checkPointCount} КП`);
-  if (entry.kind === 'rogaine' && entry.maxScore) details.push(`максимум ${entry.maxScore} баллов`);
-  if (entry.kind === 'distance' && entry.lengthMeters) details.push(`${entry.lengthMeters} м`);
-  if (entry.participants) details.push(`участников: ${entry.participants}`);
-  $('eventDetails').textContent = details.join(' · ');
-  $('eventHint').textContent = 'Скачивание сохраняет событие на устройстве: дальше оно работает без сети.';
-}
-
-/** Скачивает одно событие из облака и переходит к отметке. */
-async function downloadEvent(entry = state.entry) {
-  if (!entry) return;
-  setStatus('Скачиваю событие…');
-  try {
-    const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
-    if (!data.distance) throw new Error('Сервис не отдал событие');
-    const key = 'distances/' + entry.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
-    // Вместе с событием храним его карточку: после перезапуска приложения
-    // и после перезагрузки телефона видно то же событие, а не пустой список
-    saveEvent({
-      id: entry.id,
-      kind: data.kind,
-      key,
-      distance: data.distance,
-      entry,
-    });
-    state.marks = loadMarks();
-    // Скачанное событие становится активным, но экран отметки сам не
-    // открывается: его открывают вкладкой «Отметить», как в приложении
-    setStatus('');
-    updateSendState();
-  } catch (error) {
-    setStatus(error.message, 'error');
-  }
-}
-
-/* ─────────────────────────── облако ─────────────────────────── */
-
-/** Экран облака: все события списком, скачивается одно — как в приложении. */
-let cloudEntries = [];
-
 function formatDate(value) {
   if (!value) return '';
   return new Date(value).toLocaleString('ru-RU', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 }
+
+/* ─────────────────────────── вкладки ─────────────────────────── */
+
+function showTab(name) {
+  $('homeScreen').classList.toggle('hidden', name !== 'events');
+  $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
+  $('markScreen').classList.toggle('hidden', name !== 'mark');
+  $('profileScreen').classList.toggle('hidden', name !== 'profile');
+
+  $('tabEvents').classList.toggle('active', name === 'events' || name === 'cloud');
+  $('tabMark').classList.toggle('active', name === 'mark');
+  $('tabProfile').classList.toggle('active', name === 'profile');
+
+  if (name === 'mark') {
+    startWatch();
+    renderMark();
+  }
+  if (name === 'profile') updateSendState();
+  if (name === 'events') renderHome();
+}
+
+/* ─────────────────────────── главный экран ─────────────────────────── */
+
+/** Карточки скачанных событий: как на главном экране приложения. */
+function renderHome() {
+  const list = $('eventsList');
+  list.textContent = '';
+
+  // Одно событие может содержать несколько дистанций — показываем их вместе
+  const groups = new Map();
+  state.history.forEach((item) => {
+    const number = item.entry && item.entry.number ? String(item.entry.number) : item.id;
+    if (!groups.has(number)) groups.set(number, []);
+    groups.get(number).push(item);
+  });
+
+  $('homeHint').classList.toggle('hidden', groups.size > 0);
+
+  [...groups.entries()]
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .forEach(([number, items]) => {
+      const first = items[0].entry || {};
+      const card = document.createElement('div');
+      card.className = 'event-card';
+
+      const head = document.createElement('div');
+      head.className = 'event-head';
+
+      const icon = document.createElement('span');
+      icon.className = 'event-icon';
+      icon.textContent = items[0].kind === 'rogaine' ? '🥾' : '🗺';
+
+      const title = document.createElement('span');
+      title.className = 'event-title';
+      title.textContent = (number && number !== items[0].id ? `№ ${number} ` : '') + (first.name || 'Без названия');
+
+      head.append(icon, title);
+      card.append(head);
+
+      const period = document.createElement('p');
+      period.className = 'event-meta';
+      period.textContent = formatDate(first.startTime) + ' - ' + formatDate(first.finishTime);
+      if (first.startTime) card.append(period);
+
+      const author = document.createElement('p');
+      author.className = 'event-meta';
+      author.textContent = first.organizer || 'Автор не указан';
+      card.append(author);
+
+      items.forEach((item) => {
+        const entry = item.entry || {};
+        const inner = document.createElement('div');
+        inner.className = 'distance-card';
+
+        const line = document.createElement('p');
+        line.className = 'distance-line';
+        const parts = [];
+        if (item.kind === 'rogaine') {
+          if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
+          if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
+        } else {
+          if (entry.lengthMeters) parts.push(`Дистанция: ${entry.lengthMeters} м`);
+          if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
+        }
+        parts.push(`Участников: ${entry.participants || 0}`);
+        line.textContent = parts.join(' · ');
+
+        const map = document.createElement('p');
+        map.className = 'distance-line';
+        map.textContent = entry.hasMap ? 'Карта: есть' : 'Карта: нет';
+
+        const icons = document.createElement('div');
+        icons.className = 'distance-icons';
+        icons.textContent = '◎ 👤';
+
+        inner.append(line, map, icons);
+        inner.addEventListener('click', () => activateEvent(item.id));
+        card.append(inner);
+      });
+
+      list.append(card);
+    });
+}
+
+/* ─────────────────────────── облако ─────────────────────────── */
+
+let cloudEntries = [];
 
 async function openCloud() {
   showTab('cloud');
@@ -256,7 +299,6 @@ function renderCloud() {
 
     body.append(title, period, details, author);
 
-    // Отметка справа: галочка у уже скачанного события, стрелка — у остальных
     const action = document.createElement('span');
     action.className = 'action';
     action.textContent = state.event && state.event.id === entry.id ? '✓' : '⤓';
@@ -265,6 +307,31 @@ function renderCloud() {
     item.addEventListener('click', () => downloadEvent(entry));
     list.append(item);
   });
+}
+
+/** Скачивает одно событие: оно становится активным, но отметку не открывает. */
+async function downloadEvent(entry) {
+  if (!entry) return;
+  setStatus('Скачиваю событие…');
+  try {
+    const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
+    if (!data.distance) throw new Error('Сервис не отдал событие');
+
+    const key = 'distances/' + entry.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
+    const event = { id: entry.id, kind: data.kind, key, distance: data.distance, entry };
+
+    writeJson(STORAGE.event, event);
+    writeJson(STORAGE.event + '.' + entry.id, event);
+    rememberEvent(event);
+
+    state.event = event;
+    state.marks = loadMarks(entry.id);
+    setStatus('');
+    updateSendState();
+    showTab('events');
+  } catch (error) {
+    setStatus(error.message, 'error');
+  }
 }
 
 /* ─────────────────────────── отметки ─────────────────────────── */
@@ -286,7 +353,6 @@ function markedCodes() {
   );
 }
 
-/** Пункт, у которого мы сейчас стоим: первый, куда можно отметиться. */
 function findCandidate() {
   if (!state.event) return null;
   const points = (state.event.distance && state.event.distance.points) || [];
@@ -311,7 +377,7 @@ function renderMark() {
   const event = state.event;
   if (!event) {
     $('markTitle').textContent = 'Сначала активируйте событие';
-    $('markAccuracy').textContent = 'Скачайте событие на вкладке «События».';
+    $('markAccuracy').textContent = 'Выберите событие в облаке.';
     $('markReady').classList.add('hidden');
     setCircle(null, 'Подойдите к пункту', false);
     return;
@@ -346,11 +412,8 @@ function renderMark() {
     ready.classList.add('hidden');
   }
 
-  if (candidate) {
-    setCircle(candidate, labelOf(candidate), true);
-  } else {
-    setCircle(null, 'Подойдите к пункту', false);
-  }
+  if (candidate) setCircle(candidate, labelOf(candidate), true);
+  else setCircle(null, 'Подойдите к пункту', false);
 }
 
 function setCircle(point, label, ready) {
@@ -371,8 +434,7 @@ function markCandidate() {
   }
 
   const code = codeOf(point);
-  const started = state.marks.some((mark) => mark.start);
-  if (isFinish(code, rogaineMode()) && !started) {
+  if (isFinish(code, rogaineMode()) && !state.marks.some((mark) => mark.start)) {
     setStatus('Сначала отметьте старт', 'error');
     return;
   }
@@ -412,10 +474,6 @@ function identity() {
   return { nick: $('nick').value.trim(), code: $('code').value.trim().toUpperCase() };
 }
 
-function saveIdentity() {
-  writeJson(STORAGE.identity, identity());
-}
-
 function updateSendState() {
   const finished = state.marks.some((mark) => mark.finish);
   $('send').disabled = !state.event || !finished;
@@ -436,7 +494,7 @@ async function sendResult() {
     showTab('profile');
     return;
   }
-  saveIdentity();
+  writeJson(STORAGE.identity, who);
 
   const event = state.event;
   const payload = Object.assign({}, event.distance, {
@@ -460,30 +518,11 @@ function bind() {
   $('tabMark').addEventListener('click', () => showTab('mark'));
   $('tabProfile').addEventListener('click', () => showTab('profile'));
 
-  $('find').addEventListener('click', async () => {
-    const number = $('number').value.trim();
-    if (!number) {
-      setStatus('Введите номер события', 'error');
-      return;
-    }
-    setStatus('Ищу событие…');
-    try {
-      await findByNumber(number);
-      setStatus('');
-    } catch (error) {
-      setStatus(error.message, 'error');
-    }
-  });
-
-  $('number').addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') $('find').click();
-  });
-
-  $('download').addEventListener('click', () => downloadEvent());
   $('openCloud').addEventListener('click', openCloud);
   $('cloudRefresh').addEventListener('click', openCloud);
   $('cloudBack').addEventListener('click', () => showTab('events'));
   $('cloudSearch').addEventListener('input', renderCloud);
+
   $('bigMark').addEventListener('click', markCandidate);
   $('send').addEventListener('click', sendResult);
 
@@ -501,19 +540,12 @@ document.addEventListener('DOMContentLoaded', () => {
   bind();
   registerServiceWorker();
 
-  // Скачанное событие и отметки лежат на устройстве: при повторном открытии
-  // и после перезагрузки телефона они на месте
+  state.history = loadHistory();
   const saved = readJson(STORAGE.event, null);
   if (saved && saved.distance) {
     state.event = saved;
-    state.marks = loadMarks();
-    if (saved.entry) {
-      state.entry = saved.entry;
-      renderEntry(saved.entry);
-    }
+    state.marks = loadMarks(saved.id);
     updateSendState();
-    showTab('events');
-  } else {
-    showTab('events');
   }
+  showTab('events');
 });

@@ -11,36 +11,18 @@
 </head>
 <body>
   <main id="app">
-    <!-- Вкладка «События»: поиск и карточка события -->
+    <!-- Главный экран: свои события, как в приложении (без «Создать» и фильтров) -->
     <section class="screen" id="homeScreen">
       <header class="page-head">
         <h1>События</h1>
         <button id="openCloud" class="icon-button" title="Облако">☁</button>
       </header>
 
-      <div class="card">
-        <label class="label" for="number">Номер события</label>
-        <div class="row">
-          <input id="number" class="input" type="text" inputmode="numeric" placeholder="12" autocomplete="off">
-          <button id="find" class="button">Найти</button>
-        </div>
-        <p class="hint">Номер виден на карточке события в приложении организатора.</p>
-      </div>
-
-      <div class="card hidden" id="eventCard">
-        <div class="row space">
-          <h2 class="title" id="eventName">—</h2>
-          <span class="badge" id="eventNumber"></span>
-        </div>
-        <p class="meta" id="eventOrganizer"></p>
-        <p class="meta" id="eventPeriod"></p>
-        <p class="meta" id="eventDetails"></p>
-        <button id="download" class="button" style="margin-top:12px;width:100%">Скачать событие</button>
-        <p class="hint" id="eventHint"></p>
-      </div>
+      <div class="events-list" id="eventsList"></div>
+      <p class="hint" id="homeHint">Скачанных событий пока нет: откройте облако и выберите событие.</p>
     </section>
 
-    <!-- Экран облака: все события, как в приложении, скачивается одно -->
+    <!-- Экран облака -->
     <section class="screen hidden" id="cloudScreen">
       <header class="page-head">
         <button id="cloudBack" class="icon-button left" title="Назад">←</button>
@@ -57,7 +39,7 @@
       <div class="cloud-list" id="cloudList"></div>
     </section>
 
-    <!-- Вкладка «Отметить»: как в приложении — название, погрешность, круг, подсказка -->
+    <!-- Экран отметки -->
     <section class="screen hidden" id="markScreen">
       <div class="mark-top">
         <h2 class="mark-title" id="markTitle">Событие</h2>
@@ -75,7 +57,7 @@
       <p class="mark-hint" id="markHint">Кнопка станет зелёной у пункта — тогда нажмите</p>
     </section>
 
-    <!-- Вкладка «Профиль»: кто отправляет результат -->
+    <!-- Профиль -->
     <section class="screen hidden" id="profileScreen">
       <header class="page-head">
         <h1>Профиль</h1>
@@ -96,17 +78,16 @@
     <p class="status" id="status" role="status"></p>
   </main>
 
-  <!-- Нижняя навигация, как в приложении -->
   <nav class="bottom-bar">
-    <button class="tab" id="tabEvents" data-tab="events">
+    <button class="tab active" id="tabEvents">
       <span class="tab-icon">⌂</span>
       <span class="tab-label">События</span>
     </button>
-    <button class="tab" id="tabMark" data-tab="mark">
+    <button class="tab" id="tabMark">
       <span class="tab-icon">☰</span>
       <span class="tab-label">Отметить</span>
     </button>
-    <button class="tab" id="tabProfile" data-tab="profile">
+    <button class="tab" id="tabProfile">
       <span class="tab-icon">👤</span>
       <span class="tab-label">Профиль</span>
     </button>

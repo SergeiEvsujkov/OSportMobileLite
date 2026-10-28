@@ -225,6 +225,40 @@ body {
 
 /* ───────────── нижняя навигация ───────────── */
 
+/* ───────────── главный экран: карточки событий, как в приложении ───────────── */
+
+.events-list { display: flex; flex-direction: column; gap: 12px; }
+
+.event-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .14);
+}
+
+.event-head { display: flex; align-items: center; gap: 12px; }
+.event-icon { font-size: 26px; color: var(--primary); }
+.event-title { font-size: 21px; font-weight: 600; color: var(--primary); }
+
+.event-meta {
+  margin: 8px 0 0;
+  font-size: 16px;
+  color: var(--on-surface);
+}
+
+.distance-card {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.distance-card:active { background: var(--surface-container); }
+
+.distance-line { margin: 0; font-size: 16px; color: var(--on-surface); }
+.distance-line + .distance-line { margin-top: 4px; }
+.distance-icons { margin-top: 6px; display: flex; gap: 12px; font-size: 18px; }
+
 .bottom-bar {
   position: fixed;
   left: 0;
