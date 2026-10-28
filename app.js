@@ -329,7 +329,7 @@ function renderHome() {
   const meCode = readJson(STORAGE.identity, { nick: '', code: '' }).code;
   if (meCode) {
     const mine = buildProtocol(distance).find((row) => row.userId === meCode);
-    if (mine && mine.status === 'OK') {
+    if (mine) {
       const places = mine.place ? ` · место ${mine.place}` : '';
       card.append(plainRow(`Мой результат: ${formatDuration(mine.elapsed)}${places}`));
     }
@@ -396,8 +396,9 @@ function personColor(entry, distance) {
 function iconsRow(withName, entry = {}, distance = {}) {
   const row = document.createElement('div');
   row.className = 'distance-icons';
+  const qr = String((distance && distance.markMode) || '').toUpperCase() === 'QR';
   row.innerHTML =
-    '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>' +
+    `<svg class="icon small"><use href="icons.svg#${qr ? 'qrcode' : 'mylocation'}"></use></svg>` +
     '<svg class="icon small author-icon"><use href="icons.svg#person"></use></svg>';
 
   // Цвет как в приложении: чёрный без профиля, синий свой, зелёный с моим
@@ -422,7 +423,18 @@ function authorRow(entry, withName, withIcon = true, distance = {}) {
   const own = me.code && entry.ownerId && me.code === entry.ownerId;
   person.style.color = personColor(entry, distance);
 
-  if (withIcon) row.append(person);
+  if (withIcon) {
+    // Способ отметки — слева от автора, как в приложении
+    const mode = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    mode.setAttribute('class', 'icon small');
+    const modeUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    const qr = String((distance && distance.markMode) || '').toUpperCase() === 'QR';
+    modeUse.setAttribute('href', qr ? 'icons.svg#qrcode' : 'icons.svg#mylocation');
+    mode.append(modeUse);
+    row.append(mode);
+    person.style.marginLeft = '8px';
+    row.append(person);
+  }
 
   if (withName) {
     const name = document.createElement('span');
