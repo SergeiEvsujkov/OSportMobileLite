@@ -134,13 +134,14 @@ function formatDate(value) {
 
 function showTab(name) {
   $('homeScreen').classList.toggle('hidden', name !== 'events');
+  $('groupScreen').classList.toggle('hidden', name !== 'group');
   $('detailScreen').classList.toggle('hidden', name !== 'detail');
   $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
   $('markScreen').classList.toggle('hidden', name !== 'mark');
   $('profileScreen').classList.toggle('hidden', name !== 'profile');
 
   $('tabEvents').classList.toggle('active',
-    name === 'events' || name === 'cloud' || name === 'detail');
+    name === 'events' || name === 'cloud' || name === 'detail' || name === 'group');
   $('tabMark').classList.toggle('active', name === 'mark');
   $('tabProfile').classList.toggle('active', name === 'profile');
 
@@ -195,6 +196,10 @@ function renderHome() {
   title.textContent = (group && group.number ? `№ ${group.number} ` : '') + (first.name || 'Без названия');
   head.append(icon, title);
   card.append(head);
+  if (items.length > 1) {
+    head.style.cursor = 'pointer';
+    head.addEventListener('click', openGroup);
+  }
 
   if (first.startTime) {
     const period = document.createElement('p');
@@ -603,6 +608,58 @@ async function downloadGroup(entry, downloaded) {
   writeJson(STORAGE.group, { number: entry.number, items });
 }
 
+/** Экран группы: только просмотр — название, сроки, список дистанций. */
+function openGroup() {
+  renderGroup();
+  showTab('group');
+}
+
+function renderGroup() {
+  const group = readJson(STORAGE.group, null);
+  const items = group && group.items ? group.items : [];
+  if (!items.length) {
+    showTab('events');
+    return;
+  }
+
+  const first = items[0].entry || {};
+  $('groupTitle').textContent = (group.number ? `№ ${group.number} ` : '') + (first.name || 'Группа дистанций');
+  $('groupSub').textContent = 'Группа дистанций';
+
+  const rows = $('groupRows');
+  rows.textContent = '';
+  if (first.organizer) rows.append(detailRow(`Организатор: ${first.organizer}`));
+  if (first.startTime) {
+    rows.append(detailRow(formatDate(first.startTime) + ' - ' + formatDate(first.finishTime)));
+  }
+
+  const list = $('groupDistances');
+  list.textContent = '';
+  items.forEach((item, index) => {
+    const distance = item.distance || {};
+    const entry = item.entry || {};
+
+    const row = document.createElement('div');
+    row.className = 'point';
+    if (state.event && state.event.id === item.id) row.classList.add('done');
+
+    const name = document.createElement('span');
+    name.className = 'num';
+    name.textContent = `Дистанция ${index + 1}`;
+
+    const info = document.createElement('span');
+    info.className = 'state';
+    const parts = [];
+    if (distance.points) parts.push(`КП: ${distance.points.length}`);
+    if (entry.lengthMeters) parts.push(`${entry.lengthMeters} м`);
+    info.textContent = parts.join(' · ');
+
+    row.append(name, info);
+    row.addEventListener('click', () => activateItem(item));
+    list.append(row);
+  });
+}
+
 /* ─────────────────────────── экран дистанции ─────────────────────────── */
 
 function openDetail() {
@@ -948,7 +1005,8 @@ function bind() {
   $('cloudBack').addEventListener('click', () => showTab('events'));
   $('cloudSearch').addEventListener('input', renderCloud);
 
-  $('detailBack').addEventListener('click', () => showTab('events'));
+  $('groupBack').addEventListener('click', () => showTab('events'));
+  $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
   $('detailMark').addEventListener('click', () => showTab('mark'));
   // «Отправить отметки»: если ник и код уже заданы — отправляем сразу,
   // иначе ведём в профиль, где их вводят
