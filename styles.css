@@ -115,6 +115,9 @@ body {
 
 .event-icon-img { width: 28px; height: 28px; display: block; }
 
+.head-actions { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.head-actions .icon-button { margin-left: 0; }
+
 .icon-button {
   margin-left: auto;
   width: 44px;

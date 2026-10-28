@@ -7,7 +7,7 @@
   <title>OSportMobile Lite</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=71">
+  <link rel="stylesheet" href="styles.css?v=72">
 </head>
 <body>
   <main id="app">
@@ -15,8 +15,10 @@
     <section class="screen" id="homeScreen">
       <header class="page-head">
         <h1>События</h1>
-        <button id="openCloud" class="icon-button" title="Облако"><svg class="icon" aria-hidden="true"><use href="icons.svg#cloud"></use></svg></button>
-        <button id="openSettings" class="icon-button" title="Настройки"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg></button>
+        <div class="head-actions">
+          <button id="openSettings" class="icon-button" title="Настройки"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg></button>
+          <button id="openCloud" class="icon-button" title="Облако"><svg class="icon" aria-hidden="true"><use href="icons.svg#cloud"></use></svg></button>
+        </div>
       </header>
       <div class="events-list" id="eventsList"></div>
       <p class="hint" id="homeHint">События нет: откройте облако и скачайте событие.</p>
@@ -215,8 +217,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=71"></script>
-  <script src="marking.js?v=71"></script>
-  <script src="app.js?v=71"></script>
+  <script src="jsQR.js?v=72"></script>
+  <script src="marking.js?v=72"></script>
+  <script src="app.js?v=72"></script>
 </body>
 </html>
