@@ -1034,7 +1034,7 @@ function bearingDegrees(fromLat, fromLon, toLat, toLon) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-/** Жесты карты: щипок меняет масштаб, перетаскивание сдвигает центр. */
+/** Жесты карты: щипок меняет масштаб сразу, перетаскивание сдвигает центр. */
 function bindMapGestures(box) {
   if (box.dataset.gestures === 'on') return;
   box.dataset.gestures = 'on';
@@ -1043,8 +1043,8 @@ function bindMapGestures(box) {
   let startDistance = 0;
   let startZoom = 0;
   let startCenter = null;
-  let startPan = null;
-  let moved = false;
+  let startMiddle = null;
+  let lastRender = 0;
 
   const distance = () => {
     const values = [...pointers.values()];
@@ -1058,69 +1058,79 @@ function bindMapGestures(box) {
     return { x: (values[0].x + values[1].x) / 2, y: (values[0].y + values[1].y) / 2 };
   };
 
+  const renderThrottled = () => {
+    const now = Date.now();
+    if (now - lastRender < 80) return;
+    lastRender = now;
+    showMap(mapState.points);
+  };
+
   box.addEventListener('pointerdown', (event) => {
     box.setPointerCapture(event.pointerId);
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    moved = false;
 
     if (pointers.size === 1) {
-      startPan = { x: event.clientX, y: event.clientY };
+      startMiddle = { x: event.clientX, y: event.clientY };
       startCenter = mapState.center ? { ...mapState.center } : null;
     }
     if (pointers.size === 2) {
       startDistance = distance();
       startZoom = mapState.zoom || 16;
       startCenter = mapState.center ? { ...mapState.center } : null;
-      startPan = middle();
     }
   });
 
   box.addEventListener('pointermove', (event) => {
     if (!pointers.has(event.pointerId)) return;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    moved = true;
+
+    // Щипок: масштаб меняется на ходу, а не только после отпускания
+    if (pointers.size >= 2 && startDistance > 0) {
+      const ratio = distance() / startDistance;
+      const zoom = Math.min(19, Math.max(3, Math.round(startZoom + Math.log2(ratio || 1))));
+      if (zoom !== mapState.zoom) {
+        mapState.zoom = zoom;
+        renderThrottled();
+      }
+    }
   });
 
   const finish = (event) => {
     if (!pointers.has(event.pointerId)) return;
-    const currentDistance = distance();
     pointers.delete(event.pointerId);
-    if (!moved) {
-      startPan = null;
-      startCenter = null;
+
+    // Щипок закончился: фиксируем масштаб по последнему расстоянию
+    if (pointers.size < 2 && startDistance > 0) {
       startDistance = 0;
+      startMiddle = null;
+      startCenter = null;
+      renderThrottled();
       return;
     }
 
-    if (pointers.size === 0) {
-      if (startDistance > 0 && currentDistance > 0) {
-        // щипок завершён: масштаб по отношению расстояний между пальцами
-        const ratio = currentDistance / startDistance;
-        mapState.zoom = Math.min(19, Math.max(3, Math.round(startZoom + Math.log2(ratio))));
-      } else if (startCenter && startPan) {
-        // перетаскивание: сдвиг в пикселях переводим в координаты
-        const zoom = mapState.zoom || 16;
-        const scale = 256 * Math.pow(2, zoom);
-        const dx = startPan.x - (event.clientX || startPan.x);
-        const dy = startPan.y - (event.clientY || startPan.y);
+    // Перетаскивание закончилось
+    if (pointers.size === 0 && startCenter && startMiddle) {
+      const zoom = mapState.zoom || 16;
+      const scale = 256 * Math.pow(2, zoom);
+      const dx = startMiddle.x - event.clientX;
+      const dy = startMiddle.y - event.clientY;
+      if (dx || dy) {
         const lon = startCenter.longitude + (dx / scale) * 360;
         const latRad = (startCenter.latitude * Math.PI) / 180;
         const mercator = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
         const newMercator = mercator - (dy / scale) * 2 * Math.PI;
         const lat = ((2 * Math.atan(Math.exp(newMercator)) - Math.PI / 2) * 180) / Math.PI;
         mapState.center = { latitude: lat, longitude: lon };
+        showMap(mapState.points);
       }
-      startPan = null;
+      startMiddle = null;
       startCenter = null;
-      startDistance = 0;
-      showMap(mapState.points);
     }
   };
 
   box.addEventListener('pointerup', finish);
   box.addEventListener('pointercancel', finish);
 
-  // Колесо мыши — тоже масштаб
   box.addEventListener('wheel', (event) => {
     event.preventDefault();
     const zoom = (mapState.zoom || 16) + (event.deltaY < 0 ? 1 : -1);
