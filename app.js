@@ -148,8 +148,16 @@ function showTab(name) {
   $('tabProfile').classList.toggle('active', name === 'profile');
 
   if (name === 'mark') {
-    startWatch();
+    if (qrMode()) {
+      stopWatch();
+      startQrScanner();
+    } else {
+      stopQrScanner();
+      startWatch();
+    }
     renderMark();
+  } else {
+    stopQrScanner();
   }
   if (name === 'profile') updateSendState();
   if (name === 'events') renderHome();
@@ -1364,6 +1372,12 @@ function openParticipant(row, rogaine) {
 
 /* ─────────────────────────── отметки ─────────────────────────── */
 
+/** Как отмечаются в этой дистанции: «QR» или «GPS» (MarkMode в приложении). */
+function qrMode() {
+  const distance = (state.event && state.event.distance) || {};
+  return String(distance.markMode || '').toUpperCase() === 'QR';
+}
+
 function rogaineMode() {
   return Boolean(state.event && state.event.kind === 'rogaine');
 }
@@ -1412,7 +1426,17 @@ function renderMark() {
   }
 
   const distance = event.distance || {};
+  const scanning = qrMode();
   $('markTitle').textContent = distance.name || 'Событие';
+
+  $('qrBox').classList.toggle('hidden', !scanning);
+  document.querySelector('.mark-center').classList.toggle('hidden', scanning);
+  if (scanning) {
+    $('markAccuracy').textContent = 'Отметка автоматическая';
+    $('markReady').classList.add('hidden');
+    $('markHint').textContent = 'Наведите камеру на QR-код — отметка поставится сама';
+    return;
+  }
 
   const position = state.position;
   if (position) {
@@ -1480,6 +1504,122 @@ function markCandidate() {
   renderMark();
   playMarkSound();
   setStatus('Отметка записана', 'good');
+}
+
+/** Сканер QR: камера и BarcodeDetector, отметка ставится сама. */
+let qrStream = null;
+let qrTimer = null;
+let qrBusy = false;
+
+function startQrScanner() {
+  if (qrTimer !== null) return;
+  const video = $('qrVideo');
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setStatus('Камера недоступна в этом браузере', 'error');
+    return;
+  }
+
+  if (!('BarcodeDetector' in window)) {
+    setStatus('Этот браузер не читает QR-коды. Откройте lite в Chrome на Android.', 'error');
+    return;
+  }
+
+  navigator.mediaDevices
+    .getUserMedia({ video: { facingMode: 'environment' } })
+    .then((stream) => {
+      qrStream = stream;
+      video.srcObject = stream;
+      video.play().catch(() => {});
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      qrTimer = setInterval(() => detectOnce(detector, video), 500);
+    })
+    .catch(() => setStatus('Камера недоступна: проверьте разрешение', 'error'));
+}
+
+function detectOnce(detector, video) {
+  if (qrBusy || !video.videoWidth) return;
+  qrBusy = true;
+  detector
+    .detect(video)
+    .then((codes) => {
+      qrBusy = false;
+      if (codes && codes.length) handleQrText(codes[0].rawValue);
+    })
+    .catch(() => {
+      qrBusy = false;
+    });
+}
+
+/** Разбор и отметка по содержимому QR — правила из MarkCodes и RogaineQr. */
+function handleQrText(raw) {
+  if (!state.event) return;
+  const distance = state.event.distance || {};
+  const parsed = parsePointQr(raw, distance.ownerId || (state.event.entry || {}).ownerId, rogaineMode());
+
+  if (parsed.error === 'foreign') {
+    setStatus('Это не код контрольного пункта — или не вашей дистанции', 'error');
+    return;
+  }
+  if (parsed.error === 'other-kind') {
+    setStatus('Код другой дистанции', 'error');
+    return;
+  }
+  if (parsed.error) {
+    setStatus('Не удалось прочитать код', 'error');
+    return;
+  }
+
+  const code = String(parsed.code);
+  const point = (distance.points || []).find((item) => String(codeOf(item)) === code);
+  if (!point) {
+    setStatus('Код другой дистанции', 'error');
+    return;
+  }
+
+  markByCode(code);
+}
+
+/** Отметка по коду: старт, финиш и пункты — как на GPS-экране. */
+function markByCode(code) {
+  if (state.marks.some((mark) => mark.finish)) {
+    setStatus('Вы уже финишировали', 'error');
+    return;
+  }
+  const start = isStart(code, rogaineMode());
+  const finish = isFinish(code, rogaineMode());
+  if (finish && !state.marks.some((mark) => mark.start)) {
+    setStatus('Вначале отметьте старт на выбранной дистанции', 'error');
+    return;
+  }
+  if (!start && !finish && !state.marks.some((mark) => mark.start)) {
+    setStatus('Вначале отметьте старт на выбранной дистанции', 'error');
+    return;
+  }
+
+  state.marks.push({ code, time: Date.now(), start, finish });
+  saveMarks();
+  playMarkSound();
+  renderMark();
+  setStatus('Отметка записана', 'good');
+}
+
+function stopQrScanner() {
+  if (qrTimer !== null) {
+    clearInterval(qrTimer);
+    qrTimer = null;
+  }
+  if (qrStream) {
+    qrStream.getTracks().forEach((track) => track.stop());
+    qrStream = null;
+  }
+}
+
+function stopWatch() {
+  if (state.watchId !== null && navigator.geolocation) {
+    navigator.geolocation.clearWatch(state.watchId);
+    state.watchId = null;
+  }
 }
 
 function startWatch() {

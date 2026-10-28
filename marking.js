@@ -86,3 +86,60 @@ function buildResult(event, marks, identity) {
     marks: marks.map((mark) => ({ code: mark.code, time: mark.time })),
   };
 }
+
+/* ─────────────────────────── QR-коды ─────────────────────────── */
+
+/** Алфавит и ключ сдвига — те же, что в приложении (QrCode.kt). */
+const QR_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const QR_KEY = '1234567890';
+const QR_LENGTH = 10;
+
+/** Снимает сдвиг: обратная операция к кодированию. */
+function decodeQrShift(code) {
+  const value = String(code || '').trim().toUpperCase();
+  if (value.length !== QR_LENGTH) return null;
+
+  let result = '';
+  for (let index = 0; index < value.length; index++) {
+    const position = QR_ALPHABET.indexOf(value[index]);
+    if (position < 0) return null;
+    const step = Number(QR_KEY[index]);
+    const moved = ((position - step) % QR_ALPHABET.length + QR_ALPHABET.length) % QR_ALPHABET.length;
+    result += QR_ALPHABET[moved];
+  }
+  return result;
+}
+
+/**
+ * Разбирает QR пункта: первый знак — вид («O» дистанция, «R» рогейн),
+ * затем номер пункта и последние семь знаков кода автора.
+ *
+ * Возвращает { kind, code } либо { error } — как в MarkCodes/RogaineQr.
+ */
+function parsePointQr(raw, ownerId, rogaineMode) {
+  const plain = decodeQrShift(raw);
+  if (!plain) return { error: 'unknown' };
+
+  const marker = plain[0];
+  let number;
+  let author;
+
+  if (marker === 'O') {
+    author = plain.slice(1, 8);
+    number = plain.slice(8, 10);
+  } else if (marker === 'R') {
+    number = plain.slice(1, 3);
+    author = plain.slice(3, 10);
+  } else {
+    return { error: 'unknown' };
+  }
+
+  const expectedKind = rogaineMode ? 'R' : 'O';
+  if (marker !== expectedKind) return { error: 'other-kind' };
+
+  // Автор проверяется по хвосту кода: в QR лежат последние семь знаков
+  const owner = String(ownerId || '').trim().toUpperCase();
+  if (owner && !owner.endsWith(author)) return { error: 'foreign' };
+
+  return { kind: marker === 'O' ? 'distance' : 'rogaine', code: number };
+}
