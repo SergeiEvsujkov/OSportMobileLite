@@ -252,6 +252,16 @@ function renderHome() {
 
   if (entry.mapExt) card.append(mapLine());
 
+  // Свой результат на карточке — как events_my_result в приложении
+  const meCode = readJson(STORAGE.identity, { nick: '', code: '' }).code;
+  if (meCode) {
+    const mine = buildProtocol(distance).find((row) => row.userId === meCode);
+    if (mine && mine.status === 'OK') {
+      const places = mine.place ? ` · место ${mine.place}` : '';
+      card.append(plainRow(`Мой результат: ${formatDuration(mine.elapsed)}${places}`));
+    }
+  }
+
   const authorLine = authorRow(entry, true);
   const kindTag = document.createElement('span');
   kindTag.className = 'kind-tag';
@@ -726,8 +736,51 @@ function renderDetail() {
 
   $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
 
+  renderMyMarks();
   showMap(points);
   renderProtocol(distance);
+}
+
+/** «Отметки на устройстве»: свои отметки и переход в прогресс, как в приложении. */
+function renderMyMarks() {
+  const marks = state.marks.slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  $('detailMarks').classList.remove('hidden');
+  $('detailMarksEmpty').classList.toggle('hidden', marks.length > 0);
+
+  const list = $('detailMarksList');
+  list.textContent = '';
+  if (!marks.length) return;
+
+  const intro = document.createElement('button');
+  intro.className = 'proto-row';
+  intro.innerHTML =
+    '<span class="proto-nick">Отметки на устройстве</span>' +
+    `<span class="proto-result">${marks.length}</span>`;
+  intro.addEventListener('click', () => openMyProgress());
+  list.append(intro);
+}
+
+/** Открывает прогресс по своим отметкам с устройства. */
+function openMyProgress() {
+  const me = readJson(STORAGE.identity, { nick: '', code: '' });
+  const start = state.marks.find((mark) => mark.start);
+  const finish = state.marks.find((mark) => mark.finish);
+  const points = rogaineMode() ? rogainePoints(state.marks) : 0;
+
+  const row = {
+    userId: me.code || 'me',
+    nick: me.nick || 'Мои отметки',
+    startTime: start ? start.time : 0,
+    finishTime: finish ? finish.time : 0,
+    elapsed: start && finish ? finish.time - start.time : 0,
+    score: points,
+    penalty: 0,
+    total: points,
+    status: start && finish ? 'OK' : 'DNF',
+    marks: state.marks,
+    place: null,
+  };
+  openParticipant(row, rogaineMode());
 }
 
 /**
@@ -1398,7 +1451,10 @@ function setCircle(point, label, ready) {
 
 function markCandidate() {
   const point = state.candidate;
-  if (!point || !state.event) return;
+  if (!point || !state.event) {
+    if (state.marks.some((mark) => mark.finish)) setStatus('Вы уже финишировали', 'error');
+    return;
+  }
 
   const period = periodState(state.event.distance);
   if (period !== 'OK') {
@@ -1408,7 +1464,7 @@ function markCandidate() {
 
   const code = codeOf(point);
   if (isFinish(code, rogaineMode()) && !state.marks.some((mark) => mark.start)) {
-    setStatus('Сначала отметьте старт', 'error');
+    setStatus('Вначале отметьте старт на выбранной дистанции', 'error');
     return;
   }
 
@@ -1420,7 +1476,8 @@ function markCandidate() {
   });
   saveMarks();
   renderMark();
-  setStatus(`Отметка записана: ${labelOf(point)}`, 'good');
+  playMarkSound();
+  setStatus('Отметка записана', 'good');
 }
 
 function startWatch() {
@@ -1436,9 +1493,30 @@ function startWatch() {
     },
     (error) => {
       $('markAccuracy').textContent = 'GPS недоступен: ' + error.message;
+      $('gpsRetry').classList.remove('hidden');
     },
     { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 }
   );
+}
+
+/** Звук и вибрация при отметке — как MarkSoundPlayer и MarkVibrationPlayer. */
+function playMarkSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      const context = new AudioCtx();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.frequency.value = 880;
+      gain.gain.value = 0.15;
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.12);
+    }
+  } catch (error) {
+    // Звук не обязателен: если браузер запретил, отметка всё равно записана
+  }
+  if (navigator.vibrate) navigator.vibrate(60);
 }
 
 /* ─────────────────────────── профиль и отправка ─────────────────────────── */
@@ -1456,6 +1534,25 @@ function updateSendState() {
 }
 
 async function sendResult() {
+  if (!state.marks.length) {
+    setStatus('Отметок нет: по этой дистанции ничего не отмечено, отправлять нечего.', 'error');
+    return;
+  }
+
+  const distanceData = (state.event && state.event.distance) || {};
+  const route = (distanceData.order || []).map((code) => String(code))
+    .filter((code) => !isStart(code, false) && !isFinish(code, false));
+  if (route.length) {
+    const taken = state.marks
+      .filter((mark) => !mark.start && !mark.finish)
+      .map((mark) => String(mark.code));
+    const matches = taken.length === route.length && taken.every((code, index) => code === route[index]);
+    if (!matches) {
+      setStatus('Отметки не соответствуют этой дистанции. Отправлять их нельзя.', 'error');
+      return;
+    }
+  }
+
   const who = identity();
   if (!who.nick) {
     setStatus('Укажите ник', 'error');
@@ -1515,6 +1612,12 @@ function bind() {
     }
     sendResult();
   });
+  $('gpsRetry').addEventListener('click', () => {
+    state.watchId = null;
+    $('gpsRetry').classList.add('hidden');
+    startWatch();
+  });
+
   $('bigMark').addEventListener('click', markCandidate);
   $('send').addEventListener('click', sendResult);
 

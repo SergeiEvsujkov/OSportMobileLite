@@ -62,6 +62,12 @@
 
       <div class="detail-rows" id="detailRows"></div>
 
+      <section class="proto hidden" id="detailMarks">
+        <h2 class="proto-title">Отметки на устройстве</h2>
+        <p class="meta" id="detailMarksEmpty">Отметок нет. Отметьтесь на старте, затем на КП и на финише.</p>
+        <div class="proto" id="detailMarksList"></div>
+      </section>
+
       <div class="map hidden" id="detailMap"></div>
       <p class="map-coords hidden" id="mapCoords"></p>
 
@@ -112,6 +118,7 @@
       </div>
 
       <p class="mark-hint" id="markHint">Кнопка станет зелёной у пункта — тогда нажмите</p>
+      <button class="button tonal hidden" id="gpsRetry" style="margin:0 24px 16px">Разрешить геолокацию</button>
     </section>
 
     <!-- Профиль -->
