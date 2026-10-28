@@ -611,4 +611,5 @@ body.large .page-head h1 { font-size: 26px; }
 input, textarea { -webkit-user-select: text; user-select: text; }
 
 /* Сведения дистанции в карточке — в одну строку, как в приложении */
-.distance-card .event-meta { font-size: 14px; margin-top: 4px; }
+.distance-card { padding: 12px; }
+.distance-card .event-meta { font-size: 13px; margin-top: 4px; }
