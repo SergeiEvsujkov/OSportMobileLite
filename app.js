@@ -134,13 +134,12 @@ function formatDate(value) {
 function showTab(name) {
   $('homeScreen').classList.toggle('hidden', name !== 'events');
   $('detailScreen').classList.toggle('hidden', name !== 'detail');
-  $('pointsScreen').classList.toggle('hidden', name !== 'points');
   $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
   $('markScreen').classList.toggle('hidden', name !== 'mark');
   $('profileScreen').classList.toggle('hidden', name !== 'profile');
 
   $('tabEvents').classList.toggle('active',
-    name === 'events' || name === 'cloud' || name === 'detail' || name === 'points');
+    name === 'events' || name === 'cloud' || name === 'detail');
   $('tabMark').classList.toggle('active', name === 'mark');
   $('tabProfile').classList.toggle('active', name === 'profile');
 
@@ -388,50 +387,6 @@ function renderDetail() {
   $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
 }
 
-function openPoints() {
-  renderPoints();
-  showTab('points');
-}
-
-function renderPoints() {
-  const event = state.event;
-  const list = $('pointsList');
-  list.textContent = '';
-  if (!event) return;
-
-  const distance = event.distance || {};
-  const points = distance.points || [];
-  const order = distance.order || [];
-  const marked = markedCodes();
-  const started = state.marks.some((mark) => mark.start);
-  const finished = state.marks.some((mark) => mark.finish);
-
-  $('pointsSummary').textContent = `Отмечено ${marked.size} из ${points.length}`;
-
-  points.forEach((point) => {
-    const code = codeOf(point);
-    const start = isStart(code, rogaineMode());
-    const finish = isFinish(code, rogaineMode());
-    const done = start ? started : finish ? finished : marked.has(code);
-    const orderIndex = order.findIndex((value) => String(value) === code);
-    const label = start ? 'Старт' : finish ? 'Финиш' : `КП ${code}`;
-
-    const row = document.createElement('div');
-    row.className = 'point' + (done ? ' done' : '');
-
-    const num = document.createElement('span');
-    num.className = 'num';
-    num.textContent = orderIndex >= 0 ? `${orderIndex + 1}. ${label}` : label;
-
-    const stateText = document.createElement('span');
-    stateText.className = 'state';
-    stateText.textContent = done ? 'отмечен' : '';
-
-    row.append(num, stateText);
-    list.append(row);
-  });
-}
-
 /** Деактивация: отметки снимаются, событие остаётся скачанным. */
 function deactivateEvent() {
   if (!state.event) return;
@@ -654,9 +609,7 @@ function bind() {
     }
     sendResult();
   });
-  $('detailPoints').addEventListener('click', openPoints);
   $('detailDeactivate').addEventListener('click', askDeactivate);
-  $('pointsBack').addEventListener('click', () => openDetail());
   $('dialogCancel').addEventListener('click', () => $('dialog').classList.add('hidden'));
   $('dialogOk').addEventListener('click', () => {
     $('dialog').classList.add('hidden');
