@@ -79,7 +79,9 @@ function rememberEvent(event) {
 }
 
 function activateEvent(id) {
-  const saved = state.event && state.event.id === id ? state.event : readJson(STORAGE.event + '.' + id, null);
+  const saved = state.event && state.event.id === id
+    ? state.event
+    : readJson(STORAGE.event + '.' + id, null);
   if (!saved) return;
   state.event = saved;
   state.marks = loadMarks(id);
@@ -299,12 +301,20 @@ function renderCloud() {
 
     body.append(title, period, details, author);
 
+    const downloaded = state.history.some((saved) => saved.id === entry.id);
     const action = document.createElement('span');
     action.className = 'action';
-    action.textContent = state.event && state.event.id === entry.id ? '✓' : '⤓';
+    action.textContent = downloaded ? '✓' : '⤓';
 
     item.append(body, action);
-    item.addEventListener('click', () => downloadEvent(entry));
+    // Уже скачанное не загружаем заново: сразу активируем и открываем отметку
+    item.addEventListener('click', () => {
+      if (downloaded) {
+        activateEvent(entry.id);
+      } else {
+        downloadEvent(entry);
+      }
+    });
     list.append(item);
   });
 }
