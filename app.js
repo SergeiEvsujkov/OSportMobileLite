@@ -159,6 +159,7 @@ function formatDate(value) {
  * возвращает на предыдущий экран, а не закрывает приложение.
  */
 let navStack = ['events'];
+let ignoreNextPop = false;   // выход из полного экрана кнопкой не меняет экран
 
 function showTab(name, options = {}) {
   const push = options.push !== false;
@@ -1287,6 +1288,15 @@ function addMapChrome(box) {
     // браузера не используем, иначе Chrome показывает свою подсказку о выходе
     mapState.fullscreen = !mapState.fullscreen;
     redrawMap();
+
+    if (mapState.fullscreen) {
+      // Своя запись в истории: системная «назад» сначала свернёт карту
+      history.pushState({ fullscreen: true }, '');
+    } else if (history.state && history.state.fullscreen) {
+      // Вышли кнопкой: убираем лишнюю запись, не меняя экран
+      ignoreNextPop = true;
+      history.back();
+    }
   });
 }
 
@@ -2462,6 +2472,20 @@ function registerServiceWorker() {
 
 // Системная кнопка «назад»: на предыдущий экран
 window.addEventListener('popstate', () => {
+  // Выход кнопкой из полного экрана: экран не меняется
+  if (ignoreNextPop) {
+    ignoreNextPop = false;
+    return;
+  }
+
+  // «Назад» в полном экране сворачивает карту и оставляет тот же экран
+  if (mapState.fullscreen) {
+    mapState.fullscreen = false;
+    redrawMap();
+    history.pushState({ depth: navStack.length }, '');
+    return;
+  }
+
   if (navStack.length > 1) navStack.pop();
   const previous = navStack[navStack.length - 1] || 'events';
   showTab(previous, { push: false });
