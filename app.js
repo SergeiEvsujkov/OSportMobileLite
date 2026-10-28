@@ -921,6 +921,10 @@ function renderDetail() {
   const group = readJson(STORAGE.group, null);
   const groupItems = (group && group.items) || [];
   const indexInGroup = groupItems.findIndex((item) => item.id === event.id);
+
+  // У дистанции в группе корзины нет: удаляется только вся группа
+  const inGroup = indexInGroup >= 0;
+  $('detailDelete').classList.toggle('hidden', inGroup);
   $('detailSub').textContent = event.kind === 'rogaine'
     ? 'Рогейн'
     : (indexInGroup >= 0 ? `Дистанция ${indexInGroup + 1}` : 'Дистанция');
