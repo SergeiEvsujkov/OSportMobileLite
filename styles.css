@@ -641,6 +641,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .event-card.active-event { background: #e2f3e5; }
 html[data-theme="dark"] .event-card.active-event { background: #1d3527; }
 
+.distance-card { position: relative; }
+.distance-card.active-event { background: #e2f3e5; }
+html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
+.distance-card .run-icon { top: 8px; right: 8px; width: 24px; height: 24px; }
+
 .event-card .run-icon {
   position: absolute;
   top: 12px;
