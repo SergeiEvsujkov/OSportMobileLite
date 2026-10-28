@@ -613,3 +613,26 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 /* Сведения дистанции в карточке — в одну строку, как в приложении */
 .distance-card { padding: 12px; }
 .distance-card .event-meta { font-size: 13px; margin-top: 4px; }
+
+/* Окно подтверждения — как диалог деактивации в приложении */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, .45);
+}
+.modal {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+  background: var(--surface-container-high, #f7f2fa);
+  border-radius: 24px;
+  color: var(--on-surface);
+}
+.modal h2 { margin: 0 0 8px; font-size: 19px; font-weight: 600; }
+.modal p { margin: 0 0 16px; font-size: 15px; color: var(--on-surface-variant); }
+.modal .modal-actions { display: flex; flex-direction: column; gap: 8px; }

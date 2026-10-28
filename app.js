@@ -18,10 +18,12 @@ const STORAGE = {
   marks: 'osport.lite.marks',
   identity: 'osport.lite.identity',
   settings: 'osport.lite.settings',
+  active: 'osport.lite.active',
 };
 
 const state = {
   event: null,
+  activeId: null,   // id активированной дистанции
   marks: [],
   position: null,
   watchId: null,
@@ -161,8 +163,8 @@ let navStack = ['events'];
 function showTab(name, options = {}) {
   const push = options.push !== false;
 
-  // Экран отметки без активного события не открывается: сначала скачайте
-  if (name === 'mark' && !state.event) {
+  // Экран отметки без активной дистанции не открывается: сначала активируйте
+  if (name === 'mark' && (!state.event || state.activeId !== state.event.id)) {
     setStatus('Сначала активируйте событие', 'error');
     return;
   }
@@ -943,6 +945,12 @@ function renderDetail() {
 
   $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
 
+  // Активна ли эта дистанция: кнопка «Активировать» / «Деактивировать»
+  const active = state.activeId === event.id;
+  const activateButton = $('detailActivate');
+  activateButton.textContent = active ? 'Деактивировать' : 'Активировать';
+  activateButton.className = 'button' + (active ? ' outlined' : '');
+
   // В файле дистанции старта часто нет: он лежит в координатах события.
   // Добавляем его как точку карты, иначе треугольника не видно
   // Точки карты — только те, что есть в маршруте, плюс старт из координат
@@ -975,6 +983,85 @@ function renderDetail() {
 
   showMap(mapPoints);
   renderProtocol(distance);
+}
+
+/** Активация дистанции — кнопка «Активировать», как в приложении. */
+function activateDistance() {
+  if (!state.event) return;
+  const entry = state.event.entry || {};
+
+  // Участнику нельзя начать после окончания события (у автора проверки нет)
+  if (entry.finishTime && Date.now() > entry.finishTime) {
+    setStatus('Событие уже закончилось', 'error');
+    return;
+  }
+
+  state.activeId = state.event.id;
+  writeJson(STORAGE.active, state.event.id);
+  state.marks = loadMarks(state.event.id);
+  updateSendState();
+  renderDetail();
+  setStatus('Дистанция активирована', 'good');
+}
+
+/** Деактивация: отметки остаются на устройстве, дистанция перестаёт быть активной. */
+function deactivateDistance() {
+  stopWatch();
+  stopQrScanner();
+  state.activeId = null;
+  try {
+    localStorage.removeItem(STORAGE.active);
+  } catch (error) {
+    // приватный режим — просто не сохраняем
+  }
+  renderDetail();
+  showTab('events');
+  setStatus('Дистанция деактивирована');
+}
+
+/** Окно подтверждения деактивации — как диалог в приложении. */
+function openDeactivateDialog() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const title = document.createElement('h2');
+  title.textContent = 'Деактивировать дистанцию?';
+
+  const hint = document.createElement('p');
+  hint.textContent = 'Отметки останутся на устройстве. Отправить их перед деактивацией?';
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+
+  const cancel = document.createElement('button');
+  cancel.className = 'button outlined';
+  cancel.textContent = 'Отмена';
+  cancel.addEventListener('click', () => overlay.remove());
+
+  const sendAndExit = document.createElement('button');
+  sendAndExit.className = 'button tonal';
+  sendAndExit.textContent = 'Отправить и деактивировать';
+  sendAndExit.addEventListener('click', async () => {
+    overlay.remove();
+    await sendResult();
+    deactivateDistance();
+  });
+
+  const exit = document.createElement('button');
+  exit.className = 'button';
+  exit.textContent = 'Не отправлять отметки и деактивировать';
+  exit.addEventListener('click', () => {
+    overlay.remove();
+    deactivateDistance();
+  });
+
+  actions.append(cancel, sendAndExit, exit);
+  modal.append(title, hint, actions);
+  overlay.append(modal);
+  document.body.append(overlay);
 }
 
 /** Открывает прогресс по своим отметкам с устройства. */
@@ -2259,6 +2346,13 @@ function bind() {
   });
   $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
   $('detailMarksButton').addEventListener('click', openMyProgress);
+  $('detailActivate').addEventListener('click', () => {
+    if (state.activeId === state.event.id) {
+      openDeactivateDialog();
+    } else {
+      activateDistance();
+    }
+  });
   $('detailMark').addEventListener('click', () => showTab('mark'));
   // «Отправить отметки»: если ник и код уже заданы — отправляем сразу,
   // иначе ведём в профиль, где их вводят
@@ -2306,13 +2400,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   state.history = loadHistory();
   const saved = readJson(STORAGE.event, null);
+  state.activeId = readJson(STORAGE.active, null);
   if (saved && saved.distance) {
     state.event = saved;
     state.marks = loadMarks(saved.id);
     updateSendState();
   }
   // «Открывать экран отметки при запуске» — как в приложении
-  const first = saved && saved.distance && settings().showOnStart ? 'mark' : 'events';
+  const activeRestored = saved && saved.distance && state.activeId === saved.id;
+  const first = activeRestored && settings().showOnStart ? 'mark' : 'events';
   navStack = [first];
   history.replaceState({ depth: 1 }, '');
   showTab(first, { push: false });
