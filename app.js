@@ -2724,7 +2724,7 @@ function bind() {
   // Отладка веба: если профиль не заведён, подставляем профиль приложения,
   // чтобы работать так, как будто вход уже выполнен
   const seededIdentity = readJson(STORAGE.identity, null);
-  if (!seededIdentity) {
+  if (!seededIdentity || !seededIdentity.code || String(seededIdentity.code).length < 6) {
     writeJson(STORAGE.identity, { nick: 'Серёга Евс', code: 'ABCHLFLJQKPP' });
   }
 
