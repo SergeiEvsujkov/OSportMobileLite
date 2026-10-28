@@ -998,6 +998,18 @@ function showMap(points) {
 }
 
 /** Рисует тайлы, линию маршрута и значки пунктов. */
+/** Азимут от точки к точке: 0 — север, дальше по часовой стрелке. */
+function bearingDegrees(fromLat, fromLon, toLat, toLon) {
+  const rad = (value) => (value * Math.PI) / 180;
+  const fromLatRad = rad(fromLat);
+  const toLatRad = rad(toLat);
+  const deltaLon = rad(toLon - fromLon);
+  const y = Math.sin(deltaLon) * Math.cos(toLatRad);
+  const x = Math.cos(fromLatRad) * Math.sin(toLatRad)
+    - Math.sin(fromLatRad) * Math.cos(toLatRad) * Math.cos(deltaLon);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
 function drawMap(box) {
   const points = mapState.points;
   const kind = currentMapKind();
@@ -1074,20 +1086,33 @@ function drawMap(box) {
   const current = state.event || {};
   const order = (current.distance && current.distance.order) || [];
   const routeVisible = !(current.distance && current.distance.routeVisible === false);
+  // Линия маршрута: красная, 1.6, круглые концы, каждый отрезок укорочен
+  // на радиус значка (14) с обеих сторон — как RouteLineOverlay
+  const MARKER_RADIUS = 14;
   if (routeVisible && order.length > 1) {
     const route = order
       .map((code) => points.find((point) => String(codeOf(point)) === String(code)))
       .filter(Boolean);
-    if (route.length > 1) {
-      const line = document.createElementNS(svgNS, 'polyline');
-      line.setAttribute('points', route.map((point) => {
-        const p = positionOf(point);
-        return `${p.x},${p.y}`;
-      }).join(' '));
-      line.setAttribute('fill', 'none');
-      line.setAttribute('stroke', '#c62828');
-      line.setAttribute('stroke-width', '2');
-      svg.append(line);
+
+    for (let index = 0; index + 1 < route.length; index++) {
+      const from = positionOf(route[index]);
+      const to = positionOf(route[index + 1]);
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const length = Math.hypot(dx, dy);
+      if (length <= MARKER_RADIUS * 2) continue;
+
+      const ux = dx / length;
+      const uy = dy / length;
+      const segment = document.createElementNS(svgNS, 'line');
+      segment.setAttribute('x1', String(from.x + ux * MARKER_RADIUS));
+      segment.setAttribute('y1', String(from.y + uy * MARKER_RADIUS));
+      segment.setAttribute('x2', String(to.x - ux * MARKER_RADIUS));
+      segment.setAttribute('y2', String(to.y - uy * MARKER_RADIUS));
+      segment.setAttribute('stroke', '#c62828');
+      segment.setAttribute('stroke-width', '1.6');
+      segment.setAttribute('stroke-linecap', 'round');
+      svg.append(segment);
     }
   }
 
@@ -1099,8 +1124,18 @@ function drawMap(box) {
     const radius = 14;
 
     if (start) {
+      // Вершина смотрит на первый пункт маршрута, если направление известно
+      const routeNext = order
+        .map((code) => points.find((item) => String(codeOf(item)) === String(code)))
+        .filter(Boolean)
+        .find((item) => item !== point);
+      const direction = routeNext
+        ? bearingDegrees(point.latitude, point.longitude, routeNext.latitude, routeNext.longitude)
+        : null;
+
       const triangle = document.createElementNS(svgNS, 'polygon');
       triangle.setAttribute('points', `${x},${y - radius} ${x - radius},${y + radius} ${x + radius},${y + radius}`);
+      if (direction !== null) triangle.setAttribute('transform', `rotate(${direction} ${x} ${y})`);
       triangle.setAttribute('fill', 'none');
       triangle.setAttribute('stroke', '#c62828');
       triangle.setAttribute('stroke-width', '2.5');
