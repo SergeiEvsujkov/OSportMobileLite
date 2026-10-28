@@ -93,10 +93,25 @@ function activateEvent(id) {
 
 /* ─────────────────────────── облако ─────────────────────────── */
 
+/** Сообщение внизу — как Snackbar: само гаснет через 4 секунды. */
+let statusTimer = null;
+
 function setStatus(text, kind = '') {
   const node = $('status');
   node.textContent = text;
   node.className = 'status' + (kind ? ' ' + kind : '');
+
+  if (statusTimer) {
+    clearTimeout(statusTimer);
+    statusTimer = null;
+  }
+  if (text) {
+    statusTimer = setTimeout(() => {
+      node.textContent = '';
+      node.className = 'status';
+      statusTimer = null;
+    }, 4000);
+  }
 }
 
 async function callFunction(query, body = null) {
@@ -134,6 +149,8 @@ function formatDate(value) {
 /* ─────────────────────────── вкладки ─────────────────────────── */
 
 function showTab(name) {
+  // Переход на другой экран убирает прошлое сообщение
+  setStatus('');
   $('homeScreen').classList.toggle('hidden', name !== 'events');
   $('groupScreen').classList.toggle('hidden', name !== 'group');
   $('participantScreen').classList.toggle('hidden', name !== 'participant');
