@@ -256,7 +256,10 @@ function renderHome() {
 
   const title = document.createElement('span');
   title.className = 'event-title';
-  title.textContent = (group && group.number ? `№ ${group.number} ` : '') + (first.name || 'Без названия');
+  const number = items.length > 1
+    ? (group && group.number)
+    : (items[0].entry && items[0].entry.number);
+  title.textContent = (number ? `№ ${number} ` : '') + (first.name || 'Без названия');
   head.append(title);
   card.append(head);
   const activeId = state.activeId;
@@ -960,15 +963,25 @@ function renderDetail() {
   const groupItems = (group && group.items) || [];
   const indexInGroup = groupItems.findIndex((item) => item.id === event.id);
 
-  // У дистанции в группе корзины нет: удаляется только вся группа
-  const inGroup = indexInGroup >= 0;
+  // Принадлежность к группе — по полю groupId самого события, как в приложении
+  const groupId = String((event.entry && event.entry.groupId) || '');
+  const inGroup = groupId !== '';
   $('detailDelete').classList.toggle('hidden', inGroup);
+
+  // Номер дистанции внутри группы: соседи с тем же groupId по номеру из облака
+  const number = (item) => Number(item.entry && item.entry.number) || 0;
+  const ordinal = inGroup
+    ? groupItems
+      .filter((item) => String((item.entry && item.entry.groupId) || '') === groupId)
+      .sort((left, right) => number(left) - number(right))
+      .findIndex((item) => item.id === event.id) + 1
+    : 0;
 
   // Карта из облака: кнопка есть только когда карта у дистанции есть
   $('detailMapDownload').classList.toggle('hidden', !entry.mapExt);
-  $('detailSub').textContent = event.kind === 'rogaine'
-    ? 'Рогейн'
-    : (indexInGroup >= 0 ? `Дистанция ${indexInGroup + 1}` : 'Дистанция');
+  // Как в приложении: у одиночной дистанции и у рогейна подписи нет,
+  // «Дистанция N» — только у дистанции в группе
+  $('detailSub').textContent = ordinal > 0 ? `Дистанция ${ordinal}` : '';
 
   const rows = $('detailRows');
   rows.textContent = '';
