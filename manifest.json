@@ -4,7 +4,7 @@
   "short_name": "OSport Lite",
   "description": "Участнику: скачать событие, отметиться, отправить результат",
   "lang": "ru",
-  "start_url": "./index.html#app",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
