@@ -1,19 +1,16 @@
 /**
- * Офлайн-оболочка: кэшируем только собственные файлы приложения.
+ * Офлайн-оболочка: сеть сначала, кэш — только когда сети нет.
  *
- * Запросы к облачной функции сюда не попадают: они должны идти в сеть всегда,
- * иначе данные устареют. Если сети нет, приложение откроется, но поиск события
- * скажет об ошибке — это честнее, чем показывать старую карточку.
+ * Раньше файлы брались из кэша первыми, и приложение могло годами показывать
+ * старый app.js под тем же адресом. Теперь при каждом открытии файлы
+ * запрашиваются из сети и обновляют кэш; без сети работает последняя копия.
  */
 
-const CACHE = 'osport-lite-v26';
+const CACHE = 'osport-lite-v34';
+
 const SHELL = [
   './',
   './index.html',
-  './styles.css?v=25',
-  './jsQR.js?v=25',
-  './marking.js?v=25',
-  './app.js?v=25',
   './manifest.json',
   './icons/group.png',
   './icons.svg',
@@ -37,9 +34,20 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  if (event.request.method !== 'GET') return;
   if (url.origin !== self.location.origin) return; // чужие запросы не трогаем
 
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then((cached) => cached || caches.match('./index.html'))
+      )
   );
 });
