@@ -317,6 +317,13 @@ body {
   overflow: hidden;
   background: var(--surface-container);
 }
+.map-layer {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  transition: transform .05s linear;
+}
 .map .tile { position: absolute; width: 256px; height: 256px; }
 .map.fullscreen {
   position: fixed;

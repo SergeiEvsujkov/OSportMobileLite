@@ -1737,17 +1737,45 @@ function redrawMap() {
   addMapChrome(box);
 }
 
-/** Жесты карты: щипок меняет масштаб сразу, перетаскивание сдвигает центр. */
+/** Мировые пиксели Меркатора для широты и долготы на заданном масштабе. */
+function mercatorPx(latitude, longitude, zoom) {
+  const size = 256 * Math.pow(2, zoom);
+  const latRad = (latitude * Math.PI) / 180;
+  return {
+    x: ((longitude + 180) / 360) * size,
+    y: ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * size,
+  };
+}
+
+/** Обратный перевод: мировые пиксели → широта и долгота. */
+function mercatorLatLon(x, y, zoom) {
+  const size = 256 * Math.pow(2, zoom);
+  const longitude = (x / size) * 360 - 180;
+  const n = Math.PI - (2 * Math.PI * y) / size;
+  const latitude = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  return { latitude, longitude };
+}
+
+/**
+ * Жесты карты: во время касания слой карты двигается transform-ом — плавно,
+ * без перерисовки; на отпускании масштаб и центр пересчитываются и карта
+ * перерисовывается чётко.
+ */
 function bindMapGestures(box) {
   if (box.dataset.gestures === 'on') return;
   box.dataset.gestures = 'on';
 
   const pointers = new Map();
   let startDistance = 0;
-  let startZoom = 0;
-  let startCenter = null;
+  let startZoom = 16;
+  let startCenterPx = null;
   let startMiddle = null;
-  let lastRender = 0;
+  let startPoint = null;
+  let lastScale = 1;
+  let lastMiddle = null;
+  let lastPoint = null;
+
+  const layer = () => box.querySelector('.map-layer');
 
   const distance = () => {
     const values = [...pointers.values()];
@@ -1761,11 +1789,10 @@ function bindMapGestures(box) {
     return { x: (values[0].x + values[1].x) / 2, y: (values[0].y + values[1].y) / 2 };
   };
 
-  const renderThrottled = () => {
-    const now = Date.now();
-    if (now - lastRender < 80) return;
-    lastRender = now;
-    redrawMap();
+  const applyTransform = (scale, tx, ty) => {
+    const node = layer();
+    if (!node) return;
+    node.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
   };
 
   box.addEventListener('pointerdown', (event) => {
@@ -1773,62 +1800,82 @@ function bindMapGestures(box) {
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
     if (pointers.size === 1) {
+      startPoint = { x: event.clientX, y: event.clientY };
       startMiddle = { x: event.clientX, y: event.clientY };
-      startCenter = mapState.center ? { ...mapState.center } : null;
+      startZoom = mapState.zoom || 16;
+      startCenterPx = mapState.center
+        ? mercatorPx(mapState.center.latitude, mapState.center.longitude, startZoom)
+        : null;
+      startDistance = 0;
     }
+
     if (pointers.size === 2) {
       startDistance = distance();
+      startMiddle = middle();
       startZoom = mapState.zoom || 16;
-      startCenter = mapState.center ? { ...mapState.center } : null;
+      startCenterPx = mapState.center
+        ? mercatorPx(mapState.center.latitude, mapState.center.longitude, startZoom)
+        : null;
     }
   });
 
   box.addEventListener('pointermove', (event) => {
     if (!pointers.has(event.pointerId)) return;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (!startMiddle) return;
 
-    // Щипок: масштаб меняется на ходу, а не только после отпускания
     if (pointers.size >= 2 && startDistance > 0) {
-      const ratio = distance() / startDistance;
-      const zoom = Math.min(19, Math.max(3, Math.round(startZoom + Math.log2(ratio || 1))));
-      if (zoom !== mapState.zoom) {
-        mapState.zoom = zoom;
-        renderThrottled();
-      }
+      lastScale = Math.min(6, Math.max(0.2, distance() / startDistance));
+      lastMiddle = middle();
+      applyTransform(lastScale, lastMiddle.x - startMiddle.x, lastMiddle.y - startMiddle.y);
+    } else if (pointers.size === 1 && startPoint) {
+      lastPoint = { x: event.clientX, y: event.clientY };
+      applyTransform(1, lastPoint.x - startPoint.x, lastPoint.y - startPoint.y);
     }
   });
 
   const finish = (event) => {
     if (!pointers.has(event.pointerId)) return;
     pointers.delete(event.pointerId);
+    if (pointers.size > 0) return;
 
-    // Щипок закончился: фиксируем масштаб по последнему расстоянию
-    if (pointers.size < 2 && startDistance > 0) {
-      startDistance = 0;
+    const node = layer();
+    if (!node || !startMiddle || !startCenterPx) {
+      if (node) node.style.transform = '';
       startMiddle = null;
-      startCenter = null;
-      renderThrottled();
       return;
     }
 
-    // Перетаскивание закончилось
-    if (pointers.size === 0 && startCenter && startMiddle) {
-      const zoom = mapState.zoom || 16;
-      const scale = 256 * Math.pow(2, zoom);
-      const dx = startMiddle.x - event.clientX;
-      const dy = startMiddle.y - event.clientY;
-      if (dx || dy) {
-        const lon = startCenter.longitude + (dx / scale) * 360;
-        const latRad = (startCenter.latitude * Math.PI) / 180;
-        const mercator = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-        const newMercator = mercator - (dy / scale) * 2 * Math.PI;
-        const lat = ((2 * Math.atan(Math.exp(newMercator)) - Math.PI / 2) * 180) / Math.PI;
-        mapState.center = { latitude: lat, longitude: lon };
-        redrawMap();
-      }
-      startMiddle = null;
-      startCenter = null;
+    // Значения берём из последнего движения: после отпускания пальцев
+    // расстояние между ними уже не измерить
+    const scale = lastScale;
+    const tx = startDistance > 0
+      ? (lastMiddle ? lastMiddle.x - startMiddle.x : 0)
+      : (lastPoint ? lastPoint.x - startPoint.x : 0);
+    const ty = startDistance > 0
+      ? (lastMiddle ? lastMiddle.y - startMiddle.y : 0)
+      : (lastPoint ? lastPoint.y - startPoint.y : 0);
+
+    if (startDistance > 0) {
+      // Щипок: масштаб меняется на целые уровни, центр держим под пальцами
+      const nextZoom = Math.min(19, Math.max(3, Math.round(startZoom + Math.log2(scale))));
+      const ratio = Math.pow(2, nextZoom - startZoom);
+      mapState.zoom = nextZoom;
+      mapState.center = mercatorLatLon(
+        startCenterPx.x * ratio - tx,
+        startCenterPx.y * ratio - ty,
+        nextZoom
+      );
+    } else if (tx || ty) {
+      // Перетаскивание: сдвиг в пикселях переводим в координаты
+      mapState.center = mercatorLatLon(startCenterPx.x - tx, startCenterPx.y - ty, startZoom);
     }
+
+    node.style.transform = '';
+    startMiddle = null;
+    startPoint = null;
+    startDistance = 0;
+    redrawMap();
   };
 
   box.addEventListener('pointerup', finish);
@@ -1925,6 +1972,12 @@ function drawMap(box) {
   const left = center.px - width / 2;
   const top = center.py - height / 2;
 
+  // Всё содержимое карты живёт в одном слое: во время жеста его двигаем
+  // transform-ом (плавно), а после жеста перерисовываем чётко
+  const layer = document.createElement('div');
+  layer.className = 'map-layer';
+  box.append(layer);
+
   const firstX = Math.floor(left / 256);
   const lastX = Math.floor((left + width) / 256);
   const firstY = Math.floor(top / 256);
@@ -1939,7 +1992,7 @@ function drawMap(box) {
       tile.style.left = `${x * 256 - left}px`;
       tile.style.top = `${y * 256 - top}px`;
       tile.alt = '';
-      box.append(tile);
+      layer.append(tile);
     }
   }
 
@@ -2071,7 +2124,7 @@ function drawMap(box) {
     svg.append(halo, label);
   });
 
-  box.append(svg);
+  layer.append(svg);
 }
 
 function saveMapKind() {
