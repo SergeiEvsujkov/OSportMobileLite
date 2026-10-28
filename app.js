@@ -19,7 +19,29 @@ const $ = (id) => document.getElementById(id);
 
 const state = {
   entry: null,
+  event: null,
 };
+
+const STORAGE_KEY = 'osport.lite.event';
+
+/** Скачанное событие переживает перезагрузку страницы. */
+function saveEvent(event) {
+  state.event = event;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(event));
+  } catch (error) {
+    // Приватный режим может запретить запись — работаем без сохранения
+  }
+}
+
+function loadSavedEvent() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 function setStatus(text, isError = false) {
   const node = $('status');
@@ -90,8 +112,7 @@ function renderEvent(entry) {
   $('eventDetails').textContent = details.join(' · ');
 
   $('eventHint').textContent =
-    'Скачивание события целиком появится вместе с действием get в функции: ' +
-    'сейчас в браузере доступны только сведения из каталога.';
+    'Скачивание сохраняет событие на устройстве: после этого его можно пройти без сети.';
 }
 
 function bind() {
@@ -114,11 +135,26 @@ function bind() {
     if (event.key === 'Enter') $('find').click();
   });
 
-  $('download').addEventListener('click', () => {
-    setStatus(
-      'Скачивание события целиком — следующий шаг: нужно действие get в функции.',
-      true
-    );
+  $('download').addEventListener('click', async () => {
+    const entry = state.entry;
+    if (!entry) return;
+
+    setStatus('Скачиваю событие…');
+    try {
+      const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
+      if (!data.distance) throw new Error('Сервис не отдал событие');
+
+      saveEvent({ id: entry.id, kind: data.kind, distance: data.distance });
+
+      const points = data.distance.points || [];
+      $('marksSummary').textContent = `Пунктов в событии: ${points.length}`;
+      $('openMark').disabled = false;
+      $('markCard').classList.remove('hidden');
+      $('eventHint').textContent = 'Событие сохранено на устройстве. Дальше — отметки.';
+      setStatus('Событие скачано');
+    } catch (error) {
+      setStatus(error.message, true);
+    }
   });
 }
 
@@ -132,5 +168,15 @@ function registerServiceWorker() {
 document.addEventListener('DOMContentLoaded', () => {
   bind();
   registerServiceWorker();
-  $('version').textContent = 'каркас 0.1';
+  $('version').textContent = 'каркас 0.2';
+
+  // Ранее скачанное событие показываем сразу: страницу могли открыть без сети
+  const saved = loadSavedEvent();
+  if (saved && saved.distance) {
+    state.event = saved;
+    const points = saved.distance.points || [];
+    $('marksSummary').textContent = `Пунктов в событии: ${points.length}`;
+    $('markCard').classList.remove('hidden');
+    $('openMark').disabled = false;
+  }
 });
