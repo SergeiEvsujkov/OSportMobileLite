@@ -411,6 +411,79 @@ body {
 .cloud-item .line.with-icon .icon { margin-top: 3px; flex: 0 0 auto; }
 .cloud-item .row-line { display: flex; align-items: center; justify-content: space-between; }
 
+/* ───────────── тема и крупный интерфейс ───────────── */
+
+html[data-theme="light"] {
+  --primary: #6650a4;
+  --on-primary: #ffffff;
+  --primary-container: #eaddff;
+  --on-primary-container: #21005d;
+  --surface: #fef7ff;
+  --surface-container: #f3edf7;
+  --on-surface: #1d1b20;
+  --on-surface-variant: #49454f;
+  --outline: #79747e;
+  --outline-variant: #cac4d0;
+  --error: #b3261e;
+}
+
+html[data-theme="dark"] {
+  --primary: #d0bcff;
+  --on-primary: #381e72;
+  --primary-container: #4f378b;
+  --on-primary-container: #eaddff;
+  --surface: #141218;
+  --surface-container: #211f26;
+  --on-surface: #e6e0e9;
+  --on-surface-variant: #cac4d0;
+  --outline: #938f99;
+  --outline-variant: #49454f;
+  --error: #f2b8b5;
+}
+
+body.large { font-size: 19px; }
+body.large .button { padding: 18px 24px; font-size: 18px; }
+body.large .mark-circle { width: 280px; height: 280px; font-size: 32px; }
+body.large .tab-label { font-size: 14px; }
+body.large .page-head h1 { font-size: 26px; }
+
+/* ───────────── настройки ───────────── */
+
+.settings-group {
+  margin: 16px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 16px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.switch-row:last-of-type { border-bottom: none; }
+.switch-row input { width: 22px; height: 22px; accent-color: var(--primary); }
+
+.theme-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.theme-chip {
+  padding: 10px 16px;
+  font-size: 15px;
+  color: var(--on-surface);
+  background: transparent;
+  border: 1px solid var(--outline);
+  border-radius: 20px;
+  cursor: pointer;
+}
+.theme-chip.active {
+  color: var(--on-primary-container);
+  background: var(--primary-container);
+  border-color: var(--primary-container);
+}
+
 .bottom-bar {
   position: fixed;
   left: 0;

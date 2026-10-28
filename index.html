@@ -16,6 +16,7 @@
       <header class="page-head">
         <h1>События</h1>
         <button id="openCloud" class="icon-button" title="Облако"><svg class="icon" aria-hidden="true"><use href="icons.svg#cloud"></use></svg></button>
+        <button id="openSettings" class="icon-button" title="Настройки"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg></button>
       </header>
       <div class="events-list" id="eventsList"></div>
       <p class="hint" id="homeHint">События нет: откройте облако и скачайте событие.</p>
@@ -36,6 +37,57 @@
       <h2 class="proto-title">Дистанции группы</h2>
       <p class="hint">Отличаются только порядком и количеством пунктов</p>
       <div class="points" id="groupDistances"></div>
+    </section>
+
+    <!-- Настройки -->
+    <section class="screen hidden" id="settingsScreen">
+      <header class="page-head">
+        <button id="settingsBack" class="icon-button left" title="Назад">←</button>
+        <h1>Настройки</h1>
+      </header>
+
+      <h2 class="settings-group">Оформление</h2>
+      <div class="card">
+        <p class="label">Тема</p>
+        <div class="theme-row" id="themeRow">
+          <button class="theme-chip" data-theme="system">Как в системе</button>
+          <button class="theme-chip" data-theme="light">Светлая</button>
+          <button class="theme-chip" data-theme="dark">Тёмная</button>
+        </div>
+        <label class="switch-row">
+          <span>Крупный интерфейс</span>
+          <input type="checkbox" id="setLarge">
+        </label>
+        <p class="hint">Увеличить кнопки и текст — удобнее в перчатке и на ходу.</p>
+      </div>
+
+      <h2 class="settings-group">Отметки</h2>
+      <div class="card">
+        <label class="switch-row">
+          <span>Открывать экран отметки при запуске</span>
+          <input type="checkbox" id="setShowOnStart">
+        </label>
+        <label class="switch-row">
+          <span>Автоматическая отметка</span>
+          <input type="checkbox" id="setAutoMark">
+        </label>
+        <p class="hint">GPS — как только кнопка становится зелёной; QR — как только код попал в кадр.</p>
+        <label class="switch-row">
+          <span>Отправлять отметки после финиша</span>
+          <input type="checkbox" id="setAutoSend">
+        </label>
+        <label class="switch-row">
+          <span>Звук отметки</span>
+          <input type="checkbox" id="setSound">
+        </label>
+        <label class="switch-row">
+          <span>Вибрация отметки</span>
+          <input type="checkbox" id="setVibration">
+        </label>
+      </div>
+
+      <button id="settingsReset" class="button outlined" style="width:100%">Сбросить настройки</button>
+      <p class="hint">Вернуть настройки к значениям по умолчанию? Вид и отметки станут как при первом запуске.</p>
     </section>
 
     <!-- Экран участника: сплиты -->

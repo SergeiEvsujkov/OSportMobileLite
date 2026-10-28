@@ -17,6 +17,7 @@ const STORAGE = {
   group: 'osport.lite.group',
   marks: 'osport.lite.marks',
   identity: 'osport.lite.identity',
+  settings: 'osport.lite.settings',
 };
 
 const state = {
@@ -136,6 +137,7 @@ function showTab(name) {
   $('homeScreen').classList.toggle('hidden', name !== 'events');
   $('groupScreen').classList.toggle('hidden', name !== 'group');
   $('participantScreen').classList.toggle('hidden', name !== 'participant');
+  $('settingsScreen').classList.toggle('hidden', name !== 'settings');
   $('detailScreen').classList.toggle('hidden', name !== 'detail');
   $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
   $('markScreen').classList.toggle('hidden', name !== 'mark');
@@ -362,6 +364,62 @@ function activateItem(item) {
 }
 
 /* ─────────────────────────── облако ─────────────────────────── */
+
+/* ─────────────────────────── настройки ─────────────────────────── */
+
+/** Настройки — те же ключи, что в AppSettings.kt; языка нет, он только русский. */
+const DEFAULT_SETTINGS = {
+  theme: 'system',
+  large: false,
+  showOnStart: false,
+  autoMark: false,
+  autoSend: false,
+  sound: true,
+  vibration: true,
+};
+
+function settings() {
+  return Object.assign({}, DEFAULT_SETTINGS, readJson(STORAGE.settings, {}));
+}
+
+function saveSettings(next) {
+  writeJson(STORAGE.settings, next);
+  applySettings();
+}
+
+function applySettings() {
+  const current = settings();
+  if (current.theme === 'system') {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.dataset.theme = current.theme;
+  }
+  document.body.classList.toggle('large', Boolean(current.large));
+}
+
+function openSettings() {
+  renderSettings();
+  showTab('settings');
+}
+
+function renderSettings() {
+  const current = settings();
+  $('setLarge').checked = current.large;
+  $('setShowOnStart').checked = current.showOnStart;
+  $('setAutoMark').checked = current.autoMark;
+  $('setAutoSend').checked = current.autoSend;
+  $('setSound').checked = current.sound;
+  $('setVibration').checked = current.vibration;
+  document.querySelectorAll('.theme-chip').forEach((chip) => {
+    chip.classList.toggle('active', chip.dataset.theme === current.theme);
+  });
+}
+
+function updateSetting(key, value) {
+  const next = settings();
+  next[key] = value;
+  saveSettings(next);
+}
 
 let cloudEntries = [];
 
@@ -1466,6 +1524,18 @@ function renderMark() {
 
   if (candidate) setCircle(candidate, labelOf(candidate), true);
   else setCircle(null, 'Подойдите к пункту', false);
+
+  // Автоматическая отметка: у пункта записываем сами, как в приложении
+  const currentSettings = settings();
+  if (currentSettings.autoMark && candidate) {
+    const code = codeOf(candidate);
+    if (state.autoMarked !== code) {
+      state.autoMarked = code;
+      markByCode(code);
+    }
+  } else if (!candidate) {
+    state.autoMarked = null;
+  }
 }
 
 function setCircle(point, label, ready) {
@@ -1504,6 +1574,11 @@ function markCandidate() {
   renderMark();
   playMarkSound();
   setStatus('Отметка записана', 'good');
+
+  if (isFinish(code, rogaineMode()) && settings().autoSend
+    && identity().nick && identity().code.length >= 6) {
+    sendResult();
+  }
 }
 
 /** Сканер QR: камера и BarcodeDetector, отметка ставится сама. */
@@ -1602,6 +1677,10 @@ function markByCode(code) {
   playMarkSound();
   renderMark();
   setStatus('Отметка записана', 'good');
+
+  if (finish && settings().autoSend && identity().nick && identity().code.length >= 6) {
+    sendResult();
+  }
 }
 
 function stopQrScanner() {
@@ -1643,7 +1722,8 @@ function startWatch() {
 
 /** Звук и вибрация при отметке — как MarkSoundPlayer и MarkVibrationPlayer. */
 function playMarkSound() {
-  try {
+  const current = settings();
+  if (current.sound) try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (AudioCtx) {
       const context = new AudioCtx();
@@ -1658,7 +1738,7 @@ function playMarkSound() {
   } catch (error) {
     // Звук не обязателен: если браузер запретил, отметка всё равно записана
   }
-  if (navigator.vibrate) navigator.vibrate(60);
+  if (current.vibration && navigator.vibrate) navigator.vibrate(60);
 }
 
 /* ─────────────────────────── профиль и отправка ─────────────────────────── */
@@ -1730,6 +1810,28 @@ function bind() {
   $('tabMark').addEventListener('click', () => showTab('mark'));
   $('tabProfile').addEventListener('click', () => showTab('profile'));
 
+  $('openSettings').addEventListener('click', openSettings);
+  $('settingsBack').addEventListener('click', () => showTab('events'));
+
+  document.querySelectorAll('.theme-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      updateSetting('theme', chip.dataset.theme);
+      renderSettings();
+    });
+  });
+  $('setLarge').addEventListener('change', (event) => updateSetting('large', event.target.checked));
+  $('setShowOnStart').addEventListener('change', (event) => updateSetting('showOnStart', event.target.checked));
+  $('setAutoMark').addEventListener('change', (event) => updateSetting('autoMark', event.target.checked));
+  $('setAutoSend').addEventListener('change', (event) => updateSetting('autoSend', event.target.checked));
+  $('setSound').addEventListener('change', (event) => updateSetting('sound', event.target.checked));
+  $('setVibration').addEventListener('change', (event) => updateSetting('vibration', event.target.checked));
+  $('settingsReset').addEventListener('click', () => {
+    if (!window.confirm('Вернуть настройки к значениям по умолчанию?')) return;
+    saveSettings(Object.assign({}, DEFAULT_SETTINGS));
+    renderSettings();
+    setStatus('Настройки сброшены', 'good');
+  });
+
   $('openCloud').addEventListener('click', openCloud);
   $('cloudRefresh').addEventListener('click', openCloud);
   $('cloudBack').addEventListener('click', () => showTab('events'));
@@ -1778,6 +1880,7 @@ document.addEventListener('DOMContentLoaded', () => {
   registerServiceWorker();
   // Выбор карты запоминается, как в приложении
   loadMapKind();
+  applySettings();
 
   state.history = loadHistory();
   const saved = readJson(STORAGE.event, null);
@@ -1786,5 +1889,6 @@ document.addEventListener('DOMContentLoaded', () => {
     state.marks = loadMarks(saved.id);
     updateSendState();
   }
-  showTab('events');
+  // «Открывать экран отметки при запуске» — как в приложении
+  showTab(saved && saved.distance && settings().showOnStart ? 'mark' : 'events');
 });
