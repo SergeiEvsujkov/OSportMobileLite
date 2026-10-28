@@ -102,6 +102,7 @@ async function callFunction(query, body = null) {
 function showTab(name) {
   state.tab = name;
   $('homeScreen').classList.toggle('hidden', name !== 'events');
+  $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
   $('markScreen').classList.toggle('hidden', name !== 'mark');
   $('profileScreen').classList.toggle('hidden', name !== 'profile');
 
@@ -151,8 +152,8 @@ function renderEntry(entry) {
   $('eventHint').textContent = 'Скачивание сохраняет событие на устройстве: дальше оно работает без сети.';
 }
 
-async function downloadEvent() {
-  const entry = state.entry;
+/** Скачивает одно событие из облака и переходит к отметке. */
+async function downloadEvent(entry = state.entry) {
   if (!entry) return;
   setStatus('Скачиваю событие…');
   try {
@@ -174,6 +175,59 @@ async function downloadEvent() {
     showTab('mark');
   } catch (error) {
     setStatus(error.message, 'error');
+  }
+}
+
+/* ─────────────────────────── облако ─────────────────────────── */
+
+/** Показывает все события из облака: как экран облака в приложении. */
+async function openCloud() {
+  showTab('cloud');
+  $('cloudHint').textContent = 'Загружаю список…';
+  $('cloudList').textContent = '';
+
+  try {
+    const data = await callFunction('action=list&full=1&rogaine=1');
+    const entries = (data.entries || []).slice().sort((a, b) => {
+      const left = a.number === undefined ? 0 : Number(a.number);
+      const right = b.number === undefined ? 0 : Number(b.number);
+      return left - right;
+    });
+
+    if (entries.length === 0) {
+      $('cloudHint').textContent = 'В облаке пока нет событий.';
+      return;
+    }
+
+    $('cloudHint').textContent = `Событий в облаке: ${entries.length}`;
+    const list = $('cloudList');
+    entries.forEach((entry) => {
+      const item = document.createElement('button');
+      item.className = 'cloud-item';
+
+      const kind = document.createElement('span');
+      kind.className = 'kind';
+      kind.textContent = entry.kind === 'rogaine' ? 'рогейн' : 'дистанция';
+
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = (entry.number ? `№ ${entry.number} ` : '') + (entry.name || 'Без названия');
+
+      const line = document.createElement('span');
+      line.className = 'line';
+      const parts = [];
+      if (entry.organizer) parts.push(entry.organizer);
+      if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
+      if (entry.participants) parts.push(`участников: ${entry.participants}`);
+      if (entry.finishTime) parts.push(new Date(entry.finishTime).toLocaleDateString('ru-RU'));
+      line.textContent = parts.join(' · ');
+
+      item.append(kind, name, line);
+      item.addEventListener('click', () => downloadEvent(entry));
+      list.append(item);
+    });
+  } catch (error) {
+    $('cloudHint').textContent = error.message;
   }
 }
 
@@ -389,7 +443,9 @@ function bind() {
     if (event.key === 'Enter') $('find').click();
   });
 
-  $('download').addEventListener('click', downloadEvent);
+  $('download').addEventListener('click', () => downloadEvent());
+  $('openCloud').addEventListener('click', openCloud);
+  $('cloudBack').addEventListener('click', () => showTab('events'));
   $('bigMark').addEventListener('click', markCandidate);
   $('send').addEventListener('click', sendResult);
 

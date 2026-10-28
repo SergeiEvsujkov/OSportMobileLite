@@ -15,6 +15,7 @@
     <section class="screen" id="homeScreen">
       <header class="page-head">
         <h1>События</h1>
+        <button id="openCloud" class="icon-button" title="Облако">☁</button>
       </header>
 
       <div class="card">
@@ -37,6 +38,16 @@
         <button id="download" class="button" style="margin-top:12px;width:100%">Скачать событие</button>
         <p class="hint" id="eventHint"></p>
       </div>
+    </section>
+
+    <!-- Экран облака: все события, как в приложении, скачивается одно -->
+    <section class="screen hidden" id="cloudScreen">
+      <header class="page-head">
+        <button id="cloudBack" class="icon-button" title="Назад">←</button>
+        <h1>Облако</h1>
+      </header>
+      <p class="meta" id="cloudHint">Загружаю список…</p>
+      <div class="cloud-list" id="cloudList"></div>
     </section>
 
     <!-- Вкладка «Отметить»: как в приложении — название, погрешность, круг, подсказка -->
