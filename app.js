@@ -141,9 +141,11 @@ async function callFunction(query, body = null) {
 
 function formatDate(value) {
   if (!value) return '';
-  return new Date(value).toLocaleString('ru-RU', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (number) => String(number).padStart(2, '0');
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} `
+    + `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 /* ─────────────────────────── вкладки ─────────────────────────── */
@@ -336,13 +338,18 @@ function plainRow(text) {
 function detailsLine(item) {
   const entry = item.entry || {};
   const distance = item.distance || {};
+  const starts = startAliasCodes(distance);
+  const checkpoints = (distance.order || [])
+    .filter((code) => !starts.has(String(code)))
+    .filter((code) => Number(code) >= 31 && Number(code) <= 99).length;
+
   const parts = [];
   if (item.kind === 'rogaine') {
-    if (distance.points) parts.push(`Количество КП: ${distance.points.length}`);
+    if (checkpoints) parts.push(`Количество КП: ${checkpoints}`);
     if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
   } else {
     if (distance.longInMeters) parts.push(`Дистанция: ${distance.longInMeters} м`);
-    if (distance.points) parts.push(`КП: ${distance.points.length}`);
+    if (checkpoints) parts.push(`КП: ${checkpoints}`);
   }
   const results = Array.isArray(distance.results) ? distance.results.length : 0;
   parts.push(`Участников: ${results}`);
