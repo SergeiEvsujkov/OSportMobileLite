@@ -1111,11 +1111,10 @@ function openGroupDeleteDialog(groupId) {
   modal.className = 'modal';
 
   const title = document.createElement('h2');
-  title.textContent = 'Удалить событие?';
+  title.textContent = 'Удалить группу?';
 
   const hint = document.createElement('p');
-  hint.textContent = `Группа «${$('groupTitle').textContent}» будет удалена с устройства вместе со своими отметками и результатами. `
-    + 'Вы можете снова загрузить её из облака.';
+  hint.textContent = 'Все дистанции группы, их пункты и результаты будут удалены с устройства';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
