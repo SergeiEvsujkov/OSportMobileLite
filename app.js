@@ -247,8 +247,9 @@ function renderHome() {
   head.append(icon, title);
   card.append(head);
   if (items.length > 1) {
-    head.style.cursor = 'pointer';
-    head.addEventListener('click', openGroup);
+    // Вся карточка группы открывает группу, как в приложении
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => openGroup());
   }
 
   if (first.startTime) {
@@ -267,7 +268,11 @@ function renderHome() {
       if (event && event.id === item.id) inner.classList.add('active');
       inner.append(detailsLine(item), iconsRow(false));
       if (item.entry && item.entry.mapExt) inner.append(mapLine());
-      inner.addEventListener('click', () => activateItem(item));
+      inner.addEventListener('click', (event) => {
+        // Дистанция внутри карточки: не даём событию дойти до группы
+        event.stopPropagation();
+        activateItem(item);
+      });
       card.append(inner);
     });
     list.append(card);
