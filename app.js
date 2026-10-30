@@ -338,6 +338,7 @@ function renderHome() {
       // Начатая дистанция внутри группы подсвечивается сама, а не вся карточка
       if (item.id === activeId) inner.classList.add('active-event');
       inner.append(detailsLine(item), iconsRow(false, item.entry, item.distance));
+      if (pendingResultFor(item.id)) inner.append(pendingRow());
       if (item.entry && item.entry.mapExt) inner.append(mapLine());
       inner.addEventListener('click', (event) => {
         // Дистанция внутри карточки: не даём событию дойти до группы
@@ -391,6 +392,7 @@ function renderHome() {
       card.append(plainRow(`Мой результат: ${formatDuration(mine.elapsed)}${places}`));
     }
   }
+  if (pendingResultFor(item.id)) card.append(pendingRow());
 
   const authorLine = authorRow(entry, true, true, distance);
   const kindTag = document.createElement('span');
@@ -400,6 +402,23 @@ function renderHome() {
   card.append(authorLine);
 
   list.append(card);
+}
+
+/**
+ * Есть ли по записи неотправленный результат.
+ *
+ * Очередь хранит ключи вида `distances/<id>.osport`, поэтому сверяем по id.
+ */
+function pendingResultFor(id) {
+  const list = readJson(STORAGE.pendingResults, []);
+  return list.some((item) => String(item.key || '').includes('/' + id + '.'));
+}
+
+/** Строка «результат не отправлен» — красноватая, как очередь в приложении. */
+function pendingRow() {
+  const row = plainRow('Результат не отправлен: отправится, когда появится связь');
+  row.classList.add('pending');
+  return row;
 }
 
 function plainRow(text) {

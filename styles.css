@@ -837,3 +837,6 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
 .overlay-text { margin: 0; font-size: 14px; color: var(--on-surface-variant); }
 .overlay-buttons { display: flex; gap: 8px; }
 .overlay-buttons .button { flex: 1; }
+
+/* Результат ещё не отправлен: та же строка карточки, но предупреждающего цвета */
+.event-meta.pending { color: #b3261e; }
