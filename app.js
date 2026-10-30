@@ -3550,26 +3550,30 @@ async function sendResult() {
   renderHome();
   renderDetail();
 
+  // Тело — дистанция целиком с нашим результатом: функция ждёт id и order,
+  // а результаты сливает по участникам, поэтому чужие не затрутся
+  const payload = Object.assign({}, event.distance, { results: [result] });
+
   setStatus('Результат сохранён, отправляю…');
   try {
-    await callFunction('action=result&key=' + encodeURIComponent(event.key), { results: [result] });
+    await callFunction('action=result&key=' + encodeURIComponent(event.key), payload);
     setStatus('Результат отправлен', 'good');
     renderHome();
     renderDetail();
     flushPendingResults().catch(() => {});
   } catch (error) {
-    queueResult(event.key, result);
+    queueResult(event.key, result, payload);
     setStatus('Результат сохранён, отправится позже: ' + error.message, 'error');
   }
 }
 
 /** Отложенный результат: храним, пока облако не ответит. */
-function queueResult(key, result) {
+function queueResult(key, result, payload) {
   const list = readJson(STORAGE.pendingResults, []);
   const filtered = list.filter(
     (item) => !(item.key === key && String(item.result.userId) === String(result.userId))
   );
-  filtered.push({ key, result });
+  filtered.push({ key, result, payload });
   writeJson(STORAGE.pendingResults, filtered);
 }
 
@@ -3580,7 +3584,8 @@ async function flushPendingResults() {
   const left = [];
   for (const item of list) {
     try {
-      await callFunction('action=result&key=' + encodeURIComponent(item.key), { results: [item.result] });
+      const payload = item.payload || { id: (item.result || {}).eventId, results: [item.result] };
+      await callFunction('action=result&key=' + encodeURIComponent(item.key), payload);
     } catch (error) {
       left.push(item);
     }
