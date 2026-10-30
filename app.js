@@ -2984,7 +2984,11 @@ function rogaineMode() {
 
 /** Подпись пункта по правилам Labels.kt: «Старт», «Финиш» или код. */
 function labelOf(point) {
-  const code = codeOf(point);
+  // Принимает и пункт, и сам код: у QR подпись строится по коду из таблички,
+  // и без этого номер превращался в пустую строку
+  const code = typeof point === 'string' || typeof point === 'number'
+    ? String(point)
+    : codeOf(point);
   if (isStart(code, rogaineMode())) return 'Старт';
   if (isFinish(code, rogaineMode())) return 'Финиш';
   return String(code);
