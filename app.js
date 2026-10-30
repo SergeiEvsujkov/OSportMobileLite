@@ -1211,8 +1211,10 @@ async function downloadCloudMap() {
 
 /** Идентификатор приложения ВК — тот же, что в приложении (VK_CLIENT_ID). */
 const VK_APP_ID = 54866229;
-// UMD-сборка выкладывает себя в window.VKIDSDK (не VKID)
+// UMD-сборка выкладывает себя в window.VKIDSDK (не VKID). Сначала берём
+// копию из репозитория (кэшируется service worker-ом), CDN — запасные
 const VK_SDK_URLS = [
+  'vkid-sdk.js',
   'https://unpkg.com/@vkid/sdk@2.6.1/dist-sdk/umd/index.js',
   'https://cdn.jsdelivr.net/npm/@vkid/sdk@2.6.1/dist-sdk/umd/index.js',
 ];
