@@ -414,6 +414,72 @@ function pendingResultFor(id) {
   return list.some((item) => String(item.key || '').includes('/' + id + '.'));
 }
 
+/**
+ * Обновляет скачанное из облака: карточки, результаты и протоколы.
+ *
+ * Правило одно для ориентирования и рогейна: у обоих запись обновляется
+ * целиком из облака, а отметки и активность остаются на устройстве.
+ */
+async function syncFromCloud() {
+  const ids = new Set();
+  (state.history || []).forEach((item) => ids.add(item.id));
+  const savedGroup = readJson(STORAGE.group, null);
+  ((savedGroup && savedGroup.items) || []).forEach((item) => ids.add(item.id));
+  if (state.event) ids.add(state.event.id);
+  if (state.activeId) ids.add(state.activeId);
+
+  if (!ids.size) {
+    setStatus('Скачанных событий нет: обновлять нечего', 'error');
+    return;
+  }
+
+  setStatus('Обновляю из облака…');
+  let updated = 0;
+  try {
+    const list = await callFunction('action=list&full=1&rogaine=1');
+    cloudEntries = list.entries || [];
+    const byId = new Map(cloudEntries.map((entry) => [entry.id, entry]));
+
+    for (const id of ids) {
+      const entry = byId.get(id);
+      if (!entry) continue;
+      try {
+        const full = await callFunction('action=get&id=' + encodeURIComponent(id));
+        if (!full.distance) continue;
+        const item = {
+          id,
+          kind: entry.kind,
+          key: 'distances/' + id + (entry.kind === 'rogaine' ? '.rogaine' : '.osport'),
+          distance: full.distance,
+          entry,
+        };
+        writeJson(STORAGE.event + '.' + id, item);
+        rememberEvent(item);
+        updated += 1;
+
+        if (savedGroup) {
+          savedGroup.items = (savedGroup.items || []).map(
+            (member) => (member.id === id ? Object.assign({}, member, item) : member)
+          );
+        }
+        if (state.event && state.event.id === id) {
+          state.event = item;
+          writeJson(STORAGE.event, item);
+        }
+      } catch (error) {
+        // Одна недоступная запись не должна ломать остальные
+      }
+    }
+
+    if (savedGroup) writeJson(STORAGE.group, savedGroup);
+    renderHome();
+    if (state.event) renderDetail();
+    setStatus(updated ? `Обновлено из облака: ${updated}` : 'В облаке нет изменений', updated ? 'good' : '');
+  } catch (error) {
+    setStatus(error.message, 'error');
+  }
+}
+
 /** Строка «результат не отправлен» — красноватая, как очередь в приложении. */
 function pendingRow() {
   const row = plainRow('Результат не отправлен: отправится, когда появится связь');
@@ -3551,6 +3617,9 @@ function bind() {
     setStatus('Настройки сброшены', 'good');
   });
 
+  $('homeRefresh').addEventListener('click', () => {
+    syncFromCloud().catch(() => {});
+  });
   $('openCloud').addEventListener('click', openCloud);
   $('cloudRefresh').addEventListener('click', openCloud);
   $('cloudBack').addEventListener('click', () => showTab('events'));
