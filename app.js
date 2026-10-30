@@ -378,8 +378,7 @@ function renderHome() {
     }
     if (control.length) card.append(plainRow(control.join(' · ')));
 
-    const results = Array.isArray(distance.results) ? distance.results.length : 0;
-    card.append(plainRow(`Участников: ${results}`));
+    card.append(plainRow(`Участников: ${participantCount(distance.results)}`));
   } else {
     card.append(detailsLine(item));
   }
@@ -436,6 +435,15 @@ function sameResult(a, b) {
     Number(mark && mark.time) === Number(right[index] && right[index].time));
 }
 
+/** Сколько участников: несколько результатов одного userId — один участник. */
+function participantCount(results) {
+  return new Set(
+    (Array.isArray(results) ? results : [])
+      .map((row) => String((row && row.userId) || ''))
+      .filter(Boolean)
+  ).size;
+}
+
 /**
  * Сливает результаты облака с локальными.
  *
@@ -455,35 +463,28 @@ function mergeResults(cloudResults, localResults) {
   const version = (row) =>
     Number(row && row.finishTime) || lastMarkTime(row) || Number(row && row.updatedAt) || 0;
 
-  // Ключ строки — участник + номер попытки: у «оставлять оба» их несколько
-  const attemptOf = (row) => Math.max(1, Number(row && row.attempt) || 1);
-  const rowKey = (row) => String(row.userId) + '#' + attemptOf(row);
-
-  const merged = new Map();
-  const alreadyThere = (row) =>
-    Array.from(merged.values()).some((other) => sameResult(other, row));
-  (localResults || []).forEach((row) => {
+  // Храним ВСЕ разные результаты, а не по одному на участника: настройка
+  // события решает только показ в протоколе
+  const merged = [];
+  const indexOfSame = (row) => merged.findIndex((other) => sameResult(other, row));
+  const add = (row, preferNew) => {
     if (!row || !row.userId) return;
-    // Одинаковый результат второй раз не храним
-    if (alreadyThere(row)) return;
-    merged.set(rowKey(row), row);
-  });
-  (cloudResults || []).forEach((row) => {
-    if (!row || !row.userId) return;
-    const key = String(row.userId);
-    // Неотправленный свой результат не затираем никогда
-    if (pendingUsers.has(key)) return;
-    // И одинаковый результат не добавляем: он уже есть
-    if (alreadyThere(row)) return;
-    const storageKey = rowKey(row);
-    const local = merged.get(storageKey);
-    if (!local) {
-      merged.set(storageKey, row);
+    const index = indexOfSame(row);
+    if (index < 0) {
+      merged.push(row);
       return;
     }
-    if (version(row) >= version(local)) merged.set(storageKey, row);
+    // Одинаковый результат не дублируем; из двух копий оставляем новее
+    if (preferNew && version(row) >= version(merged[index])) merged[index] = row;
+  };
+  (localResults || []).forEach((row) => add(row, false));
+  (cloudResults || []).forEach((row) => {
+    if (!row || !row.userId) return;
+    // Неотправленный свой результат не затираем никогда
+    if (pendingUsers.has(String(row.userId))) return;
+    add(row, true);
   });
-  return Array.from(merged.values());
+  return merged;
 }
 
 /**
@@ -595,8 +596,7 @@ function detailsLine(item) {
     if (distance.longInMeters) parts.push(`Дистанция: ${distance.longInMeters} м`);
     if (checkpoints) parts.push(`КП: ${checkpoints}`);
   }
-  const results = Array.isArray(distance.results) ? distance.results.length : 0;
-  parts.push(`Участников: ${results}`);
+  parts.push(`Участников: ${participantCount(distance.results)}`);
   return plainRow(parts.join(' · '));
 }
 
@@ -1175,8 +1175,7 @@ function renderGroup() {
 
     const participants = document.createElement('p');
     participants.className = 'line';
-    const results = Array.isArray(distance.results) ? distance.results.length : 0;
-    participants.textContent = `Участников: ${results}`;
+    participants.textContent = `Участников: ${participantCount(distance.results)}`;
 
     card.append(head, length, points, participants);
     card.addEventListener('click', () => activateItem(item));
@@ -2801,13 +2800,9 @@ function buildProtocol(distance) {
   // Правило события применяет УСТРОЙСТВО: сервер хранит все попытки
   const policy = String(distance.resubmit || 'update');
   const version = (row) => Number(row && row.updatedAt) || Number(row && row.finishTime) || 0;
+  // «Оставлять оба» — все строки участника; иначе одну выбирает правило
   const byUser = new Map();
-  if (policy === 'both') {
-    allResults.forEach((row) => {
-      if (!row || !row.userId) return;
-      byUser.set(String(row.userId) + '#' + (Number(row.attempt) || 1), row);
-    });
-  } else {
+  if (policy !== 'both') {
     allResults.forEach((row) => {
       if (!row || !row.userId) return;
       const key = String(row.userId);
@@ -2819,7 +2814,9 @@ function buildProtocol(distance) {
       if (better) byUser.set(key, row);
     });
   }
-  const results = Array.from(byUser.values());
+  const results = policy === 'both'
+    ? allResults.filter((row) => row && row.userId)
+    : Array.from(byUser.values());
   const rogaine = rogaineMode();
 
   const rows = results.map((row) => {
@@ -2890,7 +2887,7 @@ function renderProtocol(distance) {
 
   $('detailProtocol').classList.remove('hidden');
   $('protoEmpty').classList.toggle('hidden', rows.length > 0);
-  $('protoCount').textContent = `Участников: ${rows.length}`;
+  $('protoCount').textContent = `Участников: ${participantCount(rows)}`;
 
   const list = $('protoList');
   list.textContent = '';
@@ -3815,8 +3812,9 @@ async function sendResult() {
 
   // Как в приложении: результат сначала ложится в дистанцию на устройстве,
   // экраны обновляются сразу, а отправка в облако идёт после
-  const results = (event.distance.results || [])
-    .filter((row) => String(row.userId) !== String(result.userId));
+  // Прежние разные результаты не удаляем: новый добавляется к ним,
+  // а правило события выберет нужное при показе протокола
+  const results = (event.distance.results || []).slice();
   results.push(result);
   event.distance = Object.assign({}, event.distance, { results });
   writeJson(STORAGE.event, event);
