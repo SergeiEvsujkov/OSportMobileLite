@@ -688,3 +688,6 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
 
 /* Кнопка входа через ВК — синяя, как в приложении */
 .button.vk { background: #0077ff; color: #ffffff; }
+
+/* Виджет входа ВК */
+.vk-login-box { width: 100%; }

@@ -7,7 +7,7 @@
   <title>OSportMobile Lite</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=78">
+  <link rel="stylesheet" href="styles.css?v=79">
 </head>
 <body>
   <main id="app">
@@ -200,7 +200,9 @@
         <label class="label" for="code" style="margin-top:12px">Код профиля</label>
         <input id="code" class="input" type="text" placeholder="12 знаков">
         <p class="hint">Код виден в приложении на вкладке «Профиль».</p>
-        <button id="profileVkLogin" class="button vk" style="width:100%;margin-top:12px">Войти через ВК</button>
+        <div id="vkLoginBox" class="vk-login-box" style="margin-top:12px">
+          <div id="vkOneTap"></div>
+        </div>
         <button id="profileSignOut" class="button outlined" style="width:100%;margin-top:12px">Выйти</button>
       </div>
       <div class="card">
@@ -218,8 +220,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=78"></script>
-  <script src="marking.js?v=78"></script>
-  <script src="app.js?v=78"></script>
+  <script src="jsQR.js?v=79"></script>
+  <script src="marking.js?v=79"></script>
+  <script src="app.js?v=79"></script>
 </body>
 </html>

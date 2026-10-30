@@ -198,6 +198,10 @@ function showTab(name, options = {}) {
   // Запоминаем экран: после обновления приложения остаёмся там же, а не на главном
   writeJson(STORAGE.screen, { name, eventId: state.event && state.event.id });
 
+  if (name === 'profile') {
+    renderVkOneTap();
+  }
+
   if (name === 'mark') {
     if (qrMode()) {
       stopWatch();
@@ -1209,16 +1213,16 @@ async function downloadCloudMap() {
 
 /* ─────────────────────────── вход через ВК ─────────────────────────── */
 
-/** Идентификатор приложения ВК — тот же, что в приложении (VK_CLIENT_ID). */
+/** Идентификатор Web-приложения ВК (создано в кабинете VK ID). */
 const VK_APP_ID = 54866229;
-// UMD-сборка выкладывает себя в window.VKIDSDK (не VKID). Сначала берём
-// копию из репозитория (кэшируется service worker-ом), CDN — запасные
+
+/** Сборка SDK: сначала наша копия из репозитория, CDN — запасные. */
 const VK_SDK_URLS = [
   'vkid-sdk.js',
-  'https://unpkg.com/@vkid/sdk@2.6.1/dist-sdk/umd/index.js',
-  'https://cdn.jsdelivr.net/npm/@vkid/sdk@2.6.1/dist-sdk/umd/index.js',
+  'https://unpkg.com/@vkid/sdk@3.0.0/dist-sdk/umd/index.js',
 ];
-const VK_STATE_KEY = 'osport.lite.vk';
+
+let vkOneTapRendered = false;
 
 /** Код профиля из VK ID — правило VkProfileCode в приложении, менять нельзя. */
 function vkProfileCode(vkId) {
@@ -1228,23 +1232,12 @@ function vkProfileCode(vkId) {
   const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let code = '';
   for (let index = 0; index < padded.length; index++) {
-    const digit = Number(padded[index]);
-    code += alphabet[digit + 10 + index];
+    code += alphabet[Number(padded[index]) + 10 + index];
   }
   return code;
 }
 
-/** Случайная строка для state и code_verifier (PKCE). */
-function vkRandom(length) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  let value = '';
-  bytes.forEach((byte) => { value += chars[byte % chars.length]; });
-  return value;
-}
-
-/** Подгружает VK ID SDK по требованию: офлайн вход всё равно невозможен. */
+/** Подгружает SDK по требованию: офлайн вход невозможен. */
 function loadVkSdk() {
   const ready = () => window.VKIDSDK || window.VKID || null;
   if (ready()) return Promise.resolve(ready());
@@ -1264,102 +1257,79 @@ function loadVkSdk() {
   );
 }
 
-/** Адрес возврата — та же страница, откуда ушли (должен быть в доверенных у ВК). */
-function vkRedirectUrl() {
-  return window.location.origin + window.location.pathname;
-}
+/** Сохраняет профиль, полученный от ВК: ник, код профиля из VK ID и фото. */
+function saveVkProfile(user) {
+  const vkId = Number(user.user_id || user.id || 0);
+  const code = vkProfileCode(vkId);
+  if (!code) throw new Error('ВК не вернул идентификатор пользователя');
 
-/** Начинает вход: сохраняет state и code_verifier и уводит на страницу ВК. */
-async function startVkLogin() {
-  setStatus('Открываю вход через ВК…');
-  try {
-    const VKID = await loadVkSdk();
-    const state = vkRandom(32);
-    const codeVerifier = vkRandom(64);
-    writeJson(VK_STATE_KEY, { state, codeVerifier });
+  const nick = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
+    || ('ВК ' + vkId);
 
-    VKID.Config.init({
-      app: VK_APP_ID,
-      redirectUrl: vkRedirectUrl(),
-      state,
-      codeVerifier,
-      scope: '',
-      mode: VKID.ConfigAuthMode.Redirect,
-    });
+  writeJson(STORAGE.identity, {
+    nick,
+    code,
+    vkId,
+    photo: user.avatar || user.photo_200 || '',
+  });
 
-    await VKID.Auth.login();
-  } catch (error) {
-    setStatus('Не удалось открыть вход через ВК: ' + error.message, 'error');
-  }
+  $('nick').value = nick;
+  $('code').value = code;
+  vkOneTapRendered = false;
+  updateProfileButtons();
+  setStatus('Вход выполнен', 'good');
 }
 
 /**
- * Возврат со страницы ВК: code и device_id в адресе. Меняем код на токены
- * прямо в браузере (схема «обмен на фронтенде», PKCE), берём данные профиля
- * и сохраняем ник и код профиля — код считается по VkProfileCode.
+ * Кнопка входа ВК — виджет One Tap в режиме Callback, как в примере VK:
+ * страница никуда не уходит, код приходит в событии и меняется на токен.
  */
-async function handleVkReturn() {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  if (!code) return;
+async function renderVkOneTap() {
+  const me = identity();
+  const signedIn = Boolean(me.nick) && me.code.length >= 6;
 
-  const saved = readJson(VK_STATE_KEY, null);
-  const state = params.get('state') || '';
-  const deviceId = params.get('device_id') || '';
-
-  // Чистим адрес, чтобы код не остался в истории и не сработал повторно
-  window.history.replaceState({}, '', vkRedirectUrl());
-
-  if (!saved || saved.state !== state) {
-    setStatus('Вход не подтверждён: попробуйте ещё раз', 'error');
-    return;
-  }
+  $('profileSignOut').classList.toggle('hidden', !signedIn);
+  $('vkLoginBox').classList.toggle('hidden', signedIn);
+  if (signedIn || vkOneTapRendered) return;
 
   try {
-    setStatus('Завершаю вход через ВК…');
     const VKID = await loadVkSdk();
+
     VKID.Config.init({
       app: VK_APP_ID,
-      redirectUrl: vkRedirectUrl(),
-      state: saved.state,
-      codeVerifier: saved.codeVerifier,
+      redirectUrl: window.location.origin + window.location.pathname,
+      responseMode: VKID.ConfigResponseMode.Callback,
+      source: VKID.ConfigSource.LOWCODE,
       scope: '',
     });
 
-    const tokens = await VKID.Auth.exchangeCode(code, deviceId, saved.codeVerifier);
-    const info = await VKID.Auth.userInfo(tokens.access_token);
-    const user = (info && info.user) || {};
+    const oneTap = new VKID.OneTap();
+    oneTap
+      .render({ container: $('vkOneTap'), showAlternativeLogin: true })
+      .on(VKID.WidgetEvents.ERROR, (error) => {
+        setStatus('ВК: ' + (error && (error.error_description || error.error_text) || 'ошибка виджета'), 'error');
+      })
+      .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, async (payload) => {
+        try {
+          const tokens = await VKID.Auth.exchangeCode(payload.code, payload.device_id);
+          const info = await VKID.Auth.userInfo(tokens.access_token);
+          saveVkProfile((info && info.user) || {});
+        } catch (error) {
+          setStatus('Не удалось войти через ВК: ' + error.message, 'error');
+        }
+      });
 
-    const vkId = Number(user.user_id || user.id || 0);
-    const code12 = vkProfileCode(vkId);
-    if (!code12) throw new Error('ВК не вернул идентификатор пользователя');
-
-    const nick = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
-      || ('ВК ' + vkId);
-
-    writeJson(STORAGE.identity, {
-      nick,
-      code: code12,
-      vkId,
-      photo: user.avatar || user.photo_200 || '',
-    });
-
-    try { localStorage.removeItem(VK_STATE_KEY); } catch (error) { /* приватный режим */ }
-
-    $('nick').value = nick;
-    $('code').value = code12;
-    updateProfileButtons();
-    setStatus('Вход выполнен', 'good');
+    vkOneTapRendered = true;
   } catch (error) {
-    setStatus('Не удалось войти через ВК: ' + error.message, 'error');
+    setStatus('Не удалось загрузить ВК: ' + error.message, 'error');
   }
 }
 
-/** Кнопки профиля: «Войти через ВК» — гостю, «Выйти» — вошедшему. */
+/** Кнопки профиля: гость видит вход, вошедший — выход. */
 function updateProfileButtons() {
   const me = identity();
   const signedIn = Boolean(me.nick) && me.code.length >= 6;
-  $('profileVkLogin').classList.toggle('hidden', signedIn);
+  $('vkLoginBox').classList.toggle('hidden', signedIn);
   $('profileSignOut').classList.toggle('hidden', !signedIn);
 }
 
@@ -3092,7 +3062,6 @@ function bind() {
     renderProtocol(state.event.distance || {});
   });
   $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
-  $('profileVkLogin').addEventListener('click', startVkLogin);
   $('profileSignOut').addEventListener('click', openSignOutDialog);
   $('detailMarksButton').addEventListener('click', openMyProgress);
   $('detailMapDownload').addEventListener('click', downloadCloudMap);
@@ -3181,9 +3150,6 @@ window.addEventListener('popstate', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Возврат со страницы ВК обрабатываем до отрисовки: профиль должен быть готов
-  await handleVkReturn();
-
   bind();
   updateProfileButtons();
   registerServiceWorker();
