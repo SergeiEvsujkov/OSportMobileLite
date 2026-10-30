@@ -3888,10 +3888,47 @@ async function flushPendingResults() {
   writeJson(STORAGE.pendingResults, left);
 }
 
+/**
+ * Обновляет открытое событие из облака: результаты, поля, протокол.
+ *
+ * Протяжка на странице события обновляет только её, а не весь список.
+ * Локальные неотправленные результаты сохраняются — это делает mergeResults.
+ */
+async function refreshCurrentEvent() {
+  const current = state.event;
+  if (!current) return;
+  setStatus('Обновляю событие…');
+  try {
+    const full = await callFunction('action=get&id=' + encodeURIComponent(current.id));
+    if (!full.distance) throw new Error('событие не найдено в облаке');
+    const previous = readJson(STORAGE.event + '.' + current.id, current);
+    const localResults = (previous && previous.distance && previous.distance.results) || [];
+    const distance = Object.assign({}, full.distance, {
+      results: mergeResults(full.distance.results, localResults),
+    });
+    const item = {
+      id: current.id,
+      kind: full.kind || current.kind,
+      key: current.key,
+      distance,
+      entry: current.entry,
+    };
+    writeJson(STORAGE.event + '.' + item.id, item);
+    writeJson(STORAGE.event, item);
+    state.event = item;
+    rememberEvent(item);
+    renderDetail();
+    renderHome();
+    setStatus('Событие обновлено', 'good');
+  } catch (error) {
+    setStatus('Не удалось обновить событие: ' + error.message, 'error');
+  }
+}
+
 /* ─────────────────────────── запуск ─────────────────────────── */
 
 /**
- * Протягивание вниз на главном и в облаке обновляет данные из облака.
+ * Протягивание вниз на главном, в облаке и на странице события обновляет данные.
  *
  * На главном это полное обновление скачанного (карточки, результаты,
  * протоколы), в облаке — перечитывание каталога. Жест работает только когда
@@ -3903,7 +3940,7 @@ function bindPullToRefresh() {
 
   // Жест вешаем на сам экран, а не на документ: так его не перехватывают
   // карта и кнопки, и он не конфликтует с прокруткой списков
-  const screens = [$('homeScreen'), $('cloudScreen')];
+  const screens = [$('homeScreen'), $('cloudScreen'), $('detailScreen')];
 
   const atTop = () => {
     const scrolled = window.scrollY
@@ -3916,6 +3953,7 @@ function bindPullToRefresh() {
     // Протяжка вниз: на главном — проверка хранилища, на экране облака —
     // перечитывание каталога. Просто заход на главный ничего не запрашивает
     if (screen === $('homeScreen')) syncFromCloud().catch(() => {});
+    else if (screen === $('detailScreen')) refreshCurrentEvent().catch(() => {});
     else openCloud();
   };
 
