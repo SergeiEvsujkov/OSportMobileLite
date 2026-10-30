@@ -6,7 +6,7 @@
  * запрашиваются из сети и обновляют кэш; без сети работает последняя копия.
  */
 
-const CACHE = 'osport-lite-v116';
+const CACHE = 'osport-lite-v117';
 
 const SHELL = [
   './',
@@ -43,9 +43,9 @@ self.addEventListener('fetch', (event) => {
   // Запрос с меткой версии: GitHub Pages кэширует ответы по полному адресу,
   // поэтому «/app.js» и «/index.html» без параметров могли отдаваться старыми
   // даже после выпуска новой версии. Своя метка заставляет CDN брать свежий файл
-  const url = new URL(event.request.url);
-  url.searchParams.set('sw', CACHE);
-  const fresh = new Request(url.toString(), { cache: 'reload' });
+  const freshUrl = new URL(event.request.url);
+  freshUrl.searchParams.set('sw', CACHE);
+  const fresh = new Request(freshUrl.toString(), { cache: 'reload' });
 
   event.respondWith(
     fetch(fresh)
