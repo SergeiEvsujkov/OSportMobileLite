@@ -1211,7 +1211,11 @@ async function downloadCloudMap() {
 
 /** Идентификатор приложения ВК — тот же, что в приложении (VK_CLIENT_ID). */
 const VK_APP_ID = 54866229;
-const VK_SDK_URL = 'https://unpkg.com/@vkid/sdk@2.6.1/dist-sdk/umd/index.js';
+// UMD-сборка выкладывает себя в window.VKIDSDK (не VKID)
+const VK_SDK_URLS = [
+  'https://unpkg.com/@vkid/sdk@2.6.1/dist-sdk/umd/index.js',
+  'https://cdn.jsdelivr.net/npm/@vkid/sdk@2.6.1/dist-sdk/umd/index.js',
+];
 const VK_STATE_KEY = 'osport.lite.vk';
 
 /** Код профиля из VK ID — правило VkProfileCode в приложении, менять нельзя. */
@@ -1240,14 +1244,22 @@ function vkRandom(length) {
 
 /** Подгружает VK ID SDK по требованию: офлайн вход всё равно невозможен. */
 function loadVkSdk() {
-  if (window.VKID) return Promise.resolve(window.VKID);
-  return new Promise((resolve, reject) => {
+  const ready = () => window.VKIDSDK || window.VKID || null;
+  if (ready()) return Promise.resolve(ready());
+
+  const trySource = (url) => new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = VK_SDK_URL;
-    script.onload = () => (window.VKID ? resolve(window.VKID) : reject(new Error('SDK не загрузился')));
+    script.src = url;
+    script.async = true;
+    script.onload = () => (ready() ? resolve(ready()) : reject(new Error('SDK не загрузился')));
     script.onerror = () => reject(new Error('SDK не загрузился'));
     document.head.append(script);
   });
+
+  return VK_SDK_URLS.reduce(
+    (chain, url) => chain.catch(() => trySource(url)),
+    Promise.reject(new Error('SDK не загрузился'))
+  );
 }
 
 /** Адрес возврата — та же страница, откуда ушли (должен быть в доверенных у ВК). */
