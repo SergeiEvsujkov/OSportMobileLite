@@ -753,3 +753,25 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
 .cloud-item .name { font-size: 17px; }
 .cloud-item .period { font-size: 13px; }
 .cloud-item .line { font-size: 13px; }
+
+/* Закреплённые шапки: главный экран и облако.
+   На главном закрепляется только верхняя панель, в облаке — ещё и поиск:
+   при прокрутке списка они остаются на месте, как в приложении. */
+#homeScreen .page-head,
+#cloudScreen .page-head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--surface);
+  margin: 0 -16px;
+  padding: 16px 16px 8px;
+}
+
+#cloudScreen .search {
+  position: sticky;
+  top: 54px;
+  z-index: 29;
+  background: var(--surface);
+  margin: 0 -16px;
+  padding: 8px 16px 12px;
+}
