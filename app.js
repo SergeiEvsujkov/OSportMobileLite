@@ -2772,7 +2772,29 @@ function rogainePenaltyOf(finishTime, startTime, controlMinutes, penaltyPerMinut
  * сортировка по баллам и затем по времени.
  */
 function buildProtocol(distance) {
-  const results = Array.isArray(distance.results) ? distance.results : [];
+  const allResults = Array.isArray(distance.results) ? distance.results : [];
+  // Правило события применяет УСТРОЙСТВО: сервер хранит все попытки
+  const policy = String(distance.resubmit || 'update');
+  const version = (row) => Number(row && row.updatedAt) || Number(row && row.finishTime) || 0;
+  const byUser = new Map();
+  if (policy === 'both') {
+    allResults.forEach((row) => {
+      if (!row || !row.userId) return;
+      byUser.set(String(row.userId) + '#' + (Number(row.attempt) || 1), row);
+    });
+  } else {
+    allResults.forEach((row) => {
+      if (!row || !row.userId) return;
+      const key = String(row.userId);
+      const current = byUser.get(key);
+      if (!current) { byUser.set(key, row); return; }
+      const better = policy === 'first'
+        ? version(row) < version(current)
+        : version(row) > version(current);
+      if (better) byUser.set(key, row);
+    });
+  }
+  const results = Array.from(byUser.values());
   const rogaine = rogaineMode();
 
   const rows = results.map((row) => {
@@ -3758,18 +3780,7 @@ async function sendResult() {
 
   const event = state.event;
   const result = buildResult(event.distance, state.marks, who);
-  // «Оставлять оба»: повтор уходит новой попыткой, прежняя остаётся
-  const policy = String((event.distance && event.distance.resubmit) || 'update');
-  if (policy === 'both') {
-    const same = (event.distance.results || []).filter(
-      (row) => row && String(row.userId) === String(who.code)
-    );
-    const nextAttempt = same.reduce((max, row) => Math.max(max, Number(row.attempt) || 1), 1) + 1;
-    if (same.length > 0) {
-      result.attempt = nextAttempt;
-      result.duplicate = true;
-    }
-  }
+  // Номер попытки назначает СЕРВЕР: клиент отправляет результат как есть
 
   // Как в приложении: результат сначала ложится в дистанцию на устройстве,
   // экраны обновляются сразу, а отправка в облако идёт после
