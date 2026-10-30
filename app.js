@@ -23,6 +23,7 @@ const STORAGE = {
   active: 'osport.lite.active',
   screen: 'osport.lite.screen',   // какой экран был открыт
   vkNames: 'osport.lite.vkNames', // ник по каждому профилю ВК на этом устройстве
+  pendingResults: 'osport.lite.pendingResults', // результаты, которые не удалось отправить
 };
 
 const state = {
@@ -3450,17 +3451,56 @@ async function sendResult() {
   writeJson(STORAGE.identity, who);
 
   const event = state.event;
-  const payload = Object.assign({}, event.distance, {
-    results: [buildResult(event.distance, state.marks, who)],
-  });
+  const result = buildResult(event.distance, state.marks, who);
 
-  setStatus('Отправляю результат…');
+  // Как в приложении: результат сначала ложится в дистанцию на устройстве,
+  // экраны обновляются сразу, а отправка в облако идёт после
+  const results = (event.distance.results || [])
+    .filter((row) => String(row.userId) !== String(result.userId));
+  results.push(result);
+  event.distance = Object.assign({}, event.distance, { results });
+  writeJson(STORAGE.event, event);
+  writeJson(STORAGE.event + '.' + event.id, event);
+  rememberEvent(event);
+  renderHome();
+  renderDetail();
+
+  setStatus('Результат сохранён, отправляю…');
   try {
-    await callFunction('action=result&key=' + encodeURIComponent(event.key), payload);
+    await callFunction('action=result&key=' + encodeURIComponent(event.key), { results: [result] });
     setStatus('Результат отправлен', 'good');
+    renderHome();
+    renderDetail();
+    flushPendingResults().catch(() => {});
   } catch (error) {
-    setStatus(error.message, 'error');
+    queueResult(event.key, result);
+    setStatus('Результат сохранён, отправится позже: ' + error.message, 'error');
   }
+}
+
+/** Отложенный результат: храним, пока облако не ответит. */
+function queueResult(key, result) {
+  const list = readJson(STORAGE.pendingResults, []);
+  const filtered = list.filter(
+    (item) => !(item.key === key && String(item.result.userId) === String(result.userId))
+  );
+  filtered.push({ key, result });
+  writeJson(STORAGE.pendingResults, filtered);
+}
+
+/** Пробуем отправить отложенные результаты — при запуске и после удачной отправки. */
+async function flushPendingResults() {
+  const list = readJson(STORAGE.pendingResults, []);
+  if (!list.length) return;
+  const left = [];
+  for (const item of list) {
+    try {
+      await callFunction('action=result&key=' + encodeURIComponent(item.key), { results: [item.result] });
+    } catch (error) {
+      left.push(item);
+    }
+  }
+  writeJson(STORAGE.pendingResults, left);
 }
 
 /* ─────────────────────────── запуск ─────────────────────────── */
@@ -3639,6 +3679,8 @@ window.addEventListener('popstate', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Отложенные результаты отправляем при запуске, как очередь в приложении
+  flushPendingResults().catch(() => {});
   bind();
   updateProfileButtons();
   registerServiceWorker();
