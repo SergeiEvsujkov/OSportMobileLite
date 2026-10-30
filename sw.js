@@ -6,7 +6,7 @@
  * запрашиваются из сети и обновляют кэш; без сети работает последняя копия.
  */
 
-const CACHE = 'osport-lite-v85';
+const CACHE = 'osport-lite-v86';
 
 const SHELL = [
   './',
@@ -17,6 +17,8 @@ const SHELL = [
   './icons.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-1024.png',
+  './icons/icon-180.png',
 ];
 
 self.addEventListener('install', (event) => {
