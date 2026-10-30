@@ -415,6 +415,28 @@ function pendingResultFor(id) {
 }
 
 /**
+ * Сливает результаты облака с локальными.
+ *
+ * Свои результаты, которых в облаке ещё нет (очередь не отправилась), должны
+ * оставаться видимыми: иначе обновление из облака «съедало» бы только что
+ * записанный результат.
+ */
+function mergeResults(cloudResults, localResults) {
+  const pending = readJson(STORAGE.pendingResults, []);
+  const pendingUsers = new Set(pending.map((item) => String((item.result || {}).userId)));
+  const merged = new Map();
+  (localResults || []).forEach((row) => {
+    if (!row || !row.userId) return;
+    if (pendingUsers.has(String(row.userId))) merged.set(String(row.userId), row);
+  });
+  (cloudResults || []).forEach((row) => {
+    if (!row || !row.userId) return;
+    merged.set(String(row.userId), row);
+  });
+  return Array.from(merged.values());
+}
+
+/**
  * Обновляет скачанное из облака: карточки, результаты и протоколы.
  *
  * Правило одно для ориентирования и рогейна: у обоих запись обновляется
@@ -446,11 +468,16 @@ async function syncFromCloud() {
       try {
         const full = await callFunction('action=get&id=' + encodeURIComponent(id));
         if (!full.distance) continue;
+        const previous = readJson(STORAGE.event + '.' + id, null);
+        const localResults = (previous && previous.distance && previous.distance.results) || [];
+        const distance = Object.assign({}, full.distance, {
+          results: mergeResults(full.distance.results, localResults),
+        });
         const item = {
           id,
           kind: entry.kind,
           key: 'distances/' + id + (entry.kind === 'rogaine' ? '.rogaine' : '.osport'),
-          distance: full.distance,
+          distance,
           entry,
         };
         writeJson(STORAGE.event + '.' + id, item);
