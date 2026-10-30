@@ -3234,10 +3234,17 @@ function handleQrText(raw) {
     foreign = true;
   } else if (!parsed.error) {
     code = String(parsed.code);
-    // Старт в QR записан как «01», в базе ориентирования он — код 3
-    if (!rogaineMode() && code === '01') {
-      const hasStart = (distance.points || []).some((item) => String(codeOf(item)) === '3');
-      code = hasStart ? '3' : '1';
+    // В QR коды двузначные («01», «02», «57»), а в базе ориентирования числа
+    // без ведущего нуля: «02» — это финиш 2, «01» — старт (3 или 1).
+    // Без приведения верный код финиша искали строкой «02» и не находили
+    if (!rogaineMode() && /^[0-9]+$/.test(code)) {
+      const numeric = String(Number(code));
+      if (numeric === '1') {
+        const hasStart = (distance.points || []).some((item) => String(codeOf(item)) === '3');
+        code = hasStart ? '3' : '1';
+      } else {
+        code = numeric;
+      }
     }
     if (!(distance.points || []).some((item) => String(codeOf(item)) === code)) {
       code = null;
