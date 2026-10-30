@@ -486,11 +486,12 @@ function mergeResults(cloudResults, localResults) {
     // Одинаковый результат не дублируем; из двух копий оставляем новее
     if (preferNew && version(cleanRow) >= version(merged[index])) merged[index] = cleanRow;
   };
-  (localResults || []).forEach((row) => add(row, false));
-  (cloudResults || []).forEach((row) => {
+  // Облако — источник правды: чего в нём нет, того нет и на устройстве.
+  // Исключение — свой результат, ещё не ушедший в облако (очередь)
+  (cloudResults || []).forEach((row) => add(row, true));
+  (localResults || []).forEach((row) => {
     if (!row || !row.userId) return;
-    // Неотправленный свой результат не затираем никогда
-    if (pendingUsers.has(String(row.userId))) return;
+    if (!pendingUsers.has(String(row.userId))) return;
     add(row, true);
   });
   return merged;
