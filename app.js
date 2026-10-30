@@ -3074,34 +3074,33 @@ function outcomeText(kind) {
 /** Показать исход на 3 секунды и подписи отметки рогейна. */
 function showOutcome(kind, label, code) {
   const text = $('markOutcome');
-  const labels = $('markLabels');
-  text.textContent = outcomeText(kind);
+  const lines = [outcomeText(kind)];
+
+  // У записанной отметки рогейна сразу под исходом — номер пункта, баллы
+  // и сумма: одна строка на каждое значение, без отдельных элементов,
+  // которые могли остаться скрытыми
+  if (kind === 'recorded' && label && rogaineMode()) {
+    lines.push(label.number);
+    if (label.duplicate) {
+      lines.push('дублирующая отметка, баллов нет');
+    } else if (label.score !== null) {
+      lines.push(`${label.score} ${plural(label.score, 'балл', 'балла', 'баллов')}`);
+    }
+    if (label.total !== null) {
+      lines.push(`итого: ${label.total} ${plural(label.total, 'балл', 'балла', 'баллов')}`);
+    }
+  }
+
+  text.textContent = lines.join('\n');
   text.classList.remove('hidden');
   text.classList.toggle('error', kind !== 'recorded' && kind !== 'skipped');
-  labels.textContent = '';
-  labels.classList.add('hidden');
+  $('markLabels').classList.add('hidden');
 
-  if (kind === 'recorded' && label && rogaineMode()) {
-    const add = (value) => {
-      const line = document.createElement('p');
-      line.textContent = value;
-      labels.append(line);
-    };
-    add(label.number);
-    if (label.duplicate) add('дублирующая отметка, баллов нет');
-    else if (label.score !== null) add(`${label.score} ${plural(label.score, 'балл', 'балла', 'баллов')}`);
-    if (label.total !== null) add(`итого: ${label.total} ${plural(label.total, 'балл', 'балла', 'баллов')}`);
-    labels.classList.remove('hidden');
-  }
-
-  if (kind === 'skipped') {
-    setStatus(outcomeText(kind), 'good');
-  }
+  if (kind === 'skipped') setStatus(outcomeText(kind), 'good');
 
   clearTimeout(state.outcomeTimer);
   state.outcomeTimer = setTimeout(() => {
     text.classList.add('hidden');
-    labels.classList.add('hidden');
   }, MARKED_MESSAGE_MILLIS);
 }
 

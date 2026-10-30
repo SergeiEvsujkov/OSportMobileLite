@@ -802,6 +802,7 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
 
 /* Исход отметки и подписи пункта */
 .mark-outcome {
+  white-space: pre-line;
   margin: 0 24px;
   text-align: center;
   font-size: 15px;
