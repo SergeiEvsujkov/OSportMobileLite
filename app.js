@@ -3111,6 +3111,12 @@ function showOutcome(kind, label, code) {
 
   text.textContent = lines.join('\n');
   text.classList.remove('hidden');
+
+  // Дублируем исход всплывающей строкой: она видна при любом размере окна
+  // камеры и не зависит от верстки нижнего блока
+  if (kind === 'recorded' && rogaineMode() && label) {
+    setStatus(lines.join(' · '), 'good');
+  }
   text.classList.toggle('error', kind !== 'recorded' && kind !== 'skipped');
   $('markLabels').classList.add('hidden');
 
