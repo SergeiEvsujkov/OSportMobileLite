@@ -1143,8 +1143,8 @@ function deactivateDistance() {
   }
   state.marks = [];
 
+  // Остаёмся на этом же экране: дистанция просто перестаёт быть активной
   renderDetail();
-  showTab('events');
   setStatus('Дистанция выгружена, отметки не производятся');
 }
 
