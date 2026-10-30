@@ -1179,6 +1179,7 @@ function signOut() {
 
   $('nick').value = '';
   $('code').value = '';
+  updateProfileButtons();
   setStatus('Вы вышли из профиля');
 }
 
@@ -1204,6 +1205,148 @@ async function downloadCloudMap() {
   } catch (error) {
     setStatus('Не удалось скачать карту. Попробуйте позже.', 'error');
   }
+}
+
+/* ─────────────────────────── вход через ВК ─────────────────────────── */
+
+/** Идентификатор приложения ВК — тот же, что в приложении (VK_CLIENT_ID). */
+const VK_APP_ID = 54822736;
+const VK_SDK_URL = 'https://unpkg.com/@vkid/sdk@2.6.1/dist-sdk/umd/index.js';
+const VK_STATE_KEY = 'osport.lite.vk';
+
+/** Код профиля из VK ID — правило VkProfileCode в приложении, менять нельзя. */
+function vkProfileCode(vkId) {
+  const digits = String(vkId);
+  if (!/^\d+$/.test(digits) || digits.length > 12) return '';
+  const padded = digits.padStart(12, '0');
+  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let code = '';
+  for (let index = 0; index < padded.length; index++) {
+    const digit = Number(padded[index]);
+    code += alphabet[digit + 10 + index];
+  }
+  return code;
+}
+
+/** Случайная строка для state и code_verifier (PKCE). */
+function vkRandom(length) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  let value = '';
+  bytes.forEach((byte) => { value += chars[byte % chars.length]; });
+  return value;
+}
+
+/** Подгружает VK ID SDK по требованию: офлайн вход всё равно невозможен. */
+function loadVkSdk() {
+  if (window.VKID) return Promise.resolve(window.VKID);
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = VK_SDK_URL;
+    script.onload = () => (window.VKID ? resolve(window.VKID) : reject(new Error('SDK не загрузился')));
+    script.onerror = () => reject(new Error('SDK не загрузился'));
+    document.head.append(script);
+  });
+}
+
+/** Адрес возврата — та же страница, откуда ушли (должен быть в доверенных у ВК). */
+function vkRedirectUrl() {
+  return window.location.origin + window.location.pathname;
+}
+
+/** Начинает вход: сохраняет state и code_verifier и уводит на страницу ВК. */
+async function startVkLogin() {
+  setStatus('Открываю вход через ВК…');
+  try {
+    const VKID = await loadVkSdk();
+    const state = vkRandom(32);
+    const codeVerifier = vkRandom(64);
+    writeJson(VK_STATE_KEY, { state, codeVerifier });
+
+    VKID.Config.init({
+      app: VK_APP_ID,
+      redirectUrl: vkRedirectUrl(),
+      state,
+      codeVerifier,
+      scope: '',
+      mode: VKID.ConfigAuthMode.Redirect,
+    });
+
+    await VKID.Auth.login();
+  } catch (error) {
+    setStatus('Не удалось открыть вход через ВК: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Возврат со страницы ВК: code и device_id в адресе. Меняем код на токены
+ * прямо в браузере (схема «обмен на фронтенде», PKCE), берём данные профиля
+ * и сохраняем ник и код профиля — код считается по VkProfileCode.
+ */
+async function handleVkReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (!code) return;
+
+  const saved = readJson(VK_STATE_KEY, null);
+  const state = params.get('state') || '';
+  const deviceId = params.get('device_id') || '';
+
+  // Чистим адрес, чтобы код не остался в истории и не сработал повторно
+  window.history.replaceState({}, '', vkRedirectUrl());
+
+  if (!saved || saved.state !== state) {
+    setStatus('Вход не подтверждён: попробуйте ещё раз', 'error');
+    return;
+  }
+
+  try {
+    setStatus('Завершаю вход через ВК…');
+    const VKID = await loadVkSdk();
+    VKID.Config.init({
+      app: VK_APP_ID,
+      redirectUrl: vkRedirectUrl(),
+      state: saved.state,
+      codeVerifier: saved.codeVerifier,
+      scope: '',
+    });
+
+    const tokens = await VKID.Auth.exchangeCode(code, deviceId, saved.codeVerifier);
+    const info = await VKID.Auth.userInfo(tokens.access_token);
+    const user = (info && info.user) || {};
+
+    const vkId = Number(user.user_id || user.id || 0);
+    const code12 = vkProfileCode(vkId);
+    if (!code12) throw new Error('ВК не вернул идентификатор пользователя');
+
+    const nick = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
+      || ('ВК ' + vkId);
+
+    writeJson(STORAGE.identity, {
+      nick,
+      code: code12,
+      vkId,
+      photo: user.avatar || user.photo_200 || '',
+    });
+
+    try { localStorage.removeItem(VK_STATE_KEY); } catch (error) { /* приватный режим */ }
+
+    $('nick').value = nick;
+    $('code').value = code12;
+    updateProfileButtons();
+    setStatus('Вход выполнен', 'good');
+  } catch (error) {
+    setStatus('Не удалось войти через ВК: ' + error.message, 'error');
+  }
+}
+
+/** Кнопки профиля: «Войти через ВК» — гостю, «Выйти» — вошедшему. */
+function updateProfileButtons() {
+  const me = identity();
+  const signedIn = Boolean(me.nick) && me.code.length >= 6;
+  $('profileVkLogin').classList.toggle('hidden', signedIn);
+  $('profileSignOut').classList.toggle('hidden', !signedIn);
 }
 
 /** Окно «Выйти из профиля?» — как в приложении. */
@@ -2935,6 +3078,7 @@ function bind() {
     renderProtocol(state.event.distance || {});
   });
   $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
+  $('profileVkLogin').addEventListener('click', startVkLogin);
   $('profileSignOut').addEventListener('click', openSignOutDialog);
   $('detailMarksButton').addEventListener('click', openMyProgress);
   $('detailMapDownload').addEventListener('click', downloadCloudMap);
@@ -3033,8 +3177,12 @@ window.addEventListener('popstate', () => {
   showTab(previous, { push: false });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Возврат со страницы ВК обрабатываем до отрисовки: профиль должен быть готов
+  await handleVkReturn();
+
   bind();
+  updateProfileButtons();
   registerServiceWorker();
   // Выбор карты запоминается, как в приложении
   loadMapKind();
