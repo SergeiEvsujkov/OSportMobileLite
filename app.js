@@ -428,8 +428,7 @@ function mergeResults(cloudResults, localResults) {
   const pending = readJson(STORAGE.pendingResults, []);
   const pendingUsers = new Set(pending.map((item) => String((item.result || {}).userId)));
 
-  // Версия результата: время финиша, у незавершённого — последняя отметка.
-  // Это точнее, чем время записи на устройстве
+  // Версия результата: время финиша, у незавершённого — последняя отметка
   const lastMarkTime = (row) => {
     const marks = (row && Array.isArray(row.marks)) ? row.marks : [];
     return marks.reduce((max, mark) => Math.max(max, Number(mark && mark.time) || 0), 0);
@@ -437,24 +436,27 @@ function mergeResults(cloudResults, localResults) {
   const version = (row) =>
     Number(row && row.finishTime) || lastMarkTime(row) || Number(row && row.updatedAt) || 0;
 
+  // Ключ строки — участник + номер попытки: у «оставлять оба» их несколько
+  const attemptOf = (row) => Math.max(1, Number(row && row.attempt) || 1);
+  const rowKey = (row) => String(row.userId) + '#' + attemptOf(row);
+
   const merged = new Map();
   (localResults || []).forEach((row) => {
     if (!row || !row.userId) return;
-    merged.set(String(row.userId), row);
+    merged.set(rowKey(row), row);
   });
   (cloudResults || []).forEach((row) => {
     if (!row || !row.userId) return;
     const key = String(row.userId);
-    const local = merged.get(key);
+    // Неотправленный свой результат не затираем никогда
+    if (pendingUsers.has(key)) return;
+    const storageKey = rowKey(row);
+    const local = merged.get(storageKey);
     if (!local) {
-      merged.set(key, row);
+      merged.set(storageKey, row);
       return;
     }
-    // Неотправленный свой результат не затираем никогда: он уйдёт в облако
-    // сам, а облачная копия про него ещё не знает
-    if (pendingUsers.has(key)) return;
-    // Иначе побеждает более новая версия, при равенстве — облако
-    if (version(row) >= version(local)) merged.set(key, row);
+    if (version(row) >= version(local)) merged.set(storageKey, row);
   });
   return Array.from(merged.values());
 }
@@ -1244,6 +1246,18 @@ function renderDetail() {
   }
 
   $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
+
+  // Что будет при повторной отправке: подсказка про правило автора
+  const sendPolicy = String(distance.resubmit || 'update');
+  const sendHintText = (RESUBMIT_TEXTS.hint[sendPolicy] || RESUBMIT_TEXTS.hint.update);
+  let sendHint = $('detailSendHint');
+  if (!sendHint) {
+    sendHint = document.createElement('p');
+    sendHint.id = 'detailSendHint';
+    sendHint.className = 'meta';
+    $('detailSend').before(sendHint);
+  }
+  sendHint.textContent = sendHintText;
 
   // Активна ли эта дистанция: кнопка «Активировать» / «Деактивировать»
   const active = state.activeId === event.id;
@@ -2772,7 +2786,8 @@ function buildProtocol(distance) {
 
     return {
       userId: row.userId || '',
-      nick: row.nick || row.userId || 'Участник',
+      // Дополнительная попытка помечается прямо в подписи строки
+      nick: (row.nick || row.userId || 'Участник') + (row.duplicate ? ' · дубль' : ''),
       startTime: row.startTime || 0,
       finishTime: row.finishTime || 0,
       elapsed: status === 'OK' ? elapsed : 0,
@@ -3743,6 +3758,18 @@ async function sendResult() {
 
   const event = state.event;
   const result = buildResult(event.distance, state.marks, who);
+  // «Оставлять оба»: повтор уходит новой попыткой, прежняя остаётся
+  const policy = String((event.distance && event.distance.resubmit) || 'update');
+  if (policy === 'both') {
+    const same = (event.distance.results || []).filter(
+      (row) => row && String(row.userId) === String(who.code)
+    );
+    const nextAttempt = same.reduce((max, row) => Math.max(max, Number(row.attempt) || 1), 1) + 1;
+    if (same.length > 0) {
+      result.attempt = nextAttempt;
+      result.duplicate = true;
+    }
+  }
 
   // Как в приложении: результат сначала ложится в дистанцию на устройстве,
   // экраны обновляются сразу, а отправка в облако идёт после
