@@ -199,6 +199,7 @@ function showTab(name, options = {}) {
   writeJson(STORAGE.screen, { name, eventId: state.event && state.event.id });
 
   if (name === 'profile') {
+    renderProfileState();
     renderVkOneTap();
   }
 
@@ -1181,9 +1182,7 @@ function signOut() {
     // приватный режим
   }
 
-  $('nick').value = '';
-  $('code').value = '';
-  updateProfileButtons();
+  renderProfileState();
   setStatus('Вы вышли из профиля');
 }
 
@@ -1273,10 +1272,8 @@ function saveVkProfile(user) {
     photo: user.avatar || user.photo_200 || '',
   });
 
-  $('nick').value = nick;
-  $('code').value = code;
   vkOneTapRendered = false;
-  updateProfileButtons();
+  renderProfileState();
   setStatus('Вход выполнен', 'good');
 }
 
@@ -1288,8 +1285,6 @@ async function renderVkOneTap() {
   const me = identity();
   const signedIn = Boolean(me.nick) && me.code.length >= 6;
 
-  $('profileSignOut').classList.toggle('hidden', !signedIn);
-  $('vkLoginBox').classList.toggle('hidden', signedIn);
   if (signedIn || vkOneTapRendered) return;
 
   try {
@@ -1325,12 +1320,81 @@ async function renderVkOneTap() {
   }
 }
 
-/** Кнопки профиля: гость видит вход, вошедший — выход. */
-function updateProfileButtons() {
+/** Показывает блок профиля по состоянию: гость или вошедший. */
+function renderProfileState() {
   const me = identity();
   const signedIn = Boolean(me.nick) && me.code.length >= 6;
-  $('vkLoginBox').classList.toggle('hidden', signedIn);
-  $('profileSignOut').classList.toggle('hidden', !signedIn);
+
+  $('profileGuest').classList.toggle('hidden', signedIn);
+  $('profileSigned').classList.toggle('hidden', !signedIn);
+
+  if (!signedIn) return;
+
+  const data = readJson(STORAGE.identity, {});
+  $('profileNick').textContent = me.nick;
+
+  const photo = data.photo || '';
+  $('profilePhoto').classList.toggle('hidden', !photo);
+  $('profilePhotoStub').classList.toggle('hidden', Boolean(photo));
+  if (photo) $('profilePhoto').src = photo;
+}
+
+/** Совместимость: прежнее имя функции. */
+function updateProfileButtons() {
+  renderProfileState();
+}
+
+/** Окно «Изменить ник»: код профиля остаётся прежним. */
+function openNickDialog() {
+  const me = identity();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const title = document.createElement('h2');
+  title.textContent = 'Изменить ник';
+
+  const hint = document.createElement('p');
+  hint.textContent = 'Ник виден в протоколе и на карточках событий. Код профиля не меняется.';
+
+  const input = document.createElement('input');
+  input.className = 'input';
+  input.type = 'text';
+  input.maxLength = 20;
+  input.value = me.nick;
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+
+  const save = document.createElement('button');
+  save.className = 'button';
+  save.textContent = 'Сохранить';
+  save.addEventListener('click', () => {
+    const nick = input.value.trim();
+    if (nick.length < 3) {
+      setStatus('Ник короче трёх знаков', 'error');
+      return;
+    }
+    const data = readJson(STORAGE.identity, {});
+    writeJson(STORAGE.identity, { ...data, nick });
+    overlay.remove();
+    renderProfileState();
+    setStatus('Ник изменён', 'good');
+  });
+
+  const cancel = document.createElement('button');
+  cancel.className = 'button text';
+  cancel.textContent = 'Отмена';
+  cancel.addEventListener('click', () => overlay.remove());
+
+  actions.append(save, cancel);
+  modal.append(title, hint, input, actions);
+  overlay.append(modal);
+  document.body.append(overlay);
+  input.focus();
 }
 
 /** Окно «Выйти из профиля?» — как в приложении. */
@@ -2962,10 +3026,13 @@ function playMarkSound() {
 /* ─────────────────────────── профиль и отправка ─────────────────────────── */
 
 function identity() {
-  return { nick: $('nick').value.trim(), code: $('code').value.trim().toUpperCase() };
+  const saved = readJson(STORAGE.identity, { nick: '', code: '' });
+  return { nick: String(saved.nick || '').trim(), code: String(saved.code || '').trim().toUpperCase() };
 }
 
+/** Состояние отправки на экране дистанции; на профиле её больше нет. */
 function updateSendState() {
+  if (!$('send')) return;
   const finished = state.marks.some((mark) => mark.finish);
   $('send').disabled = !state.event || !finished;
   $('sendHint').textContent = finished
@@ -3015,7 +3082,6 @@ async function sendResult() {
   try {
     await callFunction('action=result&key=' + encodeURIComponent(event.key), payload);
     setStatus('Результат отправлен', 'good');
-    $('send').disabled = true;
   } catch (error) {
     setStatus(error.message, 'error');
   }
@@ -3100,14 +3166,16 @@ function bind() {
   });
 
   $('bigMark').addEventListener('click', markCandidate);
-  $('send').addEventListener('click', sendResult);
 
-  // Отладка веба: если профиль не заведён, подставляем профиль приложения,
-  // чтобы работать так, как будто вход уже выполнен
-  // Профиль берём только свой: вход теперь через ВК, подстановки нет
-  const saved = readJson(STORAGE.identity, { nick: '', code: '' });
-  $('nick').value = saved.nick || '';
-  $('code').value = saved.code || '';
+  // Профиль: рисуем состояние и, если гость, кнопку входа ВК
+  renderProfileState();
+  renderVkOneTap();
+
+  // Код поддержки нажимается и открывает ту же страницу, что зашита в коде
+  $('supportQr').addEventListener('click', () => {
+    window.open('https://spasibomir.ru/pay/35620', '_blank', 'noopener');
+  });
+  $('profileChangeNick').addEventListener('click', openNickDialog);
 }
 
 function registerServiceWorker() {

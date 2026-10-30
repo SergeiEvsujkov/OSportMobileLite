@@ -7,7 +7,7 @@
   <title>OSportMobile Lite</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=79">
+  <link rel="stylesheet" href="styles.css?v=81">
 </head>
 <body>
   <main id="app">
@@ -194,20 +194,47 @@
       <header class="page-head">
         <h1>Профиль</h1>
       </header>
-      <div class="card">
-        <label class="label" for="nick">Ник</label>
-        <input id="nick" class="input" type="text" placeholder="Ник">
-        <label class="label" for="code" style="margin-top:12px">Код профиля</label>
-        <input id="code" class="input" type="text" placeholder="12 знаков">
-        <p class="hint">Код виден в приложении на вкладке «Профиль».</p>
-        <div id="vkLoginBox" class="vk-login-box" style="margin-top:12px">
+
+      <!-- Поддержка проекта: код, подпись и сообщество — наверху всегда -->
+      <div class="profile-support">
+        <img id="supportQr" class="support-qr" src="icons/donation-qr.png" alt="Поддержать проект">
+        <p class="hint profile-support-text">Поддержите, пожалуйста, проект, чтобы он Вас радовал дольше! Особенно, если проводите коммерческие старты. 🙂 Код можно отсканировать телефоном или просто нажать на него — откроется страница поддержки.</p>
+        <a class="vk-community" href="https://vk.ru/osportmobile" target="_blank" rel="noopener">
+          <span class="vk-mark">VK</span>
+          <span class="vk-community-text">
+            <span>Сообщество ВКонтакте</span>
+            <span class="sub">vk.ru/osportmobile</span>
+          </span>
+        </a>
+      </div>
+
+      <!-- Гость: пояснение и кнопка входа ВК ID -->
+      <div id="profileGuest" class="profile-guest">
+        <p class="hint">Нет ВКонтакте? Нажмите «Войти в другой аккаунт» — на экране VK ID будет вход по номеру телефона, понадобится код из SMS.</p>
+        <div id="vkLoginBox" class="vk-login-box">
           <div id="vkOneTap"></div>
         </div>
-        <button id="profileSignOut" class="button outlined" style="width:100%;margin-top:12px">Выйти</button>
       </div>
-      <div class="card">
-        <button id="send" class="button" style="width:100%">Отправить результат</button>
-        <p class="hint" id="sendHint">Сначала отметьте финиш на дистанции.</p>
+
+      <!-- Вошедший: кто вошёл, смена ника и выход -->
+      <div id="profileSigned" class="profile-signed hidden">
+        <div class="profile-card">
+          <img id="profilePhoto" class="profile-photo hidden" alt="">
+          <svg id="profilePhotoStub" class="icon profile-photo-stub"><use href="icons.svg#person"></use></svg>
+          <div class="profile-card-text">
+            <span class="profile-caption">Вы вошли как</span>
+            <span id="profileNick" class="profile-nick"></span>
+          </div>
+        </div>
+
+        <div class="card profile-nick-card">
+          <button id="profileChangeNick" class="button text" style="width:100%">Изменить ник</button>
+        </div>
+
+        <button id="profileSignOut" class="button outlined vk-signout" style="width:100%">
+          <span class="vk-mark">VK</span>
+          <span>Выйти</span>
+        </button>
       </div>
     </section>
 
@@ -220,8 +247,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=79"></script>
-  <script src="marking.js?v=79"></script>
-  <script src="app.js?v=79"></script>
+  <script src="jsQR.js?v=81"></script>
+  <script src="marking.js?v=81"></script>
+  <script src="app.js?v=81"></script>
 </body>
 </html>
