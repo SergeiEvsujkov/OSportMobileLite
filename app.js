@@ -428,8 +428,14 @@ function mergeResults(cloudResults, localResults) {
   const pending = readJson(STORAGE.pendingResults, []);
   const pendingUsers = new Set(pending.map((item) => String((item.result || {}).userId)));
 
-  // Версия результата: у старых записей поля нет — считаем по времени финиша
-  const version = (row) => Number(row && row.updatedAt) || Number(row && row.finishTime) || 0;
+  // Версия результата: время финиша, у незавершённого — последняя отметка.
+  // Это точнее, чем время записи на устройстве
+  const lastMarkTime = (row) => {
+    const marks = (row && Array.isArray(row.marks)) ? row.marks : [];
+    return marks.reduce((max, mark) => Math.max(max, Number(mark && mark.time) || 0), 0);
+  };
+  const version = (row) =>
+    Number(row && row.finishTime) || lastMarkTime(row) || Number(row && row.updatedAt) || 0;
 
   const merged = new Map();
   (localResults || []).forEach((row) => {
