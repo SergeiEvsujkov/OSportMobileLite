@@ -1210,7 +1210,7 @@ async function downloadCloudMap() {
 /* ─────────────────────────── вход через ВК ─────────────────────────── */
 
 /** Идентификатор приложения ВК — тот же, что в приложении (VK_CLIENT_ID). */
-const VK_APP_ID = 54822736;
+const VK_APP_ID = 54866229;
 const VK_SDK_URL = 'https://unpkg.com/@vkid/sdk@2.6.1/dist-sdk/umd/index.js';
 const VK_STATE_KEY = 'osport.lite.vk';
 
@@ -3121,18 +3121,7 @@ function bind() {
 
   // Отладка веба: если профиль не заведён, подставляем профиль приложения,
   // чтобы работать так, как будто вход уже выполнен
-  // Отладка: профиль приложения подставляется ОДИН раз, чтобы выход из
-  // профиля не отменялся сам собой при следующем запуске
-  const seeded = readJson('osport.lite.seeded', false);
-  const seededIdentity = readJson(STORAGE.identity, null);
-  if (!seeded && (!seededIdentity || !seededIdentity.code
-    || String(seededIdentity.code).length < 6)) {
-    writeJson(STORAGE.identity, { nick: 'Серёга Евс', code: 'ABCHLFLJQKPP' });
-  }
-  // Признак ставим и тогда, когда профиль уже был: выход не должен
-  // отменяться подстановкой при следующем запуске
-  if (!seeded) writeJson('osport.lite.seeded', true);
-
+  // Профиль берём только свой: вход теперь через ВК, подстановки нет
   const saved = readJson(STORAGE.identity, { nick: '', code: '' });
   $('nick').value = saved.nick || '';
   $('code').value = saved.code || '';
