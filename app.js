@@ -22,6 +22,7 @@ const STORAGE = {
   settings: 'osport.lite.settings',
   active: 'osport.lite.active',
   screen: 'osport.lite.screen',   // какой экран был открыт
+  vkNames: 'osport.lite.vkNames', // ник по каждому профилю ВК на этом устройстве
 };
 
 const state = {
@@ -1256,14 +1257,30 @@ function loadVkSdk() {
   );
 }
 
+/** Запомнить ник для профиля ВК: при следующем входе он подставится снова. */
+function rememberVkNick(vkId, nick) {
+  if (!vkId || !nick) return;
+  const names = readJson(STORAGE.vkNames, {});
+  names[String(vkId)] = nick;
+  writeJson(STORAGE.vkNames, names);
+}
+
+/** Прежний ник этого профиля ВК на устройстве, если он был задан. */
+function knownVkNick(vkId) {
+  const names = readJson(STORAGE.vkNames, {});
+  return String(names[String(vkId)] || '').trim();
+}
+
 /** Сохраняет профиль, полученный от ВК: ник, код профиля из VK ID и фото. */
 function saveVkProfile(user) {
   const vkId = Number(user.user_id || user.id || 0);
   const code = vkProfileCode(vkId);
   if (!code) throw new Error('ВК не вернул идентификатор пользователя');
 
-  const nick = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
-    || ('ВК ' + vkId);
+  // Свой прежний ник важнее имени из ВК: человек уже выбрал, как подписываться
+  const fromVk = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+  const nick = knownVkNick(vkId) || fromVk || ('ВК ' + vkId);
+  rememberVkNick(vkId, nick);
 
   writeJson(STORAGE.identity, {
     nick,
@@ -1380,6 +1397,7 @@ function openNickDialog() {
     }
     const data = readJson(STORAGE.identity, {});
     writeJson(STORAGE.identity, { ...data, nick });
+    if (data.vkId) rememberVkNick(data.vkId, nick);
     overlay.remove();
     renderProfileState();
     setStatus('Ник изменён', 'good');
