@@ -3565,34 +3565,6 @@ function checkQrGone() {
   }
 }
 
-/** Отметка по коду: старт, финиш и пункты — как на GPS-экране. */
-function markByCode(code) {
-  if (state.marks.some((mark) => mark.finish)) {
-    setStatus('Вы уже финишировали', 'error');
-    return;
-  }
-  const start = isStart(code, rogaineMode());
-  const finish = isFinish(code, rogaineMode());
-  if (finish && !state.marks.some((mark) => mark.start)) {
-    setStatus('Вначале отметьте старт на выбранной дистанции', 'error');
-    return;
-  }
-  if (!start && !finish && !state.marks.some((mark) => mark.start)) {
-    setStatus('Вначале отметьте старт на выбранной дистанции', 'error');
-    return;
-  }
-
-  state.marks.push({ code, time: Date.now(), start, finish });
-  saveMarks();
-  playMarkSound();
-  renderMark();
-  setStatus('Отметка записана', 'good');
-
-  if (finish && settings().autoSend && identity().nick && identity().code.length >= 6) {
-    sendResult();
-  }
-}
-
 function stopQrScanner() {
   if (qrTimer !== null) {
     clearInterval(qrTimer);
