@@ -466,16 +466,25 @@ function mergeResults(cloudResults, localResults) {
   // Храним ВСЕ разные результаты, а не по одному на участника: настройка
   // события решает только показ в протоколе
   const merged = [];
+  // Старых полей попыток больше нет: сервер их не присылает, и хранить их
+  // на устройстве незачем
+  const clean = (row) => {
+    const copy = Object.assign({}, row);
+    delete copy.attempt;
+    delete copy.duplicate;
+    return copy;
+  };
   const indexOfSame = (row) => merged.findIndex((other) => sameResult(other, row));
   const add = (row, preferNew) => {
     if (!row || !row.userId) return;
-    const index = indexOfSame(row);
+    const cleanRow = clean(row);
+    const index = indexOfSame(cleanRow);
     if (index < 0) {
-      merged.push(row);
+      merged.push(cleanRow);
       return;
     }
     // Одинаковый результат не дублируем; из двух копий оставляем новее
-    if (preferNew && version(row) >= version(merged[index])) merged[index] = row;
+    if (preferNew && version(cleanRow) >= version(merged[index])) merged[index] = cleanRow;
   };
   (localResults || []).forEach((row) => add(row, false));
   (cloudResults || []).forEach((row) => {
@@ -2818,6 +2827,12 @@ function buildProtocol(distance) {
     ? allResults.filter((row) => row && row.userId)
     : Array.from(byUser.values());
   const rogaine = rogaineMode();
+  // Участник с несколькими результатами выделяется жёлтым весь
+  const countByUser = new Map();
+  results.forEach((row) => {
+    const key = String(row.userId);
+    countByUser.set(key, (countByUser.get(key) || 0) + 1);
+  });
 
   const rows = results.map((row) => {
     const marks = Array.isArray(row.marks) ? row.marks : [];
@@ -2830,8 +2845,9 @@ function buildProtocol(distance) {
 
     return {
       userId: row.userId || '',
-      // Дополнительная попытка помечается прямо в подписи строки
-      nick: (row.nick || row.userId || 'Участник') + (row.duplicate ? ' · дубль' : ''),
+      nick: row.nick || row.userId || 'Участник',
+      // Жёлтым выделяются все строки участника с несколькими результатами
+      duplicate: (countByUser.get(String(row.userId)) || 0) > 1,
       startTime: row.startTime || 0,
       finishTime: row.finishTime || 0,
       elapsed: status === 'OK' ? elapsed : 0,
@@ -2888,6 +2904,8 @@ function renderProtocol(distance) {
   $('detailProtocol').classList.remove('hidden');
   $('protoEmpty').classList.toggle('hidden', rows.length > 0);
   $('protoCount').textContent = `Участников: ${participantCount(rows)}`;
+  // Пояснение показываем только когда есть участники с несколькими строками
+  $('protoLegend').classList.toggle('hidden', !rows.some((row) => row.duplicate));
 
   const list = $('protoList');
   list.textContent = '';
@@ -2921,7 +2939,7 @@ function renderProtocol(distance) {
  */
 function protocolRowRogaine(row) {
   const item = document.createElement('button');
-  item.className = 'proto-row rogaine';
+  item.className = 'proto-row rogaine' + (row.duplicate ? ' duplicate' : '');
 
   const nick = document.createElement('span');
   nick.className = 'proto-nick';
@@ -2947,7 +2965,7 @@ function protocolRowRogaine(row) {
 /** Строка протокола: место (или статус), ник, результат, отставание. */
 function protocolRow(row, rogaine) {
   const item = document.createElement('button');
-  item.className = 'proto-row';
+  item.className = 'proto-row' + (row.duplicate ? ' duplicate' : '');
 
   const place = document.createElement('span');
   place.className = 'proto-place';

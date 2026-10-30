@@ -389,6 +389,12 @@ body {
   cursor: pointer;
 }
 .proto-row:active { background: var(--surface-container); }
+/* Все строки участника с несколькими результатами */
+.proto-row.duplicate { background: #fff8d6; color: #1d1b20; }
+.proto-row.duplicate .proto-place,
+.proto-row.duplicate .proto-behind { color: #1d1b20; }
+.proto-row.duplicate:active { background: #ffefb6; }
+.proto-legend { margin: 6px 0 0; }
 .proto-row.static { cursor: default; }
 .proto-place { min-width: 28px; font-weight: 600; color: var(--on-surface-variant); }
 .proto-nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
