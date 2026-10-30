@@ -3330,12 +3330,14 @@ function sanitizeMarks() {
 
 /** Запись отметки: одно правило и одни слова для кнопки, автоматики и QR. */
 function markByCode(code, options = {}) {
-  if (state.marks.some((mark) => mark.finish)) {
+  const start = isStart(code, rogaineMode());
+  const finish = isFinish(code, rogaineMode());
+  // Старт отмечается и после финиша: он начинает протокол заново и стирает
+  // прежние отметки, поэтому блокировать его нечем
+  if (!start && state.marks.some((mark) => mark.finish)) {
     showOutcome('finish');
     return 'finish';
   }
-  const start = isStart(code, rogaineMode());
-  const finish = isFinish(code, rogaineMode());
   if (!start && !state.marks.some((mark) => mark.start)) {
     showOutcome('start');
     return 'start';
