@@ -93,6 +93,8 @@ function buildResult(event, marks, identity) {
     nick: identity.nick,
     startTime: start ? start.time : 0,
     finishTime: finish ? finish.time : 0,
+    // Версия строки: по ней слияние решает, чья запись новее
+    updatedAt: Date.now(),
     marks: marks.map((mark) => ({ code: mark.code, time: mark.time })),
   };
 }

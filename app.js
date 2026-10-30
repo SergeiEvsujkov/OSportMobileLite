@@ -427,14 +427,28 @@ function pendingResultFor(id) {
 function mergeResults(cloudResults, localResults) {
   const pending = readJson(STORAGE.pendingResults, []);
   const pendingUsers = new Set(pending.map((item) => String((item.result || {}).userId)));
+
+  // Версия результата: у старых записей поля нет — считаем по времени финиша
+  const version = (row) => Number(row && row.updatedAt) || Number(row && row.finishTime) || 0;
+
   const merged = new Map();
   (localResults || []).forEach((row) => {
     if (!row || !row.userId) return;
-    if (pendingUsers.has(String(row.userId))) merged.set(String(row.userId), row);
+    merged.set(String(row.userId), row);
   });
   (cloudResults || []).forEach((row) => {
     if (!row || !row.userId) return;
-    merged.set(String(row.userId), row);
+    const key = String(row.userId);
+    const local = merged.get(key);
+    if (!local) {
+      merged.set(key, row);
+      return;
+    }
+    // Неотправленный свой результат не затираем никогда: он уйдёт в облако
+    // сам, а облачная копия про него ещё не знает
+    if (pendingUsers.has(key)) return;
+    // Иначе побеждает более новая версия, при равенстве — облако
+    if (version(row) >= version(local)) merged.set(key, row);
   });
   return Array.from(merged.values());
 }
