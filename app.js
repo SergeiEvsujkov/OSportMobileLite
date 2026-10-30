@@ -3473,26 +3473,10 @@ function renderQrConfirm() {
   warning.classList.toggle('hidden', !text);
   $('qrMark').disabled = !label;
 
-  // Подписи рогейна видны ДО нажатия, как в приложении: номер пункта,
-  // баллы за него, сумма набранных и пометка дубля
-  const hints = $('qrHints');
-  hints.textContent = '';
-  if (rogaineMode() && label) {
-    const add = (value, isDuplicate) => {
-      const line = document.createElement('p');
-      line.textContent = value;
-      line.style.margin = '0';
-      if (isDuplicate) line.style.color = 'var(--error, #b3261e)';
-      hints.append(line);
-    };
-    add(label.number);
-    if (label.duplicate) add('дублирующая отметка, баллов нет', true);
-    else if (label.score !== null) add(`${label.score} ${plural(label.score, 'балл', 'балла', 'баллов')}`);
-    if (label.total !== null) add(`итого: ${label.total} ${plural(label.total, 'балл', 'балла', 'баллов')}`);
-    hints.classList.remove('hidden');
-  } else {
-    hints.classList.add('hidden');
-  }
+  // До отметки показываем ТОЛЬКО номер пункта, как в приложении:
+  // баллы, сумма и пометка дубля — это ответ по уже записанной отметке,
+  // и до нажатия они были бы ответом вперёд
+  $('qrHints').classList.add('hidden');
 
   box.classList.remove('hidden');
 }
