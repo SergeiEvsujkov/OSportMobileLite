@@ -3427,7 +3427,11 @@ function handleQrText(raw) {
     }
   }
 
-  const label = code ? Object.assign({ code }, markLabelFor(code)) : null;
+  // До отметки известен только номер пункта. Баллы и сумму не считаем вовсе:
+  // сумма обязана измениться ровно после записи, а не при наведении камеры
+  const label = code
+    ? { code, number: labelOf(code), score: null, duplicate: false, total: null }
+    : null;
   state.pendingQr = { raw, code, label, foreign, seenAt: Date.now() };
   state.manualRefused = false;
   renderQrConfirm();
