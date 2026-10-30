@@ -1523,6 +1523,50 @@ async function renderVkOneTap() {
   }
 }
 
+/**
+ * Возврат из ВК редиректом: страница открылась с ?code=…
+ *
+ * Так бывает, когда вход начали в приложении, а подтверждение прошло в браузере:
+ * результат приходит параметрами адреса. Меняем код на профиль и убираем
+ * параметры из адреса, чтобы повторная загрузка ничего не делала.
+ */
+async function handleVkRedirectReturn() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  if (!code) return;
+  const deviceId = params.get('device_id') || '';
+
+  try {
+    const VKID = await loadVkSdk();
+    VKID.Config.init({
+      app: VK_APP_ID,
+      redirectUrl: VK_REDIRECT_URL,
+      responseMode: VKID.ConfigResponseMode.Callback,
+      source: VKID.ConfigSource.LOWCODE,
+      scope: '',
+    });
+    const tokens = await VKID.Auth.exchangeCode(code, deviceId);
+    const info = await VKID.Auth.userInfo(tokens.access_token);
+    saveVkProfile((info && info.user) || {});
+    setStatus('Вход выполнен', 'good');
+    history.replaceState({}, '', location.pathname);
+  } catch (error) {
+    setStatus('Не удалось войти через ВК: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Возврат в приложение после входа в другой вкладке.
+ *
+ * Профиль хранится в общем хранилище сайта, поэтому достаточно перечитать его
+ * при появлении окна: приложение сразу покажет вход, хотя он был в браузере.
+ */
+function refreshIdentityFromStorage() {
+  renderProfileState();
+  renderHome();
+  if (state.event) renderDetail();
+}
+
 /** Показывает блок профиля по состоянию: гость или вошедший. */
 function renderProfileState() {
   const me = identity();
@@ -3901,6 +3945,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   flushPendingResults().catch(() => {});
   setInterval(() => flushPendingResults().catch(() => {}), 20000);
   window.addEventListener('online', () => flushPendingResults().catch(() => {}));
+
+  // Возврат из ВК: параметры адреса или уже сохранённый профиль
+  handleVkRedirectReturn().catch(() => {});
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshIdentityFromStorage();
+  });
   bind();
   updateProfileButtons();
   registerServiceWorker();
