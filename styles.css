@@ -859,3 +859,12 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
   transition: transform .12s ease;
 }
+
+/* Подписи пункта под подтверждением QR: номер, баллы, сумма, дубль */
+.qr-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+}

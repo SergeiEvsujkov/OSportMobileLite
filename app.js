@@ -3447,6 +3447,7 @@ function renderQrConfirm() {
   const pending = state.pendingQr;
   if (!qrMode() || !pending) {
     box.classList.add('hidden');
+    $('qrHints').classList.add('hidden');
     return;
   }
 
@@ -3472,8 +3473,27 @@ function renderQrConfirm() {
   warning.classList.toggle('hidden', !text);
   $('qrMark').disabled = !label;
 
-  // После записи показываем баллы и дубль: подпись снята до отметки
-  const labels = $('markLabels');
+  // Подписи рогейна видны ДО нажатия, как в приложении: номер пункта,
+  // баллы за него, сумма набранных и пометка дубля
+  const hints = $('qrHints');
+  hints.textContent = '';
+  if (rogaineMode() && label) {
+    const add = (value, isDuplicate) => {
+      const line = document.createElement('p');
+      line.textContent = value;
+      line.style.margin = '0';
+      if (isDuplicate) line.style.color = 'var(--error, #b3261e)';
+      hints.append(line);
+    };
+    add(label.number);
+    if (label.duplicate) add('дублирующая отметка, баллов нет', true);
+    else if (label.score !== null) add(`${label.score} ${plural(label.score, 'балл', 'балла', 'баллов')}`);
+    if (label.total !== null) add(`итого: ${label.total} ${plural(label.total, 'балл', 'балла', 'баллов')}`);
+    hints.classList.remove('hidden');
+  } else {
+    hints.classList.add('hidden');
+  }
+
   box.classList.remove('hidden');
 }
 
