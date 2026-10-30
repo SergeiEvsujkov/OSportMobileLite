@@ -61,8 +61,18 @@ function codeOf(point) {
   return point.code === undefined || point.code === null ? '' : String(point.code);
 }
 
+/**
+ * Старт: у рогейна код «01», у ориентирования в данных бывает и 1, и 3.
+ *
+ * В облачных дистанциях старт хранится кодом 3 (MarkCodes.START), а в старых
+ * записях и в коде QR — как 1/«01». Раньше здесь проверялась только единица,
+ * поэтому старт с кодом 3 не считался стартом и приложение отвечало
+ * «Вначале отметьте старт».
+ */
 function isStart(code, rogaine) {
-  return rogaine ? code === START_CODE_ROGAINE : Number(code) === START_CODE;
+  if (rogaine) return String(code) === START_CODE_ROGAINE;
+  const value = Number(code);
+  return value === START_CODE || value === 3;
 }
 
 function isFinish(code, rogaine) {
