@@ -2951,10 +2951,14 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     previous = mark.time;
   });
 
-  // Своя отметка: сумма баллов одной строкой под таблицей, не в сводке
+  // Своя отметка: сумма баллов одной строкой под таблицей, не в сводке.
+  // Прежнюю строку убираем, иначе при повторном открытии они копились бы
+  const oldTotal = $('myMarksTotal');
+  if (oldTotal) oldTotal.remove();
   if (!fromProtocol && rogaine) {
     const total = document.createElement('p');
     total.className = 'meta';
+    total.id = 'myMarksTotal';
     total.textContent = `Баллы: ${row.total ?? 0}`;
     list.after(total);
   }
