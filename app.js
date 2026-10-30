@@ -126,11 +126,14 @@ function setStatus(text, kind = '') {
 }
 
 async function callFunction(query, body = null) {
-  const url = `${CONFIG.functionUrl}?${query}`;
+  // Метка времени и no-store: иначе браузер отдаёт прошлый каталог,
+  // и изменения в облаке видны не сразу
+  const url = `${CONFIG.functionUrl}?${query}&t=${Date.now()}`;
   let response;
   try {
     response = await fetch(url, {
       method: 'POST',
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
       body: body === null ? '{}' : JSON.stringify(body),
     });
@@ -3023,7 +3026,16 @@ function handleQrText(raw) {
     return;
   }
 
-  const code = String(parsed.code);
+  let code = String(parsed.code);
+  // В QR старт записан как «01», а в базе он хранится кодом 3 (MarkCodes.START);
+  // у рогейна код остаётся строкой «01». Без этого перевода верный код старта
+  // искали как пункт «1» и отвечали «Код другой дистанции»
+  if (!rogaineMode() && code === '01') {
+    const points = distance.points || [];
+    const hasStart = points.some((item) => String(codeOf(item)) === '3');
+    code = hasStart ? '3' : '1';
+  }
+
   const point = (distance.points || []).find((item) => String(codeOf(item)) === code);
   if (!point) {
     setStatus('Код другой дистанции', 'error');
