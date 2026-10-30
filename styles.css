@@ -840,3 +840,19 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
 
 /* Результат ещё не отправлен: та же строка карточки, но предупреждающего цвета */
 .event-meta.pending { color: #b3261e; }
+
+/* Протягивание вниз: подсказка и обновление из облака */
+.pull-indicator {
+  position: fixed;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  font-size: 13px;
+  z-index: 70;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+  transition: transform .12s ease;
+}

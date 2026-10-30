@@ -3590,6 +3590,61 @@ async function flushPendingResults() {
 
 /* ─────────────────────────── запуск ─────────────────────────── */
 
+/**
+ * Протягивание вниз на главном и в облаке обновляет данные из облака.
+ *
+ * На главном это полное обновление скачанного (карточки, результаты,
+ * протоколы), в облаке — перечитывание каталога. Жест работает только когда
+ * страница прокручена к самому верху, чтобы не мешать обычной прокрутке.
+ */
+function bindPullToRefresh() {
+  const indicator = $('pullIndicator');
+  const THRESHOLD = 70;
+  let startY = null;
+  let active = false;
+  let pulled = 0;
+
+  const currentScreen = () => {
+    if (!$('homeScreen').classList.contains('hidden')) return 'home';
+    if (!$('cloudScreen').classList.contains('hidden')) return 'cloud';
+    return null;
+  };
+
+  document.addEventListener('touchstart', (touch) => {
+    if (touch.touches.length !== 1 || window.scrollY > 2) return;
+    if (!currentScreen()) return;
+    startY = touch.touches[0].clientY;
+    active = true;
+    pulled = 0;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (touch) => {
+    if (!active || startY === null) return;
+    pulled = Math.max(0, touch.touches[0].clientY - startY);
+    if (pulled > 8) {
+      indicator.classList.remove('hidden');
+      indicator.textContent = pulled >= THRESHOLD
+        ? 'Отпустите, чтобы обновить'
+        : 'Потяните, чтобы обновить';
+      indicator.style.transform = `translateX(-50%) translateY(${Math.min(pulled, 90)}px)`;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!active) return;
+    active = false;
+    const refresh = pulled >= THRESHOLD;
+    const screen = currentScreen();
+    indicator.classList.add('hidden');
+    indicator.style.transform = '';
+    startY = null;
+    pulled = 0;
+    if (!refresh) return;
+    if (screen === 'home') syncFromCloud().catch(() => {});
+    if (screen === 'cloud') openCloud();
+  }, { passive: true });
+}
+
 function bind() {
   $('tabEvents').addEventListener('click', () => showTab('events'));
   $('tabMark').addEventListener('click', () => showTab('mark'));
@@ -3617,6 +3672,7 @@ function bind() {
     setStatus('Настройки сброшены', 'good');
   });
 
+  bindPullToRefresh();
   $('homeRefresh').addEventListener('click', () => {
     syncFromCloud().catch(() => {});
   });
