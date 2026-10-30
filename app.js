@@ -1228,6 +1228,16 @@ async function downloadCloudMap() {
 /** Идентификатор Web-приложения ВК (создано в кабинете VK ID). */
 const VK_APP_ID = 54866229;
 
+/**
+ * Адрес возврата — ОДНА константа, а не location.pathname.
+ *
+ * ВК сверяет redirect_uri с «Доверенным Redirect URL» в кабинете посимвольно.
+ * Страница открывается то как «…/OSportMobileLite/», то как
+ * «…/OSportMobileLite/index.html» — при вычислении на ходу адрес менялся,
+ * и виджет отвечал ошибкой. Константа убирает эту разницу.
+ */
+const VK_REDIRECT_URL = 'https://sergeievsujkov.github.io/OSportMobileLite/';
+
 /** Сборка SDK: сначала наша копия из репозитория, CDN — запасные. */
 const VK_SDK_URLS = [
   'vkid-sdk.js',
@@ -1321,7 +1331,7 @@ async function renderVkOneTap() {
 
     VKID.Config.init({
       app: VK_APP_ID,
-      redirectUrl: window.location.origin + window.location.pathname,
+      redirectUrl: VK_REDIRECT_URL,
       responseMode: VKID.ConfigResponseMode.Callback,
       source: VKID.ConfigSource.LOWCODE,
       scope: '',
