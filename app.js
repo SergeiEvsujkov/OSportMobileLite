@@ -3679,8 +3679,11 @@ window.addEventListener('popstate', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Отложенные результаты отправляем при запуске, как очередь в приложении
+  // Отложенные результаты: пробуем при запуске, затем по таймеру и при
+  // появлении сети — очередь должна разбираться сама, без действий человека
   flushPendingResults().catch(() => {});
+  setInterval(() => flushPendingResults().catch(() => {}), 20000);
+  window.addEventListener('online', () => flushPendingResults().catch(() => {}));
   bind();
   updateProfileButtons();
   registerServiceWorker();
