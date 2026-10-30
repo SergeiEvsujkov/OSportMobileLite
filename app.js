@@ -4085,4 +4085,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   history.replaceState({ depth: 1 }, '');
 
   showTab(first, { push: first !== 'events' });
+
+  // Проверка хранилища при старте приложения: один раз за запуск.
+  // При каждом возврате на главный её нет — только кнопка и протяжка
+  syncFromCloud().catch(() => {});
 });
