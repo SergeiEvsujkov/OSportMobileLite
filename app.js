@@ -3121,7 +3121,9 @@ function renderHint(point, rough, auto) {
       + 'Отметка включится сама, как только приёмник уточнит место.';
     return;
   }
-  if (point) {
+  // Слова про ручной старт и финиш нужны только при включённой
+  // автоматической отметке: в ручном режиме это и так очевидно
+  if (point && auto) {
     const kind = startOrFinishOf(codeOf(point));
     if (kind === 'start') {
       hint.textContent = 'Старт отмечается только вручную — нажмите кнопку';
@@ -3469,13 +3471,11 @@ function renderQrConfirm() {
     text = pending.foreign
       ? 'Код другой дистанции'
       : 'Это не код контрольного пункта — или не вашей дистанции';
-  } else {
+  } else if (auto) {
     const kind = startOrFinishOf(label.code);
     if (kind === 'start') text = 'Старт отмечается только вручную: нажмите «Отметить»';
     if (kind === 'finish') text = 'Финиш отмечается только вручную: нажмите «Отметить»';
-    if (auto && !kind) {
-      text = 'Включена автоматическая отметка: отмечать вручную не нужно';
-    }
+    if (!kind) text = 'Включена автоматическая отметка: отмечать вручную не нужно';
   }
   warning.textContent = text;
   warning.classList.toggle('hidden', !text);

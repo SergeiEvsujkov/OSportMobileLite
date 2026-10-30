@@ -868,3 +868,21 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
   font-size: 14px;
   color: var(--on-surface-variant);
 }
+
+/* Низ экрана отметки закреплён над панелью вкладок: подсказка и итог
+   отметки рогейна видны всегда, даже когда камера занимает весь экран */
+.mark-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 24px 4px;
+  background: var(--surface);
+}
+.mark-bottom .mark-outcome { margin: 0; }
+.mark-bottom .mark-labels { margin: 0; }
