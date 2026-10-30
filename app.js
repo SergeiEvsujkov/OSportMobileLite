@@ -2828,9 +2828,19 @@ function openParticipant(row, rogaine) {
 
   summaryRow('Дистанция', distance.name || '—');
   summaryRow('Ник', row.nick);
-  if (row.startTime) summaryRow('Время старта', formatClock(row.startTime));
-  if (row.finishTime) summaryRow('Время финиша', formatClock(row.finishTime));
-  summaryRow('Результат', formatDuration(row.elapsed));
+  // Время показываем всегда: у незавершённого — прочерк, как в приложении
+  summaryRow('Время старта', row.startTime ? formatClock(row.startTime) : '—');
+  summaryRow('Время финиша', row.finishTime ? formatClock(row.finishTime) : '—');
+  summaryRow(
+    'Результат',
+    row.status === 'DNF' ? 'DNF' : (row.startTime && row.finishTime ? formatDuration(row.elapsed) : '—')
+  );
+  // Баллы есть только у рогейна: без штрафа, штраф и итог
+  if (rogaine) {
+    summaryRow('Баллы без штрафа', String(row.score ?? 0));
+    summaryRow('Штраф', String(row.penalty ?? 0));
+    summaryRow('Баллы', String(row.total ?? 0));
+  }
   if (row.place) summaryRow('Место', String(row.place));
 
   const list = $('participantMarks');
@@ -2840,11 +2850,17 @@ function openParticipant(row, rogaine) {
   const starts = startAliasCodes(distance);
   let number = 0;
   let previous = null;
+  // Пункты, отмеченные хотя бы раз: повтор номера не получает, а помечается
+  // словом «дубль» — как на экране сплита в приложении
+  const seen = new Set();
 
   marks.forEach((mark) => {
     const code = String(mark.code);
     const startPoint = starts.has(code);
     const finishPoint = isFinish(code, rogaine);
+    const checkpoint = rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
+    const repeat = checkpoint && seen.has(code);
+    if (checkpoint) seen.add(code);
     const leg = previous === null ? null : mark.time - previous;
 
     let label;
@@ -2853,7 +2869,7 @@ function openParticipant(row, rogaine) {
     } else if (finishPoint) {
       label = '(Финиш)';
     } else {
-      number += 1;
+      if (!repeat) number += 1;
       label = `(${code})`;
     }
 
@@ -2862,7 +2878,9 @@ function openParticipant(row, rogaine) {
 
     const num = document.createElement('span');
     num.className = 'split-number';
-    num.textContent = startPoint || finishPoint ? '' : number + '.';
+    if (startPoint || finishPoint) num.textContent = '';
+    else if (repeat) num.textContent = 'дубль';
+    else num.textContent = number + '.';
 
     const value = document.createElement('span');
     value.className = 'split-value';
