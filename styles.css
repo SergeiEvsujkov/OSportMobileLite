@@ -735,3 +735,21 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
 
 .button.vk-signout { color: #0077ff; border-color: #0077ff; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .button.vk-signout .vk-mark { font-weight: 700; }
+
+/* ───────────── шрифт карточек чуть меньше, чтобы всё влезало ───────────── */
+
+.event-title { font-size: 19px; }
+.event-meta { font-size: 14px; }
+.distance-card .event-meta { font-size: 12.5px; }
+.author-name { font-size: 14px; }
+
+.group-distance .title { font-size: 16px; }
+.group-distance .line { font-size: 14px; }
+
+.proto-row { font-size: 14px; }
+.split-line { font-size: 14px; }
+.split-summary .line { font-size: 15px; }
+
+.cloud-item .name { font-size: 17px; }
+.cloud-item .period { font-size: 13px; }
+.cloud-item .line { font-size: 13px; }
