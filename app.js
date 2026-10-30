@@ -1117,10 +1117,31 @@ function activateDistance() {
     return;
   }
 
-  // Без координат всех пунктов дистанцию начинать нельзя
-  const missing = (distance.points || []).some(
-    (point) => !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)
-  );
+  // Правило как в приложении (domain/CheckpointCoverage.kt):
+  // GPS — координаты нужны ВСЕМ пунктам; QR — только старту, номера пунктов
+  // читаются с табличек, и координаты остальных для прохождения не нужны
+  const points = distance.points || [];
+  let missing;
+  if (qrMode()) {
+    const starts = startAliasCodes(distance);
+    const startPoint = points.find((point) => starts.has(String(codeOf(point))));
+    if (startPoint) {
+      missing = !Number.isFinite(startPoint.latitude) || !Number.isFinite(startPoint.longitude);
+    } else {
+      // Старта нет отдельной точкой — берём координаты самого события
+      const lat = Number(distance.latitude);
+      const lon = Number(distance.longitude);
+      missing = !Number.isFinite(lat) || !Number.isFinite(lon) || (!lat && !lon);
+    }
+    if (missing) {
+      setStatus('Не указаны координаты старта: без них дистанцию не начать', 'error');
+      return;
+    }
+  } else {
+    missing = points.some(
+      (point) => !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)
+    );
+  }
   if (missing) {
     setStatus('Не все координаты указаны: такую дистанцию нельзя загрузить для прохождения', 'error');
     return;
