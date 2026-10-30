@@ -3127,7 +3127,18 @@ function bind() {
     protocolExpanded = !protocolExpanded;
     renderProtocol(state.event.distance || {});
   });
-  $('detailBack').addEventListener('click', () => ($('groupScreen').classList.contains('hidden') ? showTab('events') : openGroup()));
+  // Назад с дистанции: откуда пришли — туда и возвращаемся.
+  // Экран группы при открытии дистанции прячется, поэтому смотрим историю,
+  // а не видимость экрана
+  $('detailBack').addEventListener('click', () => {
+    const previous = navStack[navStack.length - 2];
+    if (previous === 'group') {
+      renderGroup();
+      showTab('group', { push: false });
+    } else {
+      showTab('events', { push: false });
+    }
+  });
   $('profileSignOut').addEventListener('click', openSignOutDialog);
   $('detailMarksButton').addEventListener('click', openMyProgress);
   $('detailMapDownload').addEventListener('click', downloadCloudMap);
