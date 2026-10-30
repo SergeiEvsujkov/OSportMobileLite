@@ -458,8 +458,9 @@ async function syncFromCloud() {
     return;
   }
 
-  setStatus('Обновляю из облака…');
+  setStatus(`Обновляю из облака… (записей: ${ids.size})`);
   let updated = 0;
+  let missing = 0;
   try {
     const list = await callFunction('action=list&full=1&rogaine=1');
     cloudEntries = list.entries || [];
@@ -467,7 +468,11 @@ async function syncFromCloud() {
 
     for (const id of ids) {
       const entry = byId.get(id);
-      if (!entry) continue;
+      if (!entry) {
+        // Запись скачана, но в облаке её нет — говорим об этом прямо
+        missing += 1;
+        continue;
+      }
       try {
         const full = await callFunction('action=get&id=' + encodeURIComponent(id));
         if (!full.distance) continue;
@@ -504,7 +509,9 @@ async function syncFromCloud() {
     if (savedGroup) writeJson(STORAGE.group, savedGroup);
     renderHome();
     if (state.event) renderDetail();
-    setStatus(updated ? `Обновлено из облака: ${updated}` : 'В облаке нет изменений', updated ? 'good' : '');
+    if (updated) setStatus(`Обновлено из облака: ${updated} из ${ids.size}`, 'good');
+    else if (missing) setStatus(`В облаке не найдено записей: ${missing}`, 'error');
+    else setStatus('В облаке нет изменений');
   } catch (error) {
     setStatus(error.message, 'error');
   }
