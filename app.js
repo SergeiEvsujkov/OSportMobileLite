@@ -3766,7 +3766,9 @@ function bindPullToRefresh() {
   };
 
   const refresh = (screen) => {
-    if (screen === $('homeScreen')) syncFromCloud().catch(() => {});
+    // Обновление из облака — только при запуске, по кнопке и протяжкой.
+  // При каждом возврате на главный не дёргаем: это лишние запросы и мигание
+  // карточек
     else openCloud();
   };
 
