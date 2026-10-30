@@ -618,6 +618,7 @@ body.large .page-head h1 { font-size: 26px; }
 }
 .status.error { background: rgba(140, 20, 20, .95); color: #ffffff; }
 .status.good { background: rgba(27, 94, 32, .95); color: #ffffff; }
+.status.warn { background: rgba(122, 84, 0, .95); color: #ffffff; }
 
 /* ───────────── полужирный текст, как в приложении ───────────── */
 

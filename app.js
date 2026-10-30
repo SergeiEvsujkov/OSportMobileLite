@@ -418,6 +418,25 @@ function pendingResultFor(id) {
 }
 
 /**
+ * Одинаковый результат: тот же участник, время и отметки.
+ *
+ * Ник и время записи не сравниваются — это подпись и служебное поле.
+ * Порядок отметок важен: он и есть прохождение.
+ */
+function sameResult(a, b) {
+  if (!a || !b) return false;
+  if (String(a.userId) !== String(b.userId)) return false;
+  if (Number(a.startTime) !== Number(b.startTime)) return false;
+  if (Number(a.finishTime) !== Number(b.finishTime)) return false;
+  const left = Array.isArray(a.marks) ? a.marks : [];
+  const right = Array.isArray(b.marks) ? b.marks : [];
+  if (left.length !== right.length) return false;
+  return left.every((mark, index) =>
+    String(mark && mark.code) === String(right[index] && right[index].code) &&
+    Number(mark && mark.time) === Number(right[index] && right[index].time));
+}
+
+/**
  * Сливает результаты облака с локальными.
  *
  * Свои результаты, которых в облаке ещё нет (очередь не отправилась), должны
@@ -441,8 +460,12 @@ function mergeResults(cloudResults, localResults) {
   const rowKey = (row) => String(row.userId) + '#' + attemptOf(row);
 
   const merged = new Map();
+  const alreadyThere = (row) =>
+    Array.from(merged.values()).some((other) => sameResult(other, row));
   (localResults || []).forEach((row) => {
     if (!row || !row.userId) return;
+    // Одинаковый результат второй раз не храним
+    if (alreadyThere(row)) return;
     merged.set(rowKey(row), row);
   });
   (cloudResults || []).forEach((row) => {
@@ -450,6 +473,8 @@ function mergeResults(cloudResults, localResults) {
     const key = String(row.userId);
     // Неотправленный свой результат не затираем никогда
     if (pendingUsers.has(key)) return;
+    // И одинаковый результат не добавляем: он уже есть
+    if (alreadyThere(row)) return;
     const storageKey = rowKey(row);
     const local = merged.get(storageKey);
     if (!local) {
@@ -3781,6 +3806,12 @@ async function sendResult() {
   const event = state.event;
   const result = buildResult(event.distance, state.marks, who);
   // Номер попытки назначает СЕРВЕР: клиент отправляет результат как есть
+
+  // Такой результат уже есть: второй раз не записываем и не отправляем
+  if ((event.distance.results || []).some((row) => sameResult(row, result))) {
+    setStatus('Этот результат уже есть. Повторно он не записан.', 'warn');
+    return;
+  }
 
   // Как в приложении: результат сначала ложится в дистанцию на устройстве,
   // экраны обновляются сразу, а отправка в облако идёт после
