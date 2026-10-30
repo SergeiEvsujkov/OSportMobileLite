@@ -77,7 +77,12 @@ function saveHistory() {
 
 function rememberEvent(event) {
   const index = state.history.findIndex((item) => item.id === event.id);
-  const brief = { id: event.id, kind: event.kind, entry: event.entry };
+  const brief = {
+    id: event.id,
+    kind: event.kind,
+    entry: event.entry,
+    groupId: (event.entry && event.entry.groupId) || '',
+  };
   if (index >= 0) {
     state.history[index] = brief;
   } else {
@@ -1528,8 +1533,14 @@ function openGroupDeleteDialog(groupId) {
 /** Удаляет всю группу: каждую дистанцию и её отметки. */
 function deleteGroup(groupId) {
   const group = readJson(STORAGE.group, null);
-  const members = ((group && group.items) || []).filter((item) => (item.groupId || groupId) === groupId);
-  const ids = members.map((item) => item.id);
+  const groupItems = (group && group.items) || [];
+
+  // Признак группы мог не сохраниться — тогда удаляем всю сохранённую группу,
+  // иначе на главном остаётся одна из её дистанций
+  const members = groupId
+    ? groupItems.filter((item) => (item.groupId || '') === groupId)
+    : groupItems;
+  const ids = (members.length ? members : groupItems).map((item) => item.id);
 
   stopWatch();
   stopQrScanner();
@@ -1555,14 +1566,19 @@ function deleteGroup(groupId) {
     }
   }
 
-  if (state.event && ids.includes(state.event.id)) {
-    state.event = null;
-    state.marks = [];
+  // Убираем сохранённое событие, даже если открыто было другое
+  const storedEvent = readJson(STORAGE.event, null);
+  if (storedEvent && ids.includes(storedEvent.id)) {
     try {
       localStorage.removeItem(STORAGE.event);
     } catch (error) {
       // приватный режим
     }
+    if (state.event && state.event.id === storedEvent.id) state.event = null;
+  }
+  if (state.event && ids.includes(state.event.id)) {
+    state.event = null;
+    state.marks = [];
   }
 
   try {
@@ -1580,6 +1596,15 @@ function deleteGroup(groupId) {
 function deleteEvent(eventId) {
   stopWatch();
   stopQrScanner();
+
+  const storedEvent = readJson(STORAGE.event, null);
+  if (storedEvent && storedEvent.id === eventId) {
+    try {
+      localStorage.removeItem(STORAGE.event);
+    } catch (error) {
+      // приватный режим
+    }
+  }
 
   try {
     localStorage.removeItem(marksKey(eventId));
