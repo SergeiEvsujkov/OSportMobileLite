@@ -2009,7 +2009,9 @@ function openMyProgress() {
     marks: state.marks,
     place: null,
   };
-  openParticipant(row, rogaineMode());
+  // «Отметки на устройстве»: своё правило показа — только дистанция, ник
+  // и отметки, без времени, результата и места
+  openParticipant(row, rogaineMode(), false);
 }
 
 /**
@@ -2854,7 +2856,7 @@ function protocolRow(row, rogaine) {
  * ниже таблица «№ п/п | Время отметки (номер КП)»: у пункта номер по порядку,
  * время этапа и накопленное время. Старт и финиш — без номера.
  */
-function openParticipant(row, rogaine) {
+function openParticipant(row, rogaine, fromProtocol = true) {
   const distance = (state.event && state.event.distance) || {};
 
   const summary = $('participantSummary');
@@ -2872,20 +2874,22 @@ function openParticipant(row, rogaine) {
 
   summaryRow('Дистанция', distance.name || '—');
   summaryRow('Ник', row.nick);
-  // Время показываем всегда: у незавершённого — прочерк, как в приложении
-  summaryRow('Время старта', row.startTime ? formatClock(row.startTime) : '—');
-  summaryRow('Время финиша', row.finishTime ? formatClock(row.finishTime) : '—');
-  summaryRow(
-    'Результат',
-    row.status === 'DNF' ? 'DNF' : (row.startTime && row.finishTime ? formatDuration(row.elapsed) : '—')
-  );
-  // Баллы есть только у рогейна: без штрафа, штраф и итог
-  if (rogaine) {
-    summaryRow('Баллы без штрафа', String(row.score ?? 0));
-    summaryRow('Штраф', String(row.penalty ?? 0));
-    summaryRow('Баллы', String(row.total ?? 0));
+  // В «Моих отметках» времени, результата, баллов и места нет: там только
+  // дистанция, ник и свои отметки, как в приложении
+  if (fromProtocol) {
+    summaryRow('Время старта', row.startTime ? formatClock(row.startTime) : '—');
+    summaryRow('Время финиша', row.finishTime ? formatClock(row.finishTime) : '—');
+    summaryRow(
+      'Результат',
+      row.status === 'DNF' ? 'DNF' : (row.startTime && row.finishTime ? formatDuration(row.elapsed) : '—')
+    );
+    if (rogaine) {
+      summaryRow('Баллы без штрафа', String(row.score ?? 0));
+      summaryRow('Штраф', String(row.penalty ?? 0));
+      summaryRow('Баллы', String(row.total ?? 0));
+    }
+    if (row.place) summaryRow('Место', String(row.place));
   }
-  if (row.place) summaryRow('Место', String(row.place));
 
   const list = $('participantMarks');
   list.textContent = '';
@@ -2902,7 +2906,9 @@ function openParticipant(row, rogaine) {
     const code = String(mark.code);
     const startPoint = starts.has(code);
     const finishPoint = isFinish(code, rogaine);
-    const checkpoint = rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
+    // Из протокола повтор помечается «дубль» и номера не получает; в «Моих
+    // отметках» нумеруются все отметки подряд, включая повторные
+    const checkpoint = fromProtocol && rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
     const repeat = checkpoint && seen.has(code);
     if (checkpoint) seen.add(code);
     const leg = previous === null ? null : mark.time - previous;
@@ -2944,6 +2950,14 @@ function openParticipant(row, rogaine) {
 
     previous = mark.time;
   });
+
+  // Своя отметка: сумма баллов одной строкой под таблицей, не в сводке
+  if (!fromProtocol && rogaine) {
+    const total = document.createElement('p');
+    total.className = 'meta';
+    total.textContent = `Баллы: ${row.total ?? 0}`;
+    list.after(total);
+  }
 
   showTab('participant');
 }
