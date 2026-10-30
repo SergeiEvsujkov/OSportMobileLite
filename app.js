@@ -239,13 +239,20 @@ function renderHome() {
   const list = $('eventsList');
   list.textContent = '';
 
+  // Скачанное — это записи в истории. Сохранённая копия события, которой там
+  // нет, считается сиротой (осталась от удалённой группы) и не показывается
+  const downloadedIds = new Set((state.history || []).map((item) => item.id));
+
   const group = readJson(STORAGE.group, null);
+  const groupItems = ((group && group.items) || [])
+    .filter((item) => downloadedIds.has(item.id));
+
   const event = state.event;
-  const items = group && group.items && group.items.length
-    ? group.items
-    : (event && event.distance
-      ? [{ id: event.id, kind: event.kind, entry: event.entry, distance: event.distance }]
-      : []);
+  const singleItems = event && event.distance && downloadedIds.has(event.id)
+    ? [{ id: event.id, kind: event.kind, entry: event.entry, distance: event.distance }]
+    : [];
+
+  const items = groupItems.length ? groupItems : singleItems;
 
   $('homeHint').classList.toggle('hidden', items.length > 0);
   if (!items.length) return;
@@ -3314,10 +3321,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  if (saved && saved.distance) {
+  // Сохранённую копию поднимаем только если событие есть в списке скачанных
+  const downloaded = (state.history || []).some((item) => saved && item.id === saved.id);
+  if (saved && saved.distance && downloaded) {
     state.event = saved;
     state.marks = loadMarks(saved.id);
     updateSendState();
+  } else if (saved && saved.distance) {
+    // Запись осталась от удалённой группы: убираем, чтобы не всплывала на главном
+    try {
+      localStorage.removeItem(STORAGE.event);
+    } catch (error) {
+      // приватный режим
+    }
   }
   // «Открывать экран отметки при запуске» — как в приложении
   const activeRestored = saved && saved.distance && state.activeId === saved.id;
