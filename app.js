@@ -1786,6 +1786,12 @@ function openMismatchDialog() {
 
 /** Открывает прогресс по своим отметкам с устройства. */
 function openMyProgress() {
+  // Отметок нет — открывать нечего: говорим об этом, как приложение
+  if (!state.marks.length) {
+    setStatus('Отметок нет: по этой дистанции ничего не отмечено', 'error');
+    return;
+  }
+
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
   const start = state.marks.find((mark) => mark.start);
   const finish = state.marks.find((mark) => mark.finish);
