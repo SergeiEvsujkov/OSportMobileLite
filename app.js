@@ -37,6 +37,8 @@ const state = {
   // Экран отметки: подтверждение QR, отказы и аварийная отметка
   pendingQr: null,
   autoQrCode: null,
+  outcomeHints: '',
+  outcomeUntil: 0,
   autoMarked: null,
   manualRefused: false,
   outcomeTimer: null,
@@ -3118,6 +3120,12 @@ function showOutcome(kind, label, code) {
   // камеры и не зависит от верстки нижнего блока
   if (kind === 'recorded' && rogaineMode() && label) {
     setStatus(lines.join(' · '), 'good');
+    // Итог дублируем прямо под номером пункта в панели: туда смотрит участник
+    state.outcomeHints = lines.slice(1).join('\n');
+    state.outcomeUntil = Date.now() + MARKED_MESSAGE_MILLIS;
+    const hints = $('qrHints');
+    hints.textContent = state.outcomeHints;
+    hints.classList.remove('hidden');
   }
   text.classList.toggle('error', kind !== 'recorded' && kind !== 'skipped');
   $('markLabels').classList.add('hidden');
@@ -3489,6 +3497,7 @@ function handleQrText(raw) {
     : null;
   state.pendingQr = { raw, code, label, foreign, seenAt: Date.now() };
   state.manualRefused = false;
+  state.outcomeHints = '';
   renderQrConfirm();
 
   // Автоматическая отметка: код в кадре — отмечаемся без нажатия, один раз на код.
@@ -3530,10 +3539,17 @@ function renderQrConfirm() {
   warning.classList.toggle('hidden', !text);
   $('qrMark').disabled = !label;
 
-  // До отметки показываем ТОЛЬКО номер пункта, как в приложении:
-  // баллы, сумма и пометка дубля — это ответ по уже записанной отметке,
-  // и до нажатия они были бы ответом вперёд
-  $('qrHints').classList.add('hidden');
+  // До отметки показываем ТОЛЬКО номер пункта. После записи под номером
+  // ещё 3 секунды висят баллы и «итого» — так же, как подпись отметки
+  // в приложении остаётся на экране
+  const hints = $('qrHints');
+  if (state.outcomeHints && state.outcomeUntil > Date.now()) {
+    hints.textContent = state.outcomeHints;
+    hints.classList.remove('hidden');
+  } else {
+    state.outcomeHints = '';
+    hints.classList.add('hidden');
+  }
 
   box.classList.remove('hidden');
 }
