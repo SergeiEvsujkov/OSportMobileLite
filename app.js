@@ -3583,9 +3583,12 @@ async function flushPendingResults() {
   if (!list.length) return;
   const left = [];
   for (const item of list) {
+    // Старые записи очереди без полного тела отправить нельзя: функция требует
+    // id и порядок пунктов. Результат уже лежит на устройстве, и его можно
+    // отправить кнопкой заново — такую запись просто убираем из очереди
+    if (!item.payload) continue;
     try {
-      const payload = item.payload || { id: (item.result || {}).eventId, results: [item.result] };
-      await callFunction('action=result&key=' + encodeURIComponent(item.key), payload);
+      await callFunction('action=result&key=' + encodeURIComponent(item.key), item.payload);
     } catch (error) {
       left.push(item);
     }
