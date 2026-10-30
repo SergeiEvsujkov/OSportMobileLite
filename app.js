@@ -3635,49 +3635,69 @@ async function flushPendingResults() {
 function bindPullToRefresh() {
   const indicator = $('pullIndicator');
   const THRESHOLD = 70;
-  let startY = null;
-  let active = false;
-  let pulled = 0;
 
-  const currentScreen = () => {
-    if (!$('homeScreen').classList.contains('hidden')) return 'home';
-    if (!$('cloudScreen').classList.contains('hidden')) return 'cloud';
-    return null;
+  // Жест вешаем на сам экран, а не на документ: так его не перехватывают
+  // карта и кнопки, и он не конфликтует с прокруткой списков
+  const screens = [$('homeScreen'), $('cloudScreen')];
+
+  const atTop = () => {
+    const scrolled = window.scrollY
+      || (document.scrollingElement && document.scrollingElement.scrollTop)
+      || 0;
+    return scrolled <= 0;
   };
 
-  document.addEventListener('touchstart', (touch) => {
-    if (touch.touches.length !== 1 || window.scrollY > 2) return;
-    if (!currentScreen()) return;
-    startY = touch.touches[0].clientY;
-    active = true;
-    pulled = 0;
-  }, { passive: true });
+  const refresh = (screen) => {
+    if (screen === $('homeScreen')) syncFromCloud().catch(() => {});
+    else openCloud();
+  };
 
-  document.addEventListener('touchmove', (touch) => {
-    if (!active || startY === null) return;
-    pulled = Math.max(0, touch.touches[0].clientY - startY);
-    if (pulled > 8) {
+  screens.forEach((screen) => {
+    if (!screen) return;
+    let startY = null;
+    let pulled = 0;
+
+    const show = (text, offset) => {
       indicator.classList.remove('hidden');
-      indicator.textContent = pulled >= THRESHOLD
-        ? 'Отпустите, чтобы обновить'
-        : 'Потяните, чтобы обновить';
-      indicator.style.transform = `translateX(-50%) translateY(${Math.min(pulled, 90)}px)`;
-    }
-  }, { passive: true });
+      indicator.textContent = text;
+      indicator.style.transform = `translateX(-50%) translateY(${Math.min(offset, 90)}px)`;
+    };
+    const hide = () => {
+      indicator.classList.add('hidden');
+      indicator.style.transform = '';
+    };
 
-  document.addEventListener('touchend', () => {
-    if (!active) return;
-    active = false;
-    const refresh = pulled >= THRESHOLD;
-    const screen = currentScreen();
-    indicator.classList.add('hidden');
-    indicator.style.transform = '';
-    startY = null;
-    pulled = 0;
-    if (!refresh) return;
-    if (screen === 'home') syncFromCloud().catch(() => {});
-    if (screen === 'cloud') openCloud();
-  }, { passive: true });
+    screen.addEventListener('touchstart', (event) => {
+      if (event.touches.length !== 1 || !atTop()) return;
+      startY = event.touches[0].clientY;
+      pulled = 0;
+    }, { passive: true });
+
+    screen.addEventListener('touchmove', (event) => {
+      if (startY === null) return;
+      pulled = Math.max(0, event.touches[0].clientY - startY);
+      if (pulled <= 4) return;
+      // Свой жест: иначе браузер делает «потянуть для обновления» страницы
+      if (event.cancelable) event.preventDefault();
+      show(pulled >= THRESHOLD ? 'Отпустите, чтобы обновить' : 'Потяните, чтобы обновить', pulled);
+    }, { passive: false });
+
+    const finish = () => {
+      if (startY === null) return;
+      const should = pulled >= THRESHOLD;
+      startY = null;
+      pulled = 0;
+      hide();
+      if (should) refresh(screen);
+    };
+
+    screen.addEventListener('touchend', finish, { passive: true });
+    screen.addEventListener('touchcancel', () => {
+      startY = null;
+      pulled = 0;
+      hide();
+    }, { passive: true });
+  });
 }
 
 function bind() {
