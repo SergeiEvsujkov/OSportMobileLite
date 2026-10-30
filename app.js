@@ -195,8 +195,9 @@ function showTab(name, options = {}) {
 
   // Переход на другой экран убирает прошлое сообщение
   setStatus('');
-  // Открытие экрана отметки начинает подтверждение кода заново
+  // Открытие экрана отметки: сначала чистим отметки по правилам старта и финиша
   if (name === 'mark') {
+    sanitizeMarks();
     state.pendingQr = null;
     state.autoQrCode = null;
     state.manualRefused = false;
@@ -1985,6 +1986,7 @@ function openMismatchDialog() {
 
 /** Открывает прогресс по своим отметкам с устройства. */
 function openMyProgress() {
+  sanitizeMarks();
   // Отметок нет — открывать нечего: говорим об этом, как приложение
   if (!state.marks.length) {
     setStatus('Отметок нет: по этой дистанции ничего не отмечено', 'error');
@@ -3271,6 +3273,30 @@ function markCandidate() {
   }
   state.manualRefused = false;
   markByCode(code);
+}
+
+/**
+ * Оставляет только отметки текущего прохода: после последнего старта
+ * и до первого финиша.
+ *
+ * Правило приложения: новый старт стирает прежние отметки, а после финиша
+ * ничего не записывается. Чистка нужна и для отметок, записанных старыми
+ * сборками, где сброса ещё не было.
+ */
+function sanitizeMarks() {
+  const marks = state.marks || [];
+  let startAt = -1;
+  marks.forEach((mark, index) => {
+    if (mark.start) startAt = index;
+  });
+  let cleaned = startAt >= 0 ? marks.slice(startAt) : marks;
+  const finishAt = cleaned.findIndex((mark) => mark.finish);
+  if (finishAt >= 0) cleaned = cleaned.slice(0, finishAt + 1);
+  if (cleaned.length !== marks.length || startAt > 0) {
+    state.marks = cleaned;
+    saveMarks();
+  }
+  return cleaned;
 }
 
 /** Запись отметки: одно правило и одни слова для кнопки, автоматики и QR. */
