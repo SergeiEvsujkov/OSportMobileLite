@@ -33,6 +33,16 @@ const state = {
   watchId: null,
   candidate: null,
   history: [],
+  // Экран отметки: подтверждение QR, отказы и аварийная отметка
+  pendingQr: null,
+  autoQrCode: null,
+  autoMarked: null,
+  manualRefused: false,
+  outcomeTimer: null,
+  emergencyKey: null,
+  emergencyAt: 0,
+  emergencyDismissed: false,
+  emergencyPoint: null,
 };
 
 /* ─────────────────────────── хранилище ─────────────────────────── */
@@ -184,6 +194,14 @@ function showTab(name, options = {}) {
 
   // Переход на другой экран убирает прошлое сообщение
   setStatus('');
+  // Открытие экрана отметки начинает подтверждение кода заново
+  if (name === 'mark') {
+    state.pendingQr = null;
+    state.autoQrCode = null;
+    state.manualRefused = false;
+    state.emergencyKey = null;
+    state.emergencyDismissed = false;
+  }
   $('homeScreen').classList.toggle('hidden', name !== 'events');
   $('groupScreen').classList.toggle('hidden', name !== 'group');
   $('participantScreen').classList.toggle('hidden', name !== 'participant');
@@ -2803,46 +2821,175 @@ function markedCodes() {
   );
 }
 
-function findCandidate() {
-  if (!state.event) return null;
-  const points = (state.event.distance && state.event.distance.points) || [];
-  const marked = markedCodes();
-  const started = state.marks.some((mark) => mark.start);
-  const finished = state.marks.some((mark) => mark.finish);
-  if (finished) return null;
+/** Сколько держится подтверждение отметки, как в приложении. */
+const MARKED_MESSAGE_MILLIS = 3000;
+/** Сколько ждать уточнения места, прежде чем предложить аварийную отметку. */
+const EMERGENCY_WAIT_MILLIS = 5000;
+/** Через сколько код считается ушедшим из кадра. */
+const CODE_GONE_MILLIS = 1000;
 
+/** Старт или финиш этот код: подпись и правила у них особые. */
+function startOrFinishOf(code) {
+  if (isStart(code, rogaineMode())) return 'start';
+  if (isFinish(code, rogaineMode())) return 'finish';
+  return null;
+}
+
+/** Склонение числа: 1 балл, 2 балла, 5 баллов. */
+function plural(count, one, few, many) {
+  const value = Math.abs(Number(count) || 0) % 100;
+  const last = value % 10;
+  if (value > 10 && value < 20) return many;
+  if (last === 1) return one;
+  if (last >= 2 && last <= 4) return few;
+  return many;
+}
+
+/** Точка в зоне пункта: допуск — погрешность пункта + погрешность приёмника + 5 м. */
+function inZone(point, position) {
+  if (!point || !position) return false;
+  if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return false;
+  const allowed = (point.accuracyMeters || 0) + position.accuracy + 5;
+  return distanceMeters(position.lat, position.lon, point.latitude, point.longitude) <= allowed;
+}
+
+/** Пункт, у которого стоит участник. loose — без ограничения погрешности. */
+function findMarkPoint(loose) {
+  if (!state.event || !state.position) return null;
+  if (!loose && state.position.accuracy > MAX_ACCURACY_METERS) return null;
+  const points = (state.event.distance && state.event.distance.points) || [];
   for (const point of points) {
-    const code = codeOf(point);
-    const start = isStart(code, rogaineMode());
-    const finish = isFinish(code, rogaineMode());
-    if (start && started) continue;
-    if (finish && !started) continue;
-    if (!start && !finish && marked.has(code)) continue;
-    if (canMark(point, state.position).ok) return point;
+    if (inZone(point, state.position)) return point;
   }
   return null;
 }
 
+/** Подпись отметки до записи: номер пункта, баллы рогейна и дубль. */
+function markLabelFor(code) {
+  const rogaine = rogaineMode();
+  const checkpoint = rogaine && /^[1-9]/.test(String(code));
+  const known = state.marks || [];
+  const duplicate = checkpoint && known.some((mark) => String(mark.code) === String(code));
+  return {
+    number: labelOf(code),
+    score: checkpoint && !duplicate ? Number(String(code)[0]) : null,
+    duplicate,
+    total: checkpoint
+      ? rogainePoints([...known, { code: String(code), time: 0 }])
+      : null,
+  };
+}
+
+/** Исход отметки: те же слова, что в приложении. */
+function outcomeText(kind) {
+  return {
+    recorded: 'Отметка записана',
+    finish: 'Вы уже финишировали',
+    start: 'Вначале отметьте старт на выбранной дистанции',
+    foreign: 'Код другой дистанции',
+    unknown: 'Это не код контрольного пункта — или не вашей дистанции',
+    skipped: 'Код пропущен',
+  }[kind] || '';
+}
+
+/** Показать исход на 3 секунды и подписи отметки рогейна. */
+function showOutcome(kind, label, code) {
+  const text = $('markOutcome');
+  const labels = $('markLabels');
+  text.textContent = outcomeText(kind);
+  text.classList.remove('hidden');
+  text.classList.toggle('error', kind !== 'recorded' && kind !== 'skipped');
+  labels.textContent = '';
+  labels.classList.add('hidden');
+
+  if (kind === 'recorded' && label && rogaineMode()) {
+    const add = (value) => {
+      const line = document.createElement('p');
+      line.textContent = value;
+      labels.append(line);
+    };
+    add(label.number);
+    if (label.duplicate) add('дублирующая отметка, баллов нет');
+    else if (label.score !== null) add(`${label.score} ${plural(label.score, 'балл', 'балла', 'баллов')}`);
+    if (label.total !== null) add(`итого: ${label.total} ${plural(label.total, 'балл', 'балла', 'баллов')}`);
+    labels.classList.remove('hidden');
+  }
+
+  if (kind === 'skipped') {
+    setStatus(outcomeText(kind), 'good');
+  }
+
+  clearTimeout(state.outcomeTimer);
+  state.outcomeTimer = setTimeout(() => {
+    text.classList.add('hidden');
+    labels.classList.add('hidden');
+  }, MARKED_MESSAGE_MILLIS);
+}
+
+/** Подсказка под кнопкой: порядок важнее — отказ, грубая точность, старт/финиш, режим. */
+function renderHint(point, rough, auto) {
+  const hint = $('markHint');
+  hint.classList.remove('error');
+
+  if (state.manualRefused) {
+    hint.textContent = 'Включена автоматическая отметка: нажимать не нужно. '
+      + 'Чтобы отмечаться вручную, выключите «Автоматическую отметку» в настройках.';
+    hint.classList.add('error');
+    return;
+  }
+  if (rough) {
+    hint.textContent = 'Ждём точное местоположение: погрешность больше 15 метров. '
+      + 'Отметка включится сама, как только приёмник уточнит место.';
+    return;
+  }
+  if (point) {
+    const kind = startOrFinishOf(codeOf(point));
+    if (kind === 'start') {
+      hint.textContent = 'Старт отмечается только вручную — нажмите кнопку';
+      return;
+    }
+    if (kind === 'finish') {
+      hint.textContent = 'Финиш отмечается только вручную — нажмите кнопку';
+      return;
+    }
+  }
+  hint.textContent = auto
+    ? 'Подойдите к пункту — отметка поставится сама, нажимать не нужно'
+    : 'Кнопка станет зелёной у пункта — тогда нажмите';
+}
+
+/** Отрисовка экрана отметки по состоянию: GPS и QR. */
 function renderMark() {
   const event = state.event;
+  const auto = Boolean(settings().autoMark);
+  const mode = $('markMode');
+  mode.textContent = auto ? 'Отметка автоматическая' : 'Отметка ручная';
+  mode.classList.toggle('auto', auto);
+
   if (!event) {
     $('markTitle').textContent = 'Сначала активируйте событие';
     $('markAccuracy').textContent = 'Выберите событие в облаке.';
     $('markReady').classList.add('hidden');
     setCircle(null, 'Подойдите к пункту', false);
+    renderHint(null, false, auto);
     return;
   }
 
   const distance = event.distance || {};
   const scanning = qrMode();
   $('markTitle').textContent = distance.name || 'Событие';
-
   $('qrBox').classList.toggle('hidden', !scanning);
   document.querySelector('.mark-center').classList.toggle('hidden', scanning);
+
   if (scanning) {
-    $('markAccuracy').textContent = 'Отметка автоматическая';
+    $('markAccuracy').textContent = identity().nick || 'Профиль не заполнен';
     $('markReady').classList.add('hidden');
-    $('markHint').textContent = 'Наведите камеру на QR-код — отметка поставится сама';
+    $('markHint').classList.remove('hidden');
+    renderHint(null, false, auto);
+    $('markHint').textContent = auto
+      ? 'Наведите камеру на QR-код — отметка поставится сама, нажимать не нужно'
+      : 'Наведите камеру на QR-код и нажмите «ОТМЕТИТЬ»';
+    renderQrConfirm();
     return;
   }
 
@@ -2854,17 +3001,18 @@ function renderMark() {
     $('markAccuracy').textContent = 'Координаты пока не получены';
   }
 
-  const ready = $('markReady');
-  const candidate = findCandidate();
-  state.candidate = candidate;
+  const point = findMarkPoint(false);
+  state.candidate = point;
+  const rough = Boolean(position) && position.accuracy > MAX_ACCURACY_METERS;
 
+  const ready = $('markReady');
   if (!position) {
     ready.textContent = 'Ждём сигнал GPS';
     ready.classList.remove('hidden', 'ok');
-  } else if (position.accuracy > MAX_ACCURACY_METERS) {
+  } else if (rough) {
     ready.textContent = `Точность пока грубая: ±${Math.round(position.accuracy)} м`;
     ready.classList.remove('hidden', 'ok');
-  } else if (candidate) {
+  } else if (point) {
     ready.textContent = 'Готово — можно отмечать';
     ready.classList.remove('hidden');
     ready.classList.add('ok');
@@ -2872,22 +3020,27 @@ function renderMark() {
     ready.classList.add('hidden');
   }
 
-  if (candidate) setCircle(candidate, labelOf(candidate), true);
+  if (point) setCircle(point, labelOf(codeOf(point)), true);
   else setCircle(null, 'Подойдите к пункту', false);
 
-  // Автоматическая отметка: у пункта записываем сами, как в приложении
-  const currentSettings = settings();
-  if (currentSettings.autoMark && candidate) {
-    const code = codeOf(candidate);
+  // Автоматическая отметка: одна на пункт, старт и финиш не автоматизируются
+  const code = point ? codeOf(point) : null;
+  const kind = point ? startOrFinishOf(code) : null;
+  if (auto && code && !kind) {
     if (state.autoMarked !== code) {
       state.autoMarked = code;
+      state.manualRefused = false;
       markByCode(code);
     }
-  } else if (!candidate) {
+  } else if (!code) {
     state.autoMarked = null;
   }
+
+  handleEmergency(point, position, rough);
+  renderHint(point, rough, auto);
 }
 
+/** Кнопка отметки: цвет и подпись зависят от того, можно ли отмечать. */
 function setCircle(point, label, ready) {
   const circle = $('bigMark');
   $('markButtonLabel').textContent = label;
@@ -2895,39 +3048,94 @@ function setCircle(point, label, ready) {
   circle.disabled = !ready;
 }
 
+/** Нажатие круглой кнопки. */
 function markCandidate() {
+  const auto = Boolean(settings().autoMark);
   const point = state.candidate;
   if (!point || !state.event) {
-    if (state.marks.some((mark) => mark.finish)) setStatus('Вы уже финишировали', 'error');
-    return;
-  }
-
-  const period = periodState(state.event.distance);
-  if (period !== 'OK') {
-    setStatus(period === 'BEFORE' ? 'Проведение ещё не началось' : 'Время проведения закончилось', 'error');
+    if (state.marks.some((mark) => mark.finish)) showOutcome('finish');
     return;
   }
 
   const code = codeOf(point);
-  if (isFinish(code, rogaineMode()) && !state.marks.some((mark) => mark.start)) {
-    setStatus('Вначале отметьте старт на выбранной дистанции', 'error');
+  const kind = startOrFinishOf(code);
+  // Автоматическая отметка включена: ручная не выполняется, экран объясняет
+  if (auto && !kind) {
+    state.manualRefused = true;
+    renderMark();
     return;
   }
+  state.manualRefused = false;
+  markByCode(code);
+}
 
-  state.marks.push({
-    code,
-    time: Date.now(),
-    start: isStart(code, rogaineMode()),
-    finish: isFinish(code, rogaineMode()),
-  });
+/** Запись отметки: одно правило и одни слова для кнопки, автоматики и QR. */
+function markByCode(code, options = {}) {
+  if (state.marks.some((mark) => mark.finish)) {
+    showOutcome('finish');
+    return 'finish';
+  }
+  const start = isStart(code, rogaineMode());
+  const finish = isFinish(code, rogaineMode());
+  if (!start && !state.marks.some((mark) => mark.start)) {
+    showOutcome('start');
+    return 'start';
+  }
+
+  const label = markLabelFor(code);
+  if (start) {
+    // Новая отметка старта начинает протокол заново
+    state.marks = [{ code, time: Date.now(), start: true, finish: false }];
+  } else {
+    state.marks.push({ code, time: Date.now(), start: false, finish: Boolean(finish) });
+  }
+  state.autoMarked = options.auto ? String(code) : state.autoMarked;
   saveMarks();
-  renderMark();
   playMarkSound();
-  setStatus('Отметка записана', 'good');
+  renderMark();
+  showOutcome('recorded', label);
 
-  if (isFinish(code, rogaineMode()) && settings().autoSend
-    && identity().nick && identity().code.length >= 6) {
+  if (finish && settings().autoSend && identity().nick && identity().code.length >= 6) {
     sendResult();
+  }
+  return 'recorded';
+}
+
+/** Аварийная отметка: стоим в зоне 5 секунд при грубой погрешности. */
+function handleEmergency(point, position, rough) {
+  const loose = rough ? findMarkPoint(true) : null;
+  const key = loose ? String(codeOf(loose)) : null;
+  const dialog = $('emergencyDialog');
+
+  if (key === null) {
+    state.emergencyKey = null;
+    state.emergencyDismissed = false;
+    dialog.classList.add('hidden');
+    return;
+  }
+  if (state.emergencyKey !== key) {
+    state.emergencyKey = key;
+    state.emergencyAt = Date.now();
+    state.emergencyDismissed = false;
+    dialog.classList.add('hidden');
+    return;
+  }
+  if (state.emergencyDismissed || dialog.classList.contains('hidden') === false) return;
+
+  if (Date.now() - state.emergencyAt >= EMERGENCY_WAIT_MILLIS) {
+    const pointCoords = { lat: loose.latitude, lon: loose.longitude };
+    const meters = distanceMeters(pointCoords.lat, pointCoords.lon, position.lat, position.lon);
+    $('emergencyText').textContent =
+      `Приёмник не может уточнить место: погрешность ${Math.round(position.accuracy)} метров, `
+      + `а до пункта ${Math.round(meters)} метров. Обычно при такой погрешности отметка не ставится — `
+      + 'рядом с пунктом оказался бы участок в десятки метров.\n\n'
+      + 'Вы стоите внутри зоны пункта, посчитанной по этой погрешности, поэтому отметку можно '
+      + 'поставить вручную. Запись будет сделана, но место определено грубо: при проверке организатор '
+      + 'увидит это по погрешности.\n\n'
+      + 'Лучше отойти от деревьев и стен и подождать уточнения. Если ждать нечего — подтвердите отметку.';
+    $('emergencyText').style.whiteSpace = 'pre-line';
+    state.emergencyPoint = codeOf(loose);
+    dialog.classList.remove('hidden');
   }
 }
 
@@ -2961,9 +3169,15 @@ function startQrScanner() {
       video.play().catch(() => {});
       if (native) {
         const detector = new BarcodeDetector({ formats: ['qr_code'] });
-        qrTimer = setInterval(() => detectOnce(detector, video), 500);
+        qrTimer = setInterval(() => {
+          detectOnce(detector, video);
+          checkQrGone();
+        }, 250);
       } else {
-        qrTimer = setInterval(() => detectWithJsQr(video), 500);
+        qrTimer = setInterval(() => {
+          detectWithJsQr(video);
+          checkQrGone();
+        }, 250);
       }
     })
     .catch(() => setStatus('Камера недоступна: проверьте разрешение', 'error'));
@@ -3007,42 +3221,89 @@ function detectOnce(detector, video) {
     });
 }
 
-/** Разбор и отметка по содержимому QR — правила из MarkCodes и RogaineQr. */
+/** Разбор кода с камеры: показываем подтверждение, отметка — по кнопке. */
 function handleQrText(raw) {
-  if (!state.event) return;
+  if (!state.event || !qrMode()) return;
   const distance = state.event.distance || {};
-  const parsed = parsePointQr(raw, distance.ownerId || (state.event.entry || {}).ownerId, rogaineMode());
+  const owner = distance.ownerId || (state.event.entry || {}).ownerId || '';
+  const parsed = parsePointQr(raw, owner, rogaineMode());
 
-  if (parsed.error === 'foreign') {
-    setStatus('Это не код контрольного пункта — или не вашей дистанции', 'error');
-    return;
-  }
-  if (parsed.error === 'other-kind') {
-    setStatus('Код другой дистанции', 'error');
-    return;
-  }
-  if (parsed.error) {
-    setStatus('Не удалось прочитать код', 'error');
-    return;
-  }
-
-  let code = String(parsed.code);
-  // В QR старт записан как «01», а в базе он хранится кодом 3 (MarkCodes.START);
-  // у рогейна код остаётся строкой «01». Без этого перевода верный код старта
-  // искали как пункт «1» и отвечали «Код другой дистанции»
-  if (!rogaineMode() && code === '01') {
-    const points = distance.points || [];
-    const hasStart = points.some((item) => String(codeOf(item)) === '3');
-    code = hasStart ? '3' : '1';
+  let code = null;
+  let foreign = false;
+  if (parsed.error === 'other-kind' || parsed.error === 'foreign') {
+    foreign = true;
+  } else if (!parsed.error) {
+    code = String(parsed.code);
+    // Старт в QR записан как «01», в базе ориентирования он — код 3
+    if (!rogaineMode() && code === '01') {
+      const hasStart = (distance.points || []).some((item) => String(codeOf(item)) === '3');
+      code = hasStart ? '3' : '1';
+    }
+    if (!(distance.points || []).some((item) => String(codeOf(item)) === code)) {
+      code = null;
+      foreign = true;
+    }
   }
 
-  const point = (distance.points || []).find((item) => String(codeOf(item)) === code);
-  if (!point) {
-    setStatus('Код другой дистанции', 'error');
+  const label = code ? Object.assign({ code }, markLabelFor(code)) : null;
+  state.pendingQr = { raw, code, label, foreign, seenAt: Date.now() };
+  state.manualRefused = false;
+  renderQrConfirm();
+
+  // Автоматическая отметка: код в кадре — отмечаемся без нажатия, один раз на код.
+  // Старт и финиш автоматика не ставит.
+  if (settings().autoMark && label && !startOrFinishOf(code) && state.autoQrCode !== code) {
+    state.autoQrCode = code;
+    markByCode(code, { auto: true });
+  }
+}
+
+/** Панель подтверждения QR: подпись пункта, предупреждение и кнопки. */
+function renderQrConfirm() {
+  const box = $('qrConfirm');
+  if (!box) return;
+  const pending = state.pendingQr;
+  if (!qrMode() || !pending) {
+    box.classList.add('hidden');
     return;
   }
 
-  markByCode(code);
+  const label = pending.label;
+  $('qrLabel').textContent = label ? label.number : '';
+  const warning = $('qrWarning');
+  const auto = Boolean(settings().autoMark);
+
+  let text = '';
+  if (!label) {
+    text = pending.foreign
+      ? 'Код другой дистанции'
+      : 'Это не код контрольного пункта — или не вашей дистанции';
+  } else {
+    const kind = startOrFinishOf(label.code);
+    if (kind === 'start') text = 'Старт отмечается только вручную: нажмите «Отметить»';
+    if (kind === 'finish') text = 'Финиш отмечается только вручную: нажмите «Отметить»';
+    if (auto && !kind) {
+      text = 'Включена автоматическая отметка: отмечать вручную не нужно';
+    }
+  }
+  warning.textContent = text;
+  warning.classList.toggle('hidden', !text);
+  $('qrMark').disabled = !label;
+
+  // После записи показываем баллы и дубль: подпись снята до отметки
+  const labels = $('markLabels');
+  box.classList.remove('hidden');
+}
+
+/** Код ушёл из кадра — подтверждение и кнопки убираем, как в приложении. */
+function checkQrGone() {
+  if (!state.pendingQr) return;
+  if (Date.now() - state.pendingQr.seenAt >= CODE_GONE_MILLIS) {
+    state.pendingQr = null;
+    state.autoQrCode = null;
+    state.manualRefused = false;
+    renderQrConfirm();
+  }
 }
 
 /** Отметка по коду: старт, финиш и пункты — как на GPS-экране. */
@@ -3285,6 +3546,40 @@ function bind() {
   });
 
   $('bigMark').addEventListener('click', markCandidate);
+
+  // Подтверждение кода с камеры: «Отметить» и «Отменить», как в приложении
+  $('qrMark').addEventListener('click', () => {
+    const pending = state.pendingQr;
+    if (!pending || !pending.code) return;
+    const kind = startOrFinishOf(pending.code);
+    if (settings().autoMark && !kind) {
+      state.manualRefused = true;
+      $('markHint').textContent = 'Включена автоматическая отметка: нажимать не нужно. '
+        + 'Чтобы отмечаться вручную, выключите «Автоматическую отметку» в настройках.';
+      $('markHint').classList.add('error');
+      return;
+    }
+    markByCode(pending.code);
+  });
+
+  $('qrSkip').addEventListener('click', () => {
+    state.pendingQr = null;
+    state.autoQrCode = null;
+    state.manualRefused = false;
+    renderQrConfirm();
+    showOutcome('skipped');
+  });
+
+  // Аварийная отметка: подтверждение или отказ
+  $('emergencyConfirm').addEventListener('click', () => {
+    $('emergencyDialog').classList.add('hidden');
+    state.emergencyDismissed = true;
+    if (state.emergencyPoint) markByCode(String(state.emergencyPoint));
+  });
+  $('emergencyWait').addEventListener('click', () => {
+    $('emergencyDialog').classList.add('hidden');
+    state.emergencyDismissed = true;
+  });
 
   // Профиль: рисуем состояние и, если гость, кнопку входа ВК
   renderProfileState();

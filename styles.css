@@ -775,3 +775,65 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
   margin: 0 -16px;
   padding: 8px 16px 12px;
 }
+
+/* Режим отметки: автоматическая подкрашена, как в приложении */
+.mark-mode.auto { color: var(--primary); }
+
+/* Подтверждение QR-кода */
+.qr-confirm {
+  margin: 0 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--surface-container);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qr-label { margin: 0; font-size: 22px; font-weight: 500; }
+.qr-warning { margin: 0; font-size: 14px; color: var(--error, #b3261e); }
+.qr-buttons { display: flex; gap: 8px; }
+.qr-buttons .button { flex: 1; }
+
+/* Исход отметки и подписи пункта */
+.mark-outcome {
+  margin: 0 24px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--on-surface-variant);
+}
+.mark-outcome.error { color: var(--error, #b3261e); }
+.mark-labels {
+  margin: 4px 24px 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+}
+
+/* Окно аварийной отметки */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 60;
+}
+.overlay-card {
+  background: var(--surface-container);
+  border-radius: 20px;
+  padding: 20px;
+  max-width: 520px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.overlay-title { margin: 0; font-size: 18px; font-weight: 500; }
+.overlay-text { margin: 0; font-size: 14px; color: var(--on-surface-variant); }
+.overlay-buttons { display: flex; gap: 8px; }
+.overlay-buttons .button { flex: 1; }

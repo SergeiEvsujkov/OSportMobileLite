@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=97">
+  <link rel="stylesheet" href="styles.css?v=98">
 </head>
 <body>
   <main id="app">
@@ -173,11 +173,21 @@
         <h2 class="mark-title" id="markTitle">Событие</h2>
         <p class="mark-sub" id="markAccuracy">Координаты пока не получены</p>
         <p class="mark-ready hidden" id="markReady"></p>
-        <p class="mark-mode">Отметка ручная</p>
+        <p class="mark-mode" id="markMode">Отметка ручная</p>
       </div>
 
       <div class="qr hidden" id="qrBox">
         <video id="qrVideo" playsinline muted></video>
+      </div>
+
+      <!-- Подтверждение кода с камеры: номер пункта и кнопки, как в приложении -->
+      <div class="qr-confirm hidden" id="qrConfirm">
+        <p class="qr-label" id="qrLabel"></p>
+        <p class="qr-warning hidden" id="qrWarning"></p>
+        <div class="qr-buttons">
+          <button class="button" id="qrMark">Отметить</button>
+          <button class="button outlined" id="qrSkip">Отменить</button>
+        </div>
       </div>
 
       <div class="mark-center">
@@ -187,8 +197,22 @@
       </div>
 
       <p class="mark-hint" id="markHint">Кнопка станет зелёной у пункта — тогда нажмите</p>
+      <p class="mark-outcome hidden" id="markOutcome"></p>
+      <div class="mark-labels hidden" id="markLabels"></div>
       <button class="button tonal hidden" id="gpsRetry" style="margin:0 24px 16px">Разрешить геолокацию</button>
     </section>
+
+    <!-- Аварийная отметка при грубой погрешности -->
+    <div class="overlay hidden" id="emergencyDialog">
+      <div class="overlay-card">
+        <p class="overlay-title">Отметить при плохой точности?</p>
+        <p class="overlay-text" id="emergencyText"></p>
+        <div class="overlay-buttons">
+          <button class="button" id="emergencyConfirm">Отметить</button>
+          <button class="button outlined" id="emergencyWait">Подождать</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Профиль -->
     <section class="screen hidden" id="profileScreen">
@@ -248,8 +272,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=97"></script>
-  <script src="marking.js?v=97"></script>
-  <script src="app.js?v=97"></script>
+  <script src="jsQR.js?v=98"></script>
+  <script src="marking.js?v=98"></script>
+  <script src="app.js?v=98"></script>
 </body>
 </html>
