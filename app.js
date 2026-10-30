@@ -1324,7 +1324,16 @@ async function renderVkOneTap() {
     oneTap
       .render({ container: $('vkOneTap'), showAlternativeLogin: true })
       .on(VKID.WidgetEvents.ERROR, (error) => {
-        setStatus('ВК: ' + (error && (error.error_description || error.error_text) || 'ошибка виджета'), 'error');
+        // Показываем всё, что пришло: по коду видно, чья это ошибка — ВК или сети
+        console.error('VK ID widget error', error);
+        let detail = '';
+        try {
+          detail = error && (error.error_description || error.error_text
+            || error.message || error.code || JSON.stringify(error));
+        } catch (ignored) {
+          detail = '';
+        }
+        setStatus('ВК: ' + (detail || 'ошибка виджета'), 'error');
       })
       .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, async (payload) => {
         try {
