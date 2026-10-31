@@ -6,11 +6,12 @@
  * запрашиваются из сети и обновляют кэш; без сети работает последняя копия.
  */
 
-const CACHE = 'osport-lite-v155';
+const CACHE = 'osport-lite-v156';
 
 const SHELL = [
   './',
   './index.html',
+  './sounds/mark_success.wav',
   './vkid-sdk.js',
   './manifest.json',
   './icons/group.png',

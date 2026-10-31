@@ -3857,26 +3857,93 @@ function startWatch() {
   );
 }
 
+/** Звук отметки: тот же файл, что в Android (res/raw/mark_success.ogg). */
+const MARK_SOUND_URL = 'sounds/mark_success.wav';
+let markAudioContext = null;
+let markSoundBuffer = null;
+let markSoundLoading = false;
+
+function markAudio() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return null;
+  if (!markAudioContext) {
+    try {
+      markAudioContext = new AudioCtx();
+    } catch (error) {
+      return null;
+    }
+  }
+  return markAudioContext;
+}
+
+async function loadMarkSound(context) {
+  if (!context || markSoundBuffer || markSoundLoading) return;
+  markSoundLoading = true;
+  try {
+    const response = await fetch(MARK_SOUND_URL);
+    if (!response.ok) throw new Error('sound');
+    const data = await response.arrayBuffer();
+    markSoundBuffer = await context.decodeAudioData(data);
+  } catch (error) {
+    // Остаётся запасной синтезированный сигнал
+  } finally {
+    markSoundLoading = false;
+  }
+}
+
+/** Разблокировка звука на iOS: до первого касания AudioContext спит. */
+function unlockMarkSound() {
+  const context = markAudio();
+  if (!context) return;
+  if (context.state === 'suspended') context.resume().catch(() => {});
+  loadMarkSound(context);
+}
+
+function playFallbackSound(context) {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.frequency.value = 880;
+  gain.gain.value = 0.15;
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start();
+  oscillator.stop(context.currentTime + 0.12);
+}
+
 /** Звук и вибрация при отметке — как MarkSoundPlayer и MarkVibrationPlayer. */
 function playMarkSound() {
   const current = settings();
-  if (current.sound) try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (AudioCtx) {
-      const context = new AudioCtx();
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.frequency.value = 880;
-      gain.gain.value = 0.15;
-      oscillator.connect(gain).connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + 0.12);
+  if (current.sound) {
+    const context = markAudio();
+    if (context) {
+      const play = () => {
+        try {
+          if (markSoundBuffer) {
+            const source = context.createBufferSource();
+            source.buffer = markSoundBuffer;
+            source.connect(context.destination);
+            source.start();
+          } else {
+            loadMarkSound(context);
+            playFallbackSound(context);
+          }
+        } catch (error) {
+          // Звук не обязателен: отметка всё равно записана
+        }
+      };
+      if (context.state === 'running') {
+        play();
+      } else {
+        context.resume().then(play).catch(() => {});
+      }
     }
-  } catch (error) {
-    // Звук не обязателен: если браузер запретил, отметка всё равно записана
   }
   if (current.vibration && navigator.vibrate) navigator.vibrate(60);
 }
+
+// Safari разрешает звук только после касания. Разблокируем при первом действии
+['pointerdown', 'touchstart', 'keydown'].forEach((event) => {
+  window.addEventListener(event, unlockMarkSound, { once: true, passive: true });
+});
 
 /* ─────────────────────────── профиль и отправка ─────────────────────────── */
 
