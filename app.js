@@ -410,10 +410,17 @@ function renderHome() {
   // Свой результат на карточке — как events_my_result в приложении
   const meCode = readJson(STORAGE.identity, { nick: '', code: '' }).code;
   if (meCode) {
-    const mine = buildProtocol(distance).find((row) => row.userId === meCode);
+    const mine = bestOwnProtocolRow(buildProtocol(distance), meCode, distance);
     if (mine) {
-      const places = mine.place ? ` · место ${mine.place}` : '';
-      card.append(plainRow(`Мой результат: ${formatDuration(mine.elapsed)}${places}`));
+      const parts = [];
+      if (mine.status === 'OK') parts.push(formatDuration(mine.elapsed));
+      if (item.kind === 'rogaine') parts.push(`Баллы: ${mine.total}`);
+      if (mine.status !== 'OK') {
+        parts.push(mine.status);
+      } else if (mine.place) {
+        parts.push(`место ${mine.place}`);
+      }
+      card.append(plainRow(`Мой результат: ${parts.join(' · ')}`));
     }
   }
   if (pendingResultFor(item.id)) card.append(pendingRow());
@@ -2953,6 +2960,32 @@ function buildProtocol(distance) {
   });
 
   return ordered;
+}
+
+/**
+ * Своя строка для карточки события.
+ *
+ * «Первый»/«обновлять» — строка та же, что в протоколе. «Оба» — лучшая:
+ * меньше место, при равенстве больше баллов; без места — больше отметок.
+ */
+function bestOwnProtocolRow(rows, userId, distance) {
+  const own = (rows || []).filter((row) => String(row.userId) === String(userId));
+  if (!own.length) return null;
+  const policy = String((distance && distance.resubmit) || 'update');
+  if (policy !== 'both') return own[0];
+  const rogaine = rogaineMode();
+  const markCount = (row) => (row.marks || []).filter(
+    (mark) => !isStart(mark.code, rogaine) && !isFinish(mark.code, rogaine)
+  ).length;
+  const placed = own.filter((row) => row.place);
+  if (placed.length) {
+    placed.sort((left, right) => {
+      if (left.place !== right.place) return left.place - right.place;
+      return rogaine ? right.total - left.total : markCount(right) - markCount(left);
+    });
+    return placed[0];
+  }
+  return own.slice().sort((left, right) => markCount(right) - markCount(left))[0];
 }
 
 let protocolExpanded = false;
