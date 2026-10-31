@@ -3232,7 +3232,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     let best = null;
     if (!rogaine && fromProtocol && previousCode !== null && leg !== null) {
       const leader = legLeaders.get(`${previousCode}>${code}`);
-      if (leader) best = `${leader.nick} +${formatSplitTime(Math.max(0, leg - leader.millis))}`;
+      if (leader) best = `${leader.nick}\n+${formatSplitTime(Math.max(0, leg - leader.millis))}`;
     }
 
     let label;

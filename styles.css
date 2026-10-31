@@ -458,7 +458,8 @@ body {
 .split-line { font-size: 16px; }
 .split-line.total { color: var(--on-surface-variant); }
 .split-speed {
-  min-width: 74px;
+  min-width: 112px;
+  max-width: 42%;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -466,12 +467,11 @@ body {
 }
 .split-speed-value { font-size: 14px; color: var(--primary); white-space: nowrap; }
 .split-speed-best {
-  max-width: 74px;
   font-size: 12px;
   color: var(--on-surface-variant);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: right;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .split-row {
