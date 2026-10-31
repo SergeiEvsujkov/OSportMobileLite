@@ -3878,8 +3878,13 @@ async function sendResult() {
   }
 
   // Пока запрос идёт, результат уже считается неотправленным: синхронизация
-  // не должна выбросить его, пока облако не подтвердило приём
-  const payload = Object.assign({}, event.distance, { results: [result] });
+  // не должна выбросить его, пока облако не подтвердило приём.
+  // requestId повторяется при повторе из очереди, чтобы сервер не добавил
+  // тот же результат второй раз после потерянного ответа
+  const requestId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `r-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const payload = Object.assign({}, event.distance, { results: [result], requestId });
   queueResult(event.key, result, payload);
   state.sending = true;
 
