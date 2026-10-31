@@ -539,49 +539,61 @@ async function syncFromCloud() {
   let updated = 0;
   let missing = 0;
   try {
-    const list = await callFunction('action=list&full=1&rogaine=1');
-    cloudEntries = list.entries || [];
-    const byId = new Map(cloudEntries.map((entry) => [entry.id, entry]));
+    // Обновляем только уже скачанные записи и тянем их параллельно:
+    // полный каталог (list&full=1) для этого не нужен, а последовательные
+    // запросы давали задержку в несколько секунд
+    const queue = Array.from(ids);
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < queue.length) {
+        const id = queue[cursor];
+        cursor += 1;
+        try {
+          const full = await callFunction('action=get&id=' + encodeURIComponent(id));
+          if (!full || !full.distance) {
+            missing += 1;
+            continue;
+          }
+          const previous = readJson(STORAGE.event + '.' + id, null);
+          const kind = full.kind || (previous && previous.kind) || 'distance';
+          const entry = Object.assign({}, (previous && previous.entry) || {}, {
+            id,
+            kind,
+            name: full.distance.name || ((previous && previous.entry && previous.entry.name) || ''),
+          });
+          const localResults = (previous && previous.distance && previous.distance.results) || [];
+          const distance = Object.assign({}, full.distance, {
+            results: mergeResults(full.distance.results, localResults),
+          });
+          const item = {
+            id,
+            kind,
+            key: 'distances/' + id + (kind === 'rogaine' ? '.rogaine' : '.osport'),
+            distance,
+            entry,
+          };
+          writeJson(STORAGE.event + '.' + id, item);
+          rememberEvent(item);
+          updated += 1;
 
-    for (const id of ids) {
-      const entry = byId.get(id);
-      if (!entry) {
-        // Запись скачана, но в облаке её нет — говорим об этом прямо
-        missing += 1;
-        continue;
-      }
-      try {
-        const full = await callFunction('action=get&id=' + encodeURIComponent(id));
-        if (!full.distance) continue;
-        const previous = readJson(STORAGE.event + '.' + id, null);
-        const localResults = (previous && previous.distance && previous.distance.results) || [];
-        const distance = Object.assign({}, full.distance, {
-          results: mergeResults(full.distance.results, localResults),
-        });
-        const item = {
-          id,
-          kind: entry.kind,
-          key: 'distances/' + id + (entry.kind === 'rogaine' ? '.rogaine' : '.osport'),
-          distance,
-          entry,
-        };
-        writeJson(STORAGE.event + '.' + id, item);
-        rememberEvent(item);
-        updated += 1;
-
-        if (savedGroup) {
-          savedGroup.items = (savedGroup.items || []).map(
-            (member) => (member.id === id ? Object.assign({}, member, item) : member)
-          );
+          if (savedGroup) {
+            savedGroup.items = (savedGroup.items || []).map(
+              (member) => (member.id === id ? Object.assign({}, member, item) : member)
+            );
+          }
+          if (state.event && state.event.id === id) {
+            state.event = item;
+            writeJson(STORAGE.event, item);
+          }
+        } catch (error) {
+          // 404 — запись удалена в облаке; прочие сбои не ломают остальные
+          if (/not found|404/i.test(String(error && error.message))) missing += 1;
         }
-        if (state.event && state.event.id === id) {
-          state.event = item;
-          writeJson(STORAGE.event, item);
-        }
-      } catch (error) {
-        // Одна недоступная запись не должна ломать остальные
       }
-    }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(4, queue.length) }, () => worker())
+    );
 
     if (savedGroup) writeJson(STORAGE.group, savedGroup);
     renderHome();
