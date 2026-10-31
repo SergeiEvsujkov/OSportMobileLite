@@ -3140,7 +3140,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
   const starts = startAliasCodes(distance);
   let number = 0;
-  let previous = null;
+  let previousRounded = null;
   // Пункты, отмеченные хотя бы раз: повтор номера не получает, а помечается
   // словом «дубль» — как на экране сплита в приложении
   const seen = new Set();
@@ -3154,7 +3154,11 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const checkpoint = fromProtocol && rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
     const repeat = checkpoint && seen.has(code);
     if (checkpoint) seen.add(code);
-    const leg = previous === null ? null : mark.time - previous;
+    const elapsed = row.startTime && mark.time ? Math.max(0, mark.time - row.startTime) : 0;
+    const elapsedRounded = Math.floor(elapsed / 1000) * 1000;
+    // Этап — разница уже округлённых накопленных времён: сумма этапов
+    // сходится с последним накопленным, без расхождения в секунду
+    const leg = startPoint || previousRounded === null ? null : elapsedRounded - previousRounded;
 
     let label;
     if (startPoint) {
@@ -3184,14 +3188,13 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     const second = document.createElement('span');
     second.className = 'split-line total';
-    const elapsed = row.startTime && mark.time ? mark.time - row.startTime : 0;
-    second.textContent = formatSplitTime(elapsed);
+    second.textContent = formatSplitTime(elapsedRounded);
 
     value.append(first, second);
     item.append(num, value);
     list.append(item);
 
-    previous = mark.time;
+    previousRounded = elapsedRounded;
   });
 
   // Своя отметка: сумма баллов одной строкой под таблицей, не в сводке.
