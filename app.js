@@ -34,6 +34,10 @@ const state = {
   watchId: null,
   candidate: null,
   history: [],
+  // Один обмен с облаком за раз: параллельные отправка/обновление теряют строки
+  syncing: false,
+  sending: false,
+  flushing: false,
   // Экран отметки: подтверждение QR, отказы и аварийная отметка
   pendingQr: null,
   autoQrCode: null,
@@ -517,6 +521,7 @@ function mergeResults(cloudResults, localResults) {
  * целиком из облака, а отметки и активность остаются на устройстве.
  */
 async function syncFromCloud() {
+  if (state.syncing) return;
   const ids = new Set();
   (state.history || []).forEach((item) => ids.add(item.id));
   const savedGroup = readJson(STORAGE.group, null);
@@ -529,6 +534,7 @@ async function syncFromCloud() {
     return;
   }
 
+  state.syncing = true;
   setStatus(`Обновляю из облака… (записей: ${ids.size})`);
   let updated = 0;
   let missing = 0;
@@ -585,6 +591,8 @@ async function syncFromCloud() {
     else setStatus('В облаке нет изменений');
   } catch (error) {
     setStatus(error.message, 'error');
+  } finally {
+    state.syncing = false;
   }
 }
 
@@ -3814,6 +3822,7 @@ function updateSendState() {
 }
 
 async function sendResult() {
+  if (state.sending) return;
   if (!state.marks.length) {
     setStatus('Отметок нет: по этой дистанции ничего не отмечено, отправлять нечего.', 'error');
     return;
@@ -3856,6 +3865,12 @@ async function sendResult() {
     return;
   }
 
+  // Пока запрос идёт, результат уже считается неотправленным: синхронизация
+  // не должна выбросить его, пока облако не подтвердило приём
+  const payload = Object.assign({}, event.distance, { results: [result] });
+  queueResult(event.key, result, payload);
+  state.sending = true;
+
   // Как в приложении: результат сначала ложится в дистанцию на устройстве,
   // экраны обновляются сразу, а отправка в облако идёт после
   // Прежние разные результаты не удаляем: новый добавляется к ним,
@@ -3869,20 +3884,17 @@ async function sendResult() {
   renderHome();
   renderDetail();
 
-  // Тело — дистанция целиком с нашим результатом: функция ждёт id и order,
-  // а результаты сливает по участникам, поэтому чужие не затрутся
-  const payload = Object.assign({}, event.distance, { results: [result] });
-
   setStatus('Результат сохранён, отправляю…');
   try {
     await callFunction('action=result&key=' + encodeURIComponent(event.key), payload);
+    dropPendingResult(event.key, result.userId);
     setStatus('Результат отправлен', 'good');
     renderHome();
     renderDetail();
-    flushPendingResults().catch(() => {});
   } catch (error) {
-    queueResult(event.key, result, payload);
     setStatus('Результат сохранён, отправится позже: ' + error.message, 'error');
+  } finally {
+    state.sending = false;
   }
 }
 
@@ -3896,10 +3908,21 @@ function queueResult(key, result, payload) {
   writeJson(STORAGE.pendingResults, filtered);
 }
 
+/** Убирает результат из очереди после успешной отправки. */
+function dropPendingResult(key, userId) {
+  const list = readJson(STORAGE.pendingResults, []);
+  writeJson(
+    STORAGE.pendingResults,
+    list.filter((item) => !(item.key === key && String(item.result.userId) === String(userId)))
+  );
+}
+
 /** Пробуем отправить отложенные результаты — при запуске и после удачной отправки. */
 async function flushPendingResults() {
+  if (state.sending || state.flushing) return;
   const list = readJson(STORAGE.pendingResults, []);
   if (!list.length) return;
+  state.flushing = true;
   const left = [];
   for (const item of list) {
     // Старые записи очереди без полного тела отправить нельзя: функция требует
@@ -3913,6 +3936,7 @@ async function flushPendingResults() {
     }
   }
   writeJson(STORAGE.pendingResults, left);
+  state.flushing = false;
 }
 
 /**
@@ -3923,7 +3947,8 @@ async function flushPendingResults() {
  */
 async function refreshCurrentEvent() {
   const current = state.event;
-  if (!current) return;
+  if (!current || state.syncing) return;
+  state.syncing = true;
   setStatus('Обновляю событие…');
   try {
     const full = await callFunction('action=get&id=' + encodeURIComponent(current.id));
@@ -3949,6 +3974,8 @@ async function refreshCurrentEvent() {
     setStatus('Событие обновлено', 'good');
   } catch (error) {
     setStatus('Не удалось обновить событие: ' + error.message, 'error');
+  } finally {
+    state.syncing = false;
   }
 }
 
