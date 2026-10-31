@@ -3187,6 +3187,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   const list = $('participantMarks');
   list.textContent = '';
   const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  const pointByCode = new Map((distance.points || []).map((point) => [String(point.code), point]));
   const courseStats = courseStatsWeb(
     marks.map((mark) => pointByCode.get(String(mark.code))),
     row.startTime,
@@ -3199,7 +3200,6 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
   const starts = startAliasCodes(distance);
   const gps = String(distance.markMode || '').toUpperCase() !== 'QR';
-  const pointByCode = new Map((distance.points || []).map((point) => [String(point.code), point]));
   const legLeaders = !rogaine && fromProtocol ? orienteeringLegLeaders(distance) : new Map();
   let number = 0;
   let previousRounded = null;
