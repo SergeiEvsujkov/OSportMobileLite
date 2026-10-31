@@ -1317,7 +1317,8 @@ function renderDetail() {
     if (distance.description) rows.append(detailRow(distance.description));
   }
 
-  $('detailSend').disabled = !state.marks.some((mark) => mark.finish);
+  // Отправлять можно при любых отметках: без старта будет DNS, без финиша DNF
+  $('detailSend').disabled = state.marks.length === 0;
 
   // Что будет при повторной отправке: подсказка про правило автора
   const sendPolicy = String(distance.resubmit || 'update');
@@ -3573,7 +3574,6 @@ function markByCode(code, options = {}) {
   state.candidateFix = null;
   state.autoMarked = options.auto ? String(code) : state.autoMarked;
   saveMarks();
-  updateSendState();
   playMarkSound();
   renderMark();
   showOutcome('recorded', label);
@@ -3958,14 +3958,11 @@ function identity() {
 
 /** Состояние отправки на экране дистанции; на профиле её больше нет. */
 function updateSendState() {
-  if (!$('send')) return;
+  const button = $('detailSend');
+  if (!button) return;
   // Как в Android: отправить можно любые отметки, даже без финиша.
   // Статус результата решит протокол — DNS, DNF или DSQ
-  const hasMarks = state.marks.length > 0;
-  $('send').disabled = !state.event || !hasMarks;
-  $('sendHint').textContent = hasMarks
-    ? 'Отметки готовы к отправке.'
-    : 'Сначала отметьте хотя бы один пункт.';
+  button.disabled = !state.event || state.marks.length === 0;
 }
 
 async function sendResult() {
