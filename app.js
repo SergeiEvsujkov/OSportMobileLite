@@ -33,6 +33,9 @@ const state = {
   position: null,
   watchId: null,
   candidate: null,
+  // Буфер последних GPS-точек: на бегу отмечаем ближайшую, а не последнюю
+  recentFixes: [],
+  candidateFix: null,
   history: [],
   // Один обмен с облаком за раз: параллельные отправка/обновление теряют строки
   syncing: false,
@@ -222,6 +225,8 @@ function showTab(name, options = {}) {
     state.manualRefused = false;
     state.emergencyKey = null;
     state.emergencyDismissed = false;
+    state.recentFixes = [];
+    state.candidateFix = null;
   }
   $('homeScreen').classList.toggle('hidden', name !== 'events');
   $('groupScreen').classList.toggle('hidden', name !== 'group');
@@ -3216,6 +3221,10 @@ const MARKED_MESSAGE_MILLIS = 3000;
 const EMERGENCY_WAIT_MILLIS = 5000;
 /** Через сколько код считается ушедшим из кадра. */
 const CODE_GONE_MILLIS = 1000;
+/** Окно, в котором ищем ближайшую точку для отметки на ходу. */
+const FIX_WINDOW_MILLIS = 5000;
+/** Больше точек в буфере не держим. */
+const MAX_RECENT_FIXES = 60;
 
 /** Старт или финиш этот код: подпись и правила у них особые. */
 function startOrFinishOf(code) {
@@ -3251,6 +3260,36 @@ function findMarkPoint(loose) {
     if (inZone(point, state.position)) return point;
   }
   return null;
+}
+
+/**
+ * Ближайшая к пункту точка из последних секунд.
+ *
+ * Нужна для отметки на ходу: участник мог уже выйти из зоны, пока нажимает.
+ * Берём именно ближайший замер, а не последний, и только если он сам не грубее
+ * допустимого.
+ */
+function bestBufferedPoint() {
+  if (!state.event || !state.position) return null;
+  const now = Date.now();
+  const fixes = (state.recentFixes || []).filter(
+    (fix) => now - fix.at <= FIX_WINDOW_MILLIS && fix.accuracy > 0
+      && fix.accuracy <= MAX_ACCURACY_METERS
+  );
+  if (!fixes.length) return null;
+  const points = (state.event.distance && state.event.distance.points) || [];
+  let best = null;
+  fixes.forEach((fix) => {
+    points.forEach((point) => {
+      if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return;
+      const allowed = (point.accuracyMeters || 0) + fix.accuracy + 5;
+      const distance = distanceMeters(fix.lat, fix.lon, point.latitude, point.longitude);
+      if (distance <= allowed && (!best || distance < best.distance)) {
+        best = { point, fix, distance };
+      }
+    });
+  });
+  return best;
 }
 
 /** Подпись отметки до записи: номер пункта, баллы рогейна и дубль. */
@@ -3403,9 +3442,14 @@ function renderMark() {
     $('markAccuracy').textContent = 'Координаты пока не получены';
   }
 
-  const point = findMarkPoint(false);
+  const current = findMarkPoint(false);
+  const buffered = current ? null : bestBufferedPoint();
+  const point = current || (buffered && buffered.point) || null;
+  const pointFix = current ? null : (buffered && buffered.fix) || null;
   state.candidate = point;
-  const rough = Boolean(position) && position.accuracy > MAX_ACCURACY_METERS;
+  state.candidateFix = pointFix;
+  // Грубая точность важна, только когда зачётной точки нет вовсе
+  const rough = !point && Boolean(position) && position.accuracy > MAX_ACCURACY_METERS;
 
   const ready = $('markReady');
   if (!position) {
@@ -3415,7 +3459,9 @@ function renderMark() {
     ready.textContent = `Точность пока грубая: ±${Math.round(position.accuracy)} м`;
     ready.classList.remove('hidden', 'ok');
   } else if (point) {
-    ready.textContent = 'Готово — можно отмечать';
+    ready.textContent = pointFix
+      ? `Готово — по точке ${Math.max(1, Math.round((Date.now() - pointFix.at) / 1000))} с назад`
+      : 'Готово — можно отмечать';
     ready.classList.remove('hidden');
     ready.classList.add('ok');
   } else {
@@ -3425,14 +3471,15 @@ function renderMark() {
   if (point) setCircle(point, labelOf(codeOf(point)), true);
   else setCircle(null, 'Подойдите к пункту', false);
 
-  // Автоматическая отметка: одна на пункт, старт и финиш не автоматизируются
+  // Автоматическая отметка: одна на пункт, старт и финиш не автоматизируются.
+  // Ближайшая точка из буфера тоже годится: участник мог уже выйти из зоны
   const code = point ? codeOf(point) : null;
   const kind = point ? startOrFinishOf(code) : null;
   if (auto && code && !kind) {
     if (state.autoMarked !== code) {
       state.autoMarked = code;
       state.manualRefused = false;
-      markByCode(code);
+      markByCode(code, pointFix ? { time: pointFix.at } : {});
     }
   } else {
     // Ушли с пункта, встали на старт/финиш или выключили автоотметку:
@@ -3471,7 +3518,7 @@ function markCandidate() {
     return;
   }
   state.manualRefused = false;
-  markByCode(code);
+  markByCode(code, state.candidateFix ? { time: state.candidateFix.at } : {});
 }
 
 /**
@@ -3500,6 +3547,7 @@ function sanitizeMarks() {
 
 /** Запись отметки: одно правило и одни слова для кнопки, автоматики и QR. */
 function markByCode(code, options = {}) {
+  const time = Number(options.time) || Date.now();
   const start = isStart(code, rogaineMode());
   const finish = isFinish(code, rogaineMode());
   // Старт отмечается и после финиша: он начинает протокол заново и стирает
@@ -3516,10 +3564,14 @@ function markByCode(code, options = {}) {
   const label = markLabelFor(code);
   if (start) {
     // Новая отметка старта начинает протокол заново
-    state.marks = [{ code, time: Date.now(), start: true, finish: false }];
+    state.marks = [{ code, time, start: true, finish: false }];
   } else {
-    state.marks.push({ code, time: Date.now(), start: false, finish: Boolean(finish) });
+    state.marks.push({ code, time, start: false, finish: Boolean(finish) });
   }
+  // Буфер относится к только что записанной отметке: следующая точка
+  // должна прийти уже после неё
+  state.recentFixes = [];
+  state.candidateFix = null;
   state.autoMarked = options.auto ? String(code) : state.autoMarked;
   saveMarks();
   playMarkSound();
@@ -3785,6 +3837,20 @@ function startWatch() {
         lon: position.coords.longitude,
         accuracy: position.coords.accuracy,
       };
+      // Грубые замеры сразу отбрасываем: при открытии экрана приёмник часто
+      // даёт 40–80 м, и такие точки не должны попадать в буфер
+      if (position.coords.accuracy > 0 && position.coords.accuracy <= MAX_ACCURACY_METERS) {
+        const now = Date.now();
+        state.recentFixes = (state.recentFixes || [])
+          .filter((fix) => now - fix.at <= FIX_WINDOW_MILLIS)
+          .concat({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            at: now,
+          })
+          .slice(-MAX_RECENT_FIXES);
+      }
       renderMark();
     },
     (error) => {
