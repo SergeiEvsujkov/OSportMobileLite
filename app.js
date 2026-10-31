@@ -3089,7 +3089,9 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     summaryRow('Время финиша', row.finishTime ? formatClock(row.finishTime) : '—');
     summaryRow(
       'Результат',
-      row.status === 'DNF' ? 'DNF' : (row.startTime && row.finishTime ? formatDuration(row.elapsed) : '—')
+      row.status && row.status !== 'OK'
+        ? row.status
+        : (row.startTime && row.finishTime ? formatDuration(row.elapsed) : '—')
     );
     if (rogaine) {
       summaryRow('Баллы без штрафа', String(row.score ?? 0));
