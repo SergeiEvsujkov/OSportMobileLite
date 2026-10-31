@@ -3224,7 +3224,7 @@ function markedCodes() {
 /** Сколько держится подтверждение отметки, как в приложении. */
 const MARKED_MESSAGE_MILLIS = 3000;
 /** Сколько ждать уточнения места, прежде чем предложить аварийную отметку. */
-const EMERGENCY_WAIT_MILLIS = 5000;
+const EMERGENCY_WAIT_MILLIS = 10000;
 /** Через сколько код считается ушедшим из кадра. */
 const CODE_GONE_MILLIS = 1000;
 /** Окно, в котором ищем ближайшую точку для отметки на ходу. */
@@ -3253,7 +3253,8 @@ function plural(count, one, few, many) {
 function inZone(point, position) {
   if (!point || !position) return false;
   if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return false;
-  const allowed = (point.accuracyMeters || 0) + position.accuracy + 5;
+  const allowed = (point.accuracyMeters || 0)
+    + position.accuracy * GPS_ACCURACY_FACTOR + 5;
   return distanceMeters(position.lat, position.lon, point.latitude, point.longitude) <= allowed;
 }
 
@@ -3288,7 +3289,8 @@ function bestBufferedPoint() {
   fixes.forEach((fix) => {
     points.forEach((point) => {
       if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return;
-      const allowed = (point.accuracyMeters || 0) + fix.accuracy + 5;
+      const allowed = (point.accuracyMeters || 0)
+        + fix.accuracy * GPS_ACCURACY_FACTOR + 5;
       const distance = distanceMeters(fix.lat, fix.lon, point.latitude, point.longitude);
       if (distance <= allowed && (!best || distance < best.distance)) {
         best = { point, fix, distance };
@@ -3383,7 +3385,7 @@ function renderHint(point, rough, auto) {
     return;
   }
   if (rough) {
-    hint.textContent = 'Ждём точное местоположение: погрешность больше 15 метров. '
+    hint.textContent = `Ждём точное местоположение: погрешность больше ${MAX_ACCURACY_METERS} метров. `
       + 'Отметка включится сама, как только приёмник уточнит место.';
     return;
   }
@@ -3580,7 +3582,7 @@ function markByCode(code, options = {}) {
   return 'recorded';
 }
 
-/** Аварийная отметка: стоим в зоне 5 секунд при грубой погрешности. */
+/** Аварийная отметка: стоим в зоне 10 секунд при грубой погрешности. */
 function handleEmergency(point, position, rough) {
   const loose = rough ? findMarkPoint(true) : null;
   const key = loose ? String(codeOf(loose)) : null;

@@ -16,7 +16,9 @@ const FINISH_CODE = 2;
 const START_CODE_ROGAINE = '01';
 const FINISH_CODE_ROGAINE = '02';
 const GPS_SLACK_METERS = 5;
-const MAX_ACCURACY_METERS = 15;
+const MAX_ACCURACY_METERS = 20;
+/** Погрешность GPS входит в зону с этим коэффициентом. */
+const GPS_ACCURACY_FACTOR = 1.5;
 
 /** Расстояние между двумя точками на земле, метры. */
 function distanceMeters(lat1, lon1, lat2, lon2) {
@@ -45,7 +47,8 @@ function canMark(point, position) {
       reason: `Погрешность ${Math.round(position.accuracy)} м больше ${MAX_ACCURACY_METERS} м — ждём уточнения.`,
     };
   }
-  const allowed = (point.accuracyMeters || 0) + position.accuracy + GPS_SLACK_METERS;
+  const allowed = (point.accuracyMeters || 0)
+    + position.accuracy * GPS_ACCURACY_FACTOR + GPS_SLACK_METERS;
   const actual = distanceMeters(position.lat, position.lon, point.latitude, point.longitude);
   if (actual > allowed) {
     return {
