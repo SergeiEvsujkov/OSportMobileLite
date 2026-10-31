@@ -2885,8 +2885,11 @@ function buildProtocol(distance) {
   });
 
   const rows = results.map((row) => {
-    const marks = Array.isArray(row.marks) ? row.marks : [];
-    const status = rogaine ? (row.finishTime ? 'OK' : 'DNF') : resultStatusOf({ ...row, marks }, distance);
+    // В протокол идут только отметки между последним стартом и первым финишем
+    const marks = attemptMarks(Array.isArray(row.marks) ? row.marks : [], rogaine);
+    const status = rogaine
+      ? (!row.startTime ? 'DNS' : row.finishTime ? 'OK' : 'DNF')
+      : resultStatusOf({ ...row, marks }, distance);
     const elapsed = row.startTime && row.finishTime ? row.finishTime - row.startTime : 0;
     const score = rogaine ? rogainePoints(marks) : 0;
     const penalty = rogaine && row.finishTime && row.startTime
@@ -3535,9 +3538,9 @@ function sanitizeMarks() {
   marks.forEach((mark, index) => {
     if (mark.start) startAt = index;
   });
-  let cleaned = startAt >= 0 ? marks.slice(startAt) : marks;
-  const finishAt = cleaned.findIndex((mark) => mark.finish);
-  if (finishAt >= 0) cleaned = cleaned.slice(0, finishAt + 1);
+  // Старт стирает всё до него; отметки после финиша сохраняются, но в
+  // результат не идут — их отсекает attemptMarks
+  const cleaned = startAt >= 0 ? marks.slice(startAt) : marks;
   if (cleaned.length !== marks.length || startAt > 0) {
     state.marks = cleaned;
     saveMarks();
@@ -3550,16 +3553,6 @@ function markByCode(code, options = {}) {
   const time = Number(options.time) || Date.now();
   const start = isStart(code, rogaineMode());
   const finish = isFinish(code, rogaineMode());
-  // Старт отмечается и после финиша: он начинает протокол заново и стирает
-  // прежние отметки, поэтому блокировать его нечем
-  if (!start && state.marks.some((mark) => mark.finish)) {
-    showOutcome('finish');
-    return 'finish';
-  }
-  if (!start && !state.marks.some((mark) => mark.start)) {
-    showOutcome('start');
-    return 'start';
-  }
 
   const label = markLabelFor(code);
   if (start) {

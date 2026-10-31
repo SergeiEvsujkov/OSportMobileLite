@@ -84,10 +84,29 @@ function pointMarks(marks) {
   return marks.filter((mark) => !mark.start && !mark.finish);
 }
 
+/**
+ * Отметки одной попытки: от последнего старта до первого финиша.
+ *
+ * После финиша отмечаться можно, но в результат идут только отметки этого
+ * отрезка. Без старта попытки нет — результат получает DNS.
+ */
+function attemptMarks(marks, rogaine) {
+  const list = marks || [];
+  let startAt = -1;
+  list.forEach((mark, index) => {
+    if (isStart(mark.code, rogaine)) startAt = index;
+  });
+  if (startAt < 0) return [];
+  const attempt = list.slice(startAt);
+  const finishAt = attempt.findIndex((mark) => isFinish(mark.code, rogaine));
+  return finishAt >= 0 ? attempt.slice(0, finishAt + 1) : attempt;
+}
+
 /** Собрать результат для отправки в облако. */
 function buildResult(event, marks, identity) {
-  const start = marks.find((mark) => mark.start);
-  const finish = marks.find((mark) => mark.finish);
+  const attempt = attemptMarks(marks, rogaineMode());
+  const start = attempt.find((mark) => isStart(mark.code, rogaineMode()));
+  const finish = attempt.find((mark) => isFinish(mark.code, rogaineMode()));
   return {
     userId: identity.code,
     nick: identity.nick,
@@ -95,7 +114,7 @@ function buildResult(event, marks, identity) {
     finishTime: finish ? finish.time : 0,
     // Версия строки: по ней слияние решает, чья запись новее
     updatedAt: Date.now(),
-    marks: marks.map((mark) => ({ code: mark.code, time: mark.time })),
+    marks: attempt.map((mark) => ({ code: mark.code, time: mark.time })),
   };
 }
 
