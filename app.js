@@ -1459,7 +1459,6 @@ function activateDistance() {
 function deactivateDistance() {
   stopWatch();
   stopQrScanner();
-  const eventId = state.event && state.event.id;
   state.activeId = null;
   try {
     localStorage.removeItem(STORAGE.active);
@@ -1467,19 +1466,10 @@ function deactivateDistance() {
     // приватный режим — просто не сохраняем
   }
 
-  // В приложении выгрузка стирает отметки этой дистанции
-  if (eventId) {
-    try {
-      localStorage.removeItem(marksKey(eventId));
-    } catch (error) {
-      // ничего страшного
-    }
-  }
-  state.marks = [];
-
+  // Отметки не трогаем: их стирает только кнопка очистки или выход из профиля
   // Остаёмся на этом же экране: дистанция просто перестаёт быть активной
   renderDetail();
-  setStatus('Дистанция выгружена, отметки не производятся');
+  setStatus('Дистанция деактивирована, отметки остались на устройстве');
 }
 
 /** Выход из профиля — как signOut в AppViewModel: отметки и активность снимаются. */
@@ -2048,10 +2038,10 @@ function openDeactivateDialog() {
   title.textContent = 'Деактивировать дистанцию?';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Отметиться по ней больше нельзя, пока не загрузите её снова. ВАШИ ОТМЕТКИ БУДУТ ОЧИЩЕНЫ.';
+  hint.textContent = 'Отметиться по ней больше нельзя, пока не загрузите её снова. Отметки останутся на устройстве: стереть их можно кнопкой очистки или выходом из профиля.';
 
   const warning = document.createElement('p');
-  warning.textContent = 'Если Вы не отправили результат прохождения дистанции, то он будет удалён с устройства.';
+  warning.textContent = 'Если Вы не отправили результат прохождения дистанции, его можно отправить позже — отметки не пропадут.';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
@@ -2082,7 +2072,7 @@ function openDeactivateDialog() {
 
   const exit = document.createElement('button');
   exit.className = 'button outlined';
-  exit.textContent = 'Не отправлять отметки и деактивировать';
+  exit.textContent = 'Не отправлять и деактивировать';
   exit.addEventListener('click', () => {
     overlay.remove();
     deactivateDistance();
@@ -2104,13 +2094,16 @@ function marksMatchDistance() {
   const distance = (state.event && state.event.distance) || {};
   const rogaine = rogaineMode();
   const starts = startAliasCodes(distance);
-  const allowed = new Set((distance.order || []).map((code) => String(code)));
+  // Проверяем по пунктам самой дистанции, а не только по порядку: у рогейна
+  // порядка нет, а у соседней дистанции коды могут совпасть
+  const allowed = new Set((distance.points || []).map((point) => String(codeOf(point))));
+  (distance.order || []).forEach((code) => allowed.add(String(code)));
   starts.forEach((code) => allowed.add(code));
 
   const finishCode = rogaine ? '02' : '2';
   allowed.add(finishCode);
 
-  return state.marks.every((mark) => allowed.has(String(mark.code)));
+  return state.marks.length > 0 && state.marks.every((mark) => allowed.has(String(mark.code)));
 }
 
 /** «Отметки не от этой дистанции?» — как в приложении. */
@@ -3925,6 +3918,12 @@ async function sendResult() {
     return;
   }
   writeJson(STORAGE.identity, who);
+
+  // Запрет: отметки не от этой дистанции — отправлять нельзя
+  if (!marksMatchDistance()) {
+    setStatus('Отметки не соответствуют этой дистанции. Отправлять их нельзя.', 'error');
+    return;
+  }
 
   const event = state.event;
   const result = buildResult(event.distance, state.marks, who);
