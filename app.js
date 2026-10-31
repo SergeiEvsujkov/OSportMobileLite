@@ -3892,7 +3892,15 @@ function startWatch() {
       renderMark();
     },
     (error) => {
-      $('markAccuracy').textContent = 'GPS недоступен: ' + error.message;
+      // Снимаем зависший watch: иначе кнопка повторного запроса не сработает
+      stopWatch();
+      if (error && error.code === 1) {
+        $('markAccuracy').textContent =
+          'Геолокация запрещена. Настройки → Конфиденциальность → '
+          + 'Службы геолокации → Safari Websites → Разрешить и включить точную геопозицию.';
+      } else {
+        $('markAccuracy').textContent = 'GPS недоступен: ' + error.message;
+      }
       $('gpsRetry').classList.remove('hidden');
     },
     { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 }
@@ -4324,7 +4332,7 @@ function bind() {
     sendResult();
   });
   $('gpsRetry').addEventListener('click', () => {
-    state.watchId = null;
+    stopWatch();
     $('gpsRetry').classList.add('hidden');
     startWatch();
   });
