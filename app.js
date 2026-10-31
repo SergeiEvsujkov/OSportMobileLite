@@ -1378,6 +1378,7 @@ function renderDetail() {
 
   showMap(mapPoints);
   renderProtocol(distance);
+  updateSendState();
 }
 
 /** Активация дистанции — кнопка «Активировать», как в приложении. */
@@ -3572,6 +3573,7 @@ function markByCode(code, options = {}) {
   state.candidateFix = null;
   state.autoMarked = options.auto ? String(code) : state.autoMarked;
   saveMarks();
+  updateSendState();
   playMarkSound();
   renderMark();
   showOutcome('recorded', label);
