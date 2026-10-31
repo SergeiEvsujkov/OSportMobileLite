@@ -2890,13 +2890,16 @@ function buildProtocol(distance) {
   });
 
   const rows = results.map((row) => {
+    const allMarks = Array.isArray(row.marks) ? row.marks : [];
     // В протокол идут только отметки между последним стартом и первым финишем
-    const marks = attemptMarks(Array.isArray(row.marks) ? row.marks : [], rogaine);
+    const counted = attemptMarks(allMarks, rogaine);
+    // В рогейне сплит показывает все отметки, а очки считаются по зачётным
+    const marks = rogaine ? allMarks : counted;
     const status = rogaine
       ? (!row.startTime ? 'DNS' : row.finishTime ? 'OK' : 'DNF')
       : resultStatusOf({ ...row, marks }, distance);
     const elapsed = row.startTime && row.finishTime ? row.finishTime - row.startTime : 0;
-    const score = rogaine ? rogainePoints(marks) : 0;
+    const score = rogaine ? rogainePoints(counted) : 0;
     const penalty = rogaine && row.finishTime && row.startTime
       ? rogainePenaltyOf(row.finishTime, row.startTime, distance.controlTimeMinutes, distance.penaltyPerMinute)
       : { minutes: 0, points: 0 };

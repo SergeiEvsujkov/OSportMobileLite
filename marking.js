@@ -109,9 +109,15 @@ function attemptMarks(marks, rogaine) {
 
 /** Собрать результат для отправки в облако. */
 function buildResult(event, marks, identity) {
-  const attempt = attemptMarks(marks, rogaineMode());
-  const start = attempt.find((mark) => isStart(mark.code, rogaineMode()));
-  const finish = attempt.find((mark) => isFinish(mark.code, rogaineMode()));
+  const rogaine = rogaineMode();
+  const attempt = attemptMarks(marks, rogaine);
+  const start = attempt.find((mark) => isStart(mark.code, rogaine));
+  const finish = attempt.find((mark) => isFinish(mark.code, rogaine));
+  // В рогейне результат хранит ВСЕ отметки: их показывает «Сплит участника».
+  // В зачёт протокола идут только отметки попытки (attempt).
+  const stored = rogaine
+    ? (marks || []).map((mark) => ({ code: mark.code, time: mark.time }))
+    : attempt.map((mark) => ({ code: mark.code, time: mark.time }));
   return {
     userId: identity.code,
     nick: identity.nick,
@@ -119,7 +125,7 @@ function buildResult(event, marks, identity) {
     finishTime: finish ? finish.time : 0,
     // Версия строки: по ней слияние решает, чья запись новее
     updatedAt: Date.now(),
-    marks: attempt.map((mark) => ({ code: mark.code, time: mark.time })),
+    marks: stored,
   };
 }
 
