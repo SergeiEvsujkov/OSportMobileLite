@@ -109,12 +109,15 @@ body {
 .icon {
   width: 24px;
   height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  flex: 0 0 auto;
   display: block;
   fill: currentColor;
 }
-.icon.small { width: 20px; height: 20px; }
-.icon-button .icon { width: 26px; height: 26px; }
-.tab-icon .icon { width: 24px; height: 24px; }
+.icon.small { width: 20px; height: 20px; min-width: 20px; min-height: 20px; }
+.icon-button .icon { width: 26px; height: 26px; min-width: 26px; min-height: 26px; }
+.tab-icon .icon { width: 24px; height: 24px; min-width: 24px; min-height: 24px; }
 
 .event-icon-img { width: 28px; height: 28px; display: block; }
 
