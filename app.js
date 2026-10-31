@@ -2947,7 +2947,9 @@ function buildProtocol(distance) {
   let best = null;
   ordered.forEach((row, index) => {
     if (row.status !== 'OK') return;
-    const key = rogaine ? `${row.total}/${row.elapsed}` : String(row.elapsed);
+    // Место — по времени, которое видит участник: доли секунды отбрасываются
+    const elapsedKey = Math.floor(row.elapsed / 1000);
+    const key = rogaine ? `${row.total}/${elapsedKey}` : String(elapsedKey);
     if (key === lastKey) {
       row.place = lastPlace;
     } else {
