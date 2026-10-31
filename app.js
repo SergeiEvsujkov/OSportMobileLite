@@ -1455,10 +1455,11 @@ function activateDistance() {
   setStatus('Теперь Вы можете производить отметку на этой дистанции', 'good');
 }
 
-/** Деактивация: отметки остаются на устройстве, дистанция перестаёт быть активной. */
+/** Деактивация: отметки стираются, дистанция перестаёт быть активной. */
 function deactivateDistance() {
   stopWatch();
   stopQrScanner();
+  const eventId = state.event && state.event.id;
   state.activeId = null;
   try {
     localStorage.removeItem(STORAGE.active);
@@ -1466,10 +1467,19 @@ function deactivateDistance() {
     // приватный режим — просто не сохраняем
   }
 
-  // Отметки не трогаем: их стирает только кнопка очистки или выход из профиля
+  // Деактивация стирает отметки этой дистанции
+  if (eventId) {
+    try {
+      localStorage.removeItem(marksKey(eventId));
+    } catch (error) {
+      // ничего страшного
+    }
+  }
+  state.marks = [];
+
   // Остаёмся на этом же экране: дистанция просто перестаёт быть активной
   renderDetail();
-  setStatus('Дистанция деактивирована, отметки остались на устройстве');
+  setStatus('Дистанция выгружена, отметки не производятся');
 }
 
 /** Выход из профиля — как signOut в AppViewModel: отметки и активность снимаются. */
@@ -2038,10 +2048,10 @@ function openDeactivateDialog() {
   title.textContent = 'Деактивировать дистанцию?';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Отметиться по ней больше нельзя, пока не загрузите её снова. Отметки останутся на устройстве: стереть их можно кнопкой очистки или выходом из профиля.';
+  hint.textContent = 'Отметиться по ней больше нельзя, пока не загрузите её снова. ВАШИ ОТМЕТКИ БУДУТ ОЧИЩЕНЫ.';
 
   const warning = document.createElement('p');
-  warning.textContent = 'Если Вы не отправили результат прохождения дистанции, его можно отправить позже — отметки не пропадут.';
+  warning.textContent = 'Если Вы не отправили результат прохождения дистанции, то он будет удалён с устройства.';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
@@ -2072,7 +2082,7 @@ function openDeactivateDialog() {
 
   const exit = document.createElement('button');
   exit.className = 'button outlined';
-  exit.textContent = 'Не отправлять и деактивировать';
+  exit.textContent = 'Не отправлять отметки и деактивировать';
   exit.addEventListener('click', () => {
     overlay.remove();
     deactivateDistance();
