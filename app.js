@@ -3888,11 +3888,13 @@ function identity() {
 /** Состояние отправки на экране дистанции; на профиле её больше нет. */
 function updateSendState() {
   if (!$('send')) return;
-  const finished = state.marks.some((mark) => mark.finish);
-  $('send').disabled = !state.event || !finished;
-  $('sendHint').textContent = finished
-    ? 'Результат готов к отправке.'
-    : 'Сначала отметьте финиш на дистанции.';
+  // Как в Android: отправить можно любые отметки, даже без финиша.
+  // Статус результата решит протокол — DNS, DNF или DSQ
+  const hasMarks = state.marks.length > 0;
+  $('send').disabled = !state.event || !hasMarks;
+  $('sendHint').textContent = hasMarks
+    ? 'Отметки готовы к отправке.'
+    : 'Сначала отметьте хотя бы один пункт.';
 }
 
 async function sendResult() {
@@ -3900,20 +3902,6 @@ async function sendResult() {
   if (!state.marks.length) {
     setStatus('Отметок нет: по этой дистанции ничего не отмечено, отправлять нечего.', 'error');
     return;
-  }
-
-  const distanceData = (state.event && state.event.distance) || {};
-  const route = (distanceData.order || []).map((code) => String(code))
-    .filter((code) => !isStart(code, false) && !isFinish(code, false));
-  if (route.length) {
-    const taken = state.marks
-      .filter((mark) => !mark.start && !mark.finish)
-      .map((mark) => String(mark.code));
-    const matches = taken.length === route.length && taken.every((code, index) => code === route[index]);
-    if (!matches) {
-      setStatus('Отметки не соответствуют этой дистанции. Отправлять их нельзя.', 'error');
-      return;
-    }
   }
 
   const who = identity();
