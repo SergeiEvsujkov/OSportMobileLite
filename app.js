@@ -3282,6 +3282,8 @@ function bestBufferedPoint() {
   fixes.forEach((fix) => {
     points.forEach((point) => {
       if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return;
+      // Старт и финиш отмечаются временем нажатия, а не старым замером
+      if (startOrFinishOf(codeOf(point))) return;
       const allowed = (point.accuracyMeters || 0) + fix.accuracy + 5;
       const distance = distanceMeters(fix.lat, fix.lon, point.latitude, point.longitude);
       if (distance <= allowed && (!best || distance < best.distance)) {
