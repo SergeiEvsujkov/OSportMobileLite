@@ -194,6 +194,19 @@ function showTab(name, options = {}) {
     setStatus('Сначала активируйте событие', 'error');
     return;
   }
+  // Вне промежутка проведения отметка не открывается — как в приложении
+  if (name === 'mark') {
+    const source = (state.event && (state.event.entry || state.event.distance)) || {};
+    const period = periodState(source);
+    if (period === 'BEFORE') {
+      setStatus(`Событие ещё не началось: ${formatDate(source.startTime)}`, 'error');
+      return;
+    }
+    if (period === 'AFTER') {
+      setStatus('Событие уже закончилось', 'error');
+      return;
+    }
+  }
 
   // Переход на другой экран убирает прошлое сообщение
   setStatus('');
@@ -1362,8 +1375,19 @@ function activateDistance() {
     return;
   }
 
-  // Участнику нельзя начать после окончания события (у автора проверки нет)
-  if (entry.finishTime && Date.now() > entry.finishTime) {
+  // Участнику нельзя начать до начала и после окончания события
+  const period = periodState({
+    startTime: entry.startTime || distance.startTime || 0,
+    finishTime: entry.finishTime || distance.finishTime || 0,
+  });
+  if (period === 'BEFORE') {
+    setStatus(
+      `Событие ещё не началось: ${formatDate(entry.startTime || distance.startTime)}`,
+      'error'
+    );
+    return;
+  }
+  if (period === 'AFTER') {
     setStatus('Событие уже закончилось', 'error');
     return;
   }
@@ -3390,8 +3414,11 @@ function renderMark() {
       state.manualRefused = false;
       markByCode(code);
     }
-  } else if (!code) {
+  } else {
+    // Ушли с пункта, встали на старт/финиш или выключили автоотметку:
+    // ключ сбрасывается, как autoMarkKey в Android
     state.autoMarked = null;
+    if (!auto) state.manualRefused = false;
   }
 
   handleEmergency(point, position, rough);
