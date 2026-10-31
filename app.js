@@ -3099,6 +3099,54 @@ function protocolRow(row, rogaine) {
  * ниже таблица «№ п/п | Время отметки (номер КП)»: у пункта номер по порядку,
  * время этапа и накопленное время. Старт и финиш — без номера.
  */
+/** Темп на километр: «5:42/км». */
+function formatPace(msPerKm) {
+  const total = Math.max(0, Math.floor(msPerKm / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}/км`;
+}
+
+function formatDistance(meters) {
+  return meters < 1000
+    ? `${Math.round(meters)} м`
+    : `${(meters / 1000).toFixed(2).replace('.', ',')} км`;
+}
+
+/** Общее расстояние по прямой и средняя скорость за прохождение. */
+function courseStatsWeb(points, startTime, finishTime) {
+  const located = (points || []).filter(Boolean);
+  if (located.length < 2) return null;
+  let meters = 0;
+  for (let index = 1; index < located.length; index += 1) {
+    const previous = located[index - 1];
+    const current = located[index];
+    if (previous.latitude == null || previous.longitude == null
+      || current.latitude == null || current.longitude == null) continue;
+    meters += distanceMeters(previous.latitude, previous.longitude, current.latitude, current.longitude);
+  }
+  const average = startTime && finishTime && finishTime > startTime && meters > 0
+    ? formatPace(((finishTime - startTime) * 1000) / meters)
+    : null;
+  return { meters, average };
+}
+
+/** Лучшие на отрезках — только по строкам протокола, отобранным настройкой. */
+function orienteeringLegLeaders(distance) {
+  const leaders = new Map();
+  buildProtocol(distance).filter((row) => row.status === 'OK').forEach((row) => {
+    const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+    for (let index = 1; index < marks.length; index += 1) {
+      const leg = (marks[index].time || 0) - (marks[index - 1].time || 0);
+      if (leg <= 0) continue;
+      const key = `${marks[index - 1].code}>${marks[index].code}`;
+      const known = leaders.get(key);
+      if (!known || leg < known.millis) {
+        leaders.set(key, { nick: row.nick || row.userId || 'Участник', millis: leg });
+      }
+    }
+  });
+  return leaders;
+}
+
 function openParticipant(row, rogaine, fromProtocol = true) {
   const distance = (state.event && state.event.distance) || {};
 
@@ -3139,10 +3187,23 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   const list = $('participantMarks');
   list.textContent = '';
   const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  const courseStats = courseStatsWeb(
+    marks.map((mark) => pointByCode.get(String(mark.code))),
+    row.startTime,
+    row.finishTime
+  );
+  if (courseStats) {
+    summaryRow('Средняя скорость', courseStats.average || '—');
+    if (rogaine) summaryRow('Расстояние', formatDistance(courseStats.meters));
+  }
 
   const starts = startAliasCodes(distance);
+  const gps = String(distance.markMode || '').toUpperCase() !== 'QR';
+  const pointByCode = new Map((distance.points || []).map((point) => [String(point.code), point]));
+  const legLeaders = !rogaine && fromProtocol ? orienteeringLegLeaders(distance) : new Map();
   let number = 0;
   let previousRounded = null;
+  let previousCode = null;
   // Пункты, отмеченные хотя бы раз: повтор номера не получает, а помечается
   // словом «дубль» — как на экране сплита в приложении
   const seen = new Set();
@@ -3161,6 +3222,18 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     // Этап — разница уже округлённых накопленных времён: сумма этапов
     // сходится с последним накопленным, без расхождения в секунду
     const leg = startPoint || previousRounded === null ? null : elapsedRounded - previousRounded;
+    const point = pointByCode.get(code);
+    const previousPoint = previousCode === null ? null : pointByCode.get(previousCode);
+    let speed = null;
+    if (gps && leg !== null && leg > 0 && point && previousPoint) {
+      const meters = distanceMeters(previousPoint.latitude, previousPoint.longitude, point.latitude, point.longitude);
+      if (meters > 0) speed = formatPace((leg * 1000) / meters);
+    }
+    let best = null;
+    if (!rogaine && fromProtocol && previousCode !== null && leg !== null) {
+      const leader = legLeaders.get(`${previousCode}>${code}`);
+      if (leader) best = `${leader.nick} +${formatSplitTime(Math.max(0, leg - leader.millis))}`;
+    }
 
     let label;
     if (startPoint) {
@@ -3194,9 +3267,27 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     value.append(first, second);
     item.append(num, value);
+    if (speed || best) {
+      const block = document.createElement('div');
+      block.className = 'split-speed';
+      if (speed) {
+        const speedLine = document.createElement('span');
+        speedLine.className = 'split-speed-value';
+        speedLine.textContent = speed;
+        block.append(speedLine);
+      }
+      if (best) {
+        const bestLine = document.createElement('span');
+        bestLine.className = 'split-speed-best';
+        bestLine.textContent = best;
+        block.append(bestLine);
+      }
+      item.append(block);
+    }
     list.append(item);
 
     previousRounded = elapsedRounded;
+    previousCode = code;
   });
 
   // Своя отметка: сумма баллов одной строкой под таблицей, не в сводке.
