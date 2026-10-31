@@ -99,7 +99,9 @@ function attemptMarks(marks, rogaine) {
   list.forEach((mark, index) => {
     if (isStart(mark.code, rogaine)) startAt = index;
   });
-  if (startAt < 0) return [];
+  // Без старта отметки всё равно отправляются: результат получит DNS,
+  // но запись участника не должна пропасть
+  if (startAt < 0) return list.slice();
   const attempt = list.slice(startAt);
   const finishAt = attempt.findIndex((mark) => isFinish(mark.code, rogaine));
   return finishAt >= 0 ? attempt.slice(0, finishAt + 1) : attempt;
