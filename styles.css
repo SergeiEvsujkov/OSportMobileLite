@@ -23,6 +23,10 @@
   --author-own: #1565c0;
   --author-mine: #2e7d32;
   --author-other: #c62828;
+  --active-event-bg: #e2f3e5;
+  --mark-green-text: #2e7d32;
+  --map-label-bg: rgba(255, 255, 255, .82);
+  --map-label-on: #1d1b20;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -51,6 +55,10 @@
     --author-own: #8ab4f8;
     --author-mine: #81c995;
     --author-other: #f28b82;
+    --active-event-bg: #1d3527;
+    --mark-green-text: #81c995;
+    --map-label-bg: rgba(20, 18, 24, .86);
+    --map-label-on: #e6e0e9;
   }
 }
 
@@ -232,7 +240,7 @@ body {
   color: var(--on-surface-variant);
 }
 .mark-ready { margin: 0; font-size: 13px; color: var(--on-surface-variant); }
-.mark-ready.ok { color: var(--mark-green); }
+.mark-ready.ok { color: var(--mark-green-text); }
 .mark-mode { margin: 0; font-size: 12px; color: var(--on-surface-variant); }
 
 .qr {
@@ -298,7 +306,8 @@ body {
 .events-list { display: flex; flex-direction: column; gap: 12px; }
 
 .event-card {
-  background: var(--surface);
+  background: var(--surface-container-high);
+  border: 1px solid var(--outline-variant);
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .14);
@@ -376,8 +385,8 @@ body {
   max-width: 190px;
   font-size: 10px;
   line-height: 1.2;
-  color: var(--on-surface);
-  background: rgba(255, 255, 255, .82);
+  color: var(--map-label-on);
+  background: var(--map-label-bg);
   padding: 2px 6px;
   border-radius: 6px;
 }
@@ -555,6 +564,10 @@ html[data-theme="light"] {
   --author-own: #1565c0;
   --author-mine: #2e7d32;
   --author-other: #c62828;
+  --active-event-bg: #e2f3e5;
+  --mark-green-text: #2e7d32;
+  --map-label-bg: rgba(255, 255, 255, .82);
+  --map-label-on: #1d1b20;
   --primary: #6650a4;
   --on-primary: #ffffff;
   --primary-container: #eaddff;
@@ -581,6 +594,10 @@ html[data-theme="dark"] {
   --author-own: #8ab4f8;
   --author-mine: #81c995;
   --author-other: #f28b82;
+  --active-event-bg: #1d3527;
+  --mark-green-text: #81c995;
+  --map-label-bg: rgba(20, 18, 24, .86);
+  --map-label-on: #e6e0e9;
   --primary: #d0bcff;
   --on-primary: #381e72;
   --primary-container: #4f378b;
@@ -750,12 +767,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .modal .modal-actions { display: flex; flex-direction: column; gap: 8px; }
 
 /* Начатая дистанция: карточка зеленеет, в углу бежит человечек — как в приложении */
-.event-card.active-event { background: #e2f3e5; }
-html[data-theme="dark"] .event-card.active-event { background: #1d3527; }
+.event-card.active-event { background: var(--active-event-bg); }
 
 .distance-card { position: relative; }
-.distance-card.active-event { background: #e2f3e5; }
-html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
+.distance-card.active-event { background: var(--active-event-bg); }
 
 .button.text { background: transparent; color: var(--primary); }
 

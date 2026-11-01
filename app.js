@@ -806,6 +806,14 @@ function saveSettings(next) {
   applySettings();
 }
 
+function updateThemeColor() {
+  const explicit = document.documentElement.dataset.theme;
+  const dark = explicit === 'dark' ||
+    (explicit !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const meta = $('themeColor');
+  if (meta) meta.setAttribute('content', dark ? '#141218' : '#fef7ff');
+}
+
 function applySettings() {
   const current = settings();
   if (current.theme === 'system') {
@@ -814,7 +822,10 @@ function applySettings() {
     document.documentElement.dataset.theme = current.theme;
   }
   document.body.classList.toggle('large', Boolean(current.large));
+  updateThemeColor();
 }
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeColor);
 
 function openSettings() {
   renderSettings();
