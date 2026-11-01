@@ -532,6 +532,30 @@ function mergeResults(cloudResults, localResults) {
  * Правило одно для ориентирования и рогейна: у обоих запись обновляется
  * целиком из облака, а отметки и активность остаются на устройстве.
  */
+/**
+ * Собирает entry из свежей дистанции, сохраняя только локальные поля.
+ * Облако — источник истины для автора, названия, группы, номера и сроков.
+ */
+function entryFromCloud(previous, distance, id, kind) {
+  const source = distance || {};
+  const old = previous || {};
+  const has = (key) => Object.prototype.hasOwnProperty.call(source, key);
+  const value = (key, fallback) => (has(key) ? source[key] : fallback);
+  return Object.assign({}, old, {
+    id,
+    kind,
+    name: value('name', old.name || ''),
+    organizer: value('organizer', old.organizer || ''),
+    ownerId: value('ownerId', old.ownerId || ''),
+    groupId: value('groupId', old.groupId || ''),
+    number: value('number', old.number),
+    startTime: value('startTime', old.startTime),
+    finishTime: value('finishTime', old.finishTime),
+    markMode: value('markMode', old.markMode),
+    isDraft: value('isDraft', old.isDraft),
+  });
+}
+
 async function syncFromCloud() {
   if (state.syncing) return;
   const ids = new Set();
@@ -568,11 +592,12 @@ async function syncFromCloud() {
           }
           const previous = readJson(STORAGE.event + '.' + id, null);
           const kind = full.kind || (previous && previous.kind) || 'distance';
-          const entry = Object.assign({}, (previous && previous.entry) || {}, {
+          const entry = entryFromCloud(
+            (previous && previous.entry) || {},
+            full.distance,
             id,
-            kind,
-            name: full.distance.name || ((previous && previous.entry && previous.entry.name) || ''),
-          });
+            kind
+          );
           const localResults = (previous && previous.distance && previous.distance.results) || [];
           const distance = Object.assign({}, full.distance, {
             results: mergeResults(full.distance.results, localResults),
@@ -740,8 +765,9 @@ function authorRow(entry, withName, withIcon = true, distance = {}) {
   person.append(use);
 
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
-  const own = me.code && entry.ownerId && me.code === entry.ownerId;
-  person.style.color = personColor(entry, distance);
+  const ownerId = entry.ownerId || (distance && distance.ownerId) || '';
+  const own = me.code && ownerId && me.code === ownerId;
+  person.style.color = personColor(Object.assign({}, entry, { ownerId }), distance);
 
   if (withIcon) {
     // Способ отметки — слева от автора, как в приложении
@@ -759,7 +785,8 @@ function authorRow(entry, withName, withIcon = true, distance = {}) {
   if (withName) {
     const name = document.createElement('span');
     name.className = 'author-name';
-    name.textContent = (entry.organizer || 'Автор не указан') + (own ? ' — Это Вы' : '');
+    const organizer = entry.organizer || (distance && distance.organizer) || 'Автор не указан';
+    name.textContent = organizer + (own ? ' — Это Вы' : '');
     row.append(name);
   }
   return row;
@@ -1061,8 +1088,10 @@ async function downloadEvent(entry) {
     const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
     if (!data.distance) throw new Error('Сервис не отдал событие');
 
-    const key = 'distances/' + entry.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
-    const event = { id: entry.id, kind: data.kind, key, distance: data.distance, entry };
+    const kind = data.kind || entry.kind || 'distance';
+    const freshEntry = entryFromCloud(entry, data.distance, entry.id, kind);
+    const key = 'distances/' + entry.id + (kind === 'rogaine' ? '.rogaine' : '.osport');
+    const event = { id: entry.id, kind, key, distance: data.distance, entry: freshEntry };
 
     writeJson(STORAGE.event, event);
     writeJson(STORAGE.event + '.' + entry.id, event);
@@ -1071,7 +1100,7 @@ async function downloadEvent(entry) {
     // Группа — карточка с несколькими дистанциями: в приложении они лежат
     // вместе по groupId (или по общему номеру), и на главном видны все.
     // Поэтому скачиваем не только выбранную запись, но и её соседей
-    await downloadGroup(entry, event);
+    await downloadGroup(freshEntry, event);
 
     state.event = event;
     state.marks = loadMarks(entry.id);
@@ -1108,17 +1137,26 @@ async function downloadGroup(entry, downloaded) {
   for (const sibling of siblings) {
     const saved = readJson(STORAGE.event + '.' + sibling.id, null);
     if (saved && saved.distance) {
-      items.push({ id: sibling.id, kind: saved.kind, entry: sibling, distance: saved.distance });
+      const savedEntry = entryFromCloud(sibling, saved.distance, sibling.id, saved.kind);
+      items.push({ id: sibling.id, kind: saved.kind, entry: savedEntry, distance: saved.distance });
       continue;
     }
     try {
       const data = await callFunction('action=get&id=' + encodeURIComponent(sibling.id));
       if (!data.distance) continue;
-      const key = 'distances/' + sibling.id + (data.kind === 'rogaine' ? '.rogaine' : '.osport');
-      const item = { id: sibling.id, kind: data.kind, key, distance: data.distance, entry: sibling };
+      const siblingKind = data.kind || sibling.kind || 'distance';
+      const siblingEntry = entryFromCloud(sibling, data.distance, sibling.id, siblingKind);
+      const key = 'distances/' + sibling.id + (siblingKind === 'rogaine' ? '.rogaine' : '.osport');
+      const item = {
+        id: sibling.id,
+        kind: siblingKind,
+        key,
+        distance: data.distance,
+        entry: siblingEntry,
+      };
       writeJson(STORAGE.event + '.' + sibling.id, item);
       rememberEvent(item);
-      items.push({ id: sibling.id, kind: data.kind, entry: sibling, distance: data.distance });
+      items.push({ id: sibling.id, kind: siblingKind, entry: siblingEntry, distance: data.distance });
     } catch (error) {
       // Одна недоступная дистанция не должна ломать всю группу
     }
@@ -1157,7 +1195,8 @@ function renderGroup() {
     rows.append(detailRow(formatDate(first.startTime) + ' - ' + formatDate(first.finishTime)));
   }
   rows.append(detailRow(`Количество дистанций: ${items.length}`));
-  if (first.organizer) rows.append(detailRow(`Организатор: ${first.organizer}`));
+  const organizer = first.organizer || firstDistance.organizer || '';
+  if (organizer) rows.append(detailRow(`Организатор: ${organizer}`));
 
   // Общая карта группы: пункты всех дистанций, нумерация по порядку появления
   const labels = new Map();
@@ -1302,7 +1341,8 @@ function renderDetail() {
 
   const rows = $('detailRows');
   rows.textContent = '';
-  if (entry.organizer) rows.append(detailRow(`Организатор: ${entry.organizer}`));
+  const organizer = entry.organizer || distance.organizer || '';
+  if (organizer) rows.append(detailRow(`Организатор: ${organizer}`));
   if (entry.startTime) {
     rows.append(detailRow(formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime)));
   }
@@ -4453,12 +4493,13 @@ async function refreshCurrentEvent() {
     const distance = Object.assign({}, full.distance, {
       results: mergeResults(full.distance.results, localResults),
     });
+    const kind = full.kind || current.kind;
     const item = {
       id: current.id,
-      kind: full.kind || current.kind,
+      kind,
       key: current.key,
       distance,
-      entry: current.entry,
+      entry: entryFromCloud(current.entry || {}, full.distance, current.id, kind),
     };
     writeJson(STORAGE.event + '.' + item.id, item);
     writeJson(STORAGE.event, item);
