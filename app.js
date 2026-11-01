@@ -2801,11 +2801,10 @@ function formatDuration(millis) {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
 
-/** Время в сплитах: ноль показывается как 0:00. */
+/** Время в сплитах: ноль показывается как 0:00, дальше как в Android. */
 function formatSplitTime(millis) {
   const value = Number.isFinite(millis) ? Math.max(0, millis) : 0;
-  const total = Math.floor(value / 1000);
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  return value > 0 ? formatDuration(value) : '0:00';
 }
 
 function formatClock(millis) {
