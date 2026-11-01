@@ -835,6 +835,69 @@ html[data-theme="dark"] .distance-card.active-event { background: #1d3527; }
   color: var(--on-surface-variant);
 }
 .mark-outcome.error { color: var(--error, #b3261e); }
+
+/* Подтверждение отметки: баннер и зелёная вспышка рамки. */
+.mark-banner {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  color: #fff;
+  background: var(--mark-green, #1b7a3d);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .28);
+  opacity: 0;
+  transform: translateY(-140%);
+  transition: transform .22s ease, opacity .22s ease;
+  pointer-events: none;
+}
+.mark-banner.show { opacity: 1; transform: translateY(0); }
+.mark-banner-icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, .2);
+}
+.mark-banner-text { display: flex; flex-direction: column; gap: 2px; }
+.mark-banner-text strong { font-size: 18px; letter-spacing: .02em; }
+.mark-banner-text span { font-size: 14px; opacity: .95; }
+
+.mark-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  pointer-events: none;
+  border: 7px solid transparent;
+  opacity: 0;
+}
+.mark-flash.show {
+  border-color: var(--mark-green, #1b7a3d);
+  animation: mark-frame-flash .8s ease-out;
+}
+@keyframes mark-frame-flash {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mark-circle.mark-pop { animation: mark-circle-pop .62s ease-out; }
+@keyframes mark-circle-pop {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(27, 122, 61, .55); }
+  45% { transform: scale(1.06); box-shadow: 0 0 0 22px rgba(27, 122, 61, 0); }
+  100% { transform: scale(1); }
+}
+
 .mark-labels {
   margin: 4px 24px 0;
   text-align: center;

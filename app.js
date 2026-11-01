@@ -3537,6 +3537,40 @@ function outcomeText(kind) {
   }[kind] || '';
 }
 
+/** Крупное подтверждение отметки: баннер, вспышка рамки и толчок кнопки. */
+function showMarkConfirmation(label, time) {
+  const banner = $('markBanner');
+  if (!banner) return;
+  $('markBannerTitle').textContent = 'ОТМЕТКА ЗАПИСАНА';
+  const number = label && label.number ? label.number : '';
+  const duplicate = label && label.duplicate ? ' · дубль' : '';
+  $('markBannerDetail').textContent = `${number}${duplicate} · ${formatClock(time)}`;
+
+  banner.classList.remove('hidden');
+  banner.classList.remove('show');
+  void banner.offsetWidth;
+  banner.classList.add('show');
+  clearTimeout(state.markBannerTimer);
+  state.markBannerTimer = setTimeout(() => {
+    banner.classList.remove('show');
+    setTimeout(() => banner.classList.add('hidden'), 260);
+  }, 4000);
+
+  const flash = $('markFlash');
+  if (flash) {
+    flash.classList.remove('show');
+    void flash.offsetWidth;
+    flash.classList.add('show');
+  }
+
+  const circle = $('bigMark');
+  if (circle) {
+    circle.classList.remove('mark-pop');
+    void circle.offsetWidth;
+    circle.classList.add('mark-pop');
+  }
+}
+
 /** Показать исход на 3 секунды и подписи отметки рогейна. */
 function showOutcome(kind, label, code) {
   const text = $('markOutcome');
@@ -3784,6 +3818,7 @@ function markByCode(code, options = {}) {
   playMarkSound();
   renderMark();
   showOutcome('recorded', label);
+  showMarkConfirmation(label, time);
 
   if (finish && settings().autoSend && identity().nick && identity().code.length >= 6) {
     sendResult();
