@@ -704,12 +704,12 @@ const RESUBMIT_TEXTS = {
  */
 function personColor(entry, distance) {
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
-  if (!me.code) return '#000000';
-  if (entry && entry.ownerId && me.code === entry.ownerId) return '#1565c0';
+  if (!me.code) return 'var(--author-anon)';
+  if (entry && entry.ownerId && me.code === entry.ownerId) return 'var(--author-own)';
 
   const results = (distance && distance.results) || [];
   const mine = results.some((row) => row && row.userId === me.code);
-  return mine ? '#2e7d32' : '#c62828';
+  return mine ? 'var(--author-mine)' : 'var(--author-other)';
 }
 
 /** Значки: способ отметки и автор; цвет человечка — как в приложении. */
