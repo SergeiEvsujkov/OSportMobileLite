@@ -3163,6 +3163,40 @@ function visibleOrienteeringMarks(distance, marks, status) {
   return shown;
 }
 
+/**
+ * DSQ и DNF: полный маршрут по позициям. Правильные отметки и финиш
+ * сохраняют время, у любой позиции без отметки — состояние noMark.
+ */
+function fullRouteMarks(distance, marks) {
+  const route = (distance.order || []).map((code) => String(code));
+  const starts = startAliasCodes(distance);
+  const accepted = [];
+  let position = 0;
+  marks.forEach((mark) => {
+    if (position < route.length && route[position] === String(mark.code)) {
+      accepted.push(mark);
+      position += 1;
+    }
+  });
+  const finishMark = marks.find((mark) => isFinish(String(mark.code), false));
+  return route.map((code, index) => {
+    const row = accepted[index];
+    if (row && String(row.code) === code) return row;
+    if (isFinish(code, false) && finishMark) return finishMark;
+    const finish = isFinish(code, false);
+    const checkpoint = !starts.has(code) && !finish;
+    const routeNumber = checkpoint
+      ? route.slice(0, index).filter((item) => !starts.has(item) && !isFinish(item, false)).length + 1
+      : null;
+    return {
+      code,
+      time: null,
+      routeState: 'noMark',
+      routeNumber,
+    };
+  });
+}
+
 /** Отметки рогейна без повторных КП: для скорости и общего расстояния. */
 function uniqueRogaineMarks(marks) {
   const seen = new Set();
@@ -3251,9 +3285,12 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   const list = $('participantMarks');
   list.textContent = '';
   const allMarks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  const fullRoute = !rogaine && (row.status === 'DSQ' || row.status === 'DNF');
   const marks = rogaine
     ? allMarks
-    : visibleOrienteeringMarks(distance, allMarks, row.status);
+    : (fullRoute
+      ? fullRouteMarks(distance, allMarks)
+      : visibleOrienteeringMarks(distance, allMarks, row.status));
   const pointByCode = new Map((distance.points || []).map((point) => [String(point.code), point]));
   const statsMarks = rogaine ? uniqueRogaineMarks(marks) : marks;
   const courseStats = courseStatsWeb(
@@ -3286,11 +3323,12 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const code = String(mark.code);
     const startPoint = starts.has(code);
     const finishPoint = isFinish(code, rogaine);
+    const noMark = mark.routeState === 'noMark';
     // Верная отметка ориентирования: только следующий пункт маршрута.
     // Неверные КП в расчёте скорости и отставания не участвуют.
-    if (startPoint && route.length) routePosition = Math.max(0, route.indexOf(code));
-    let accepted = startPoint;
-    if (!startPoint && route.length) {
+    if (!noMark && startPoint && route.length) routePosition = Math.max(0, route.indexOf(code));
+    let accepted = !noMark && startPoint;
+    if (!noMark && !startPoint && route.length) {
       const expected = route[routePosition + 1];
       accepted = expected !== undefined && expected === code;
       if (accepted) routePosition += 1;
@@ -3305,11 +3343,15 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     // отметках» нумеруются все отметки подряд, включая повторные
     const checkpoint = fromProtocol && rogaineCheckpoint;
     const repeat = checkpoint && repeatMark;
-    const elapsed = row.startTime && mark.time ? Math.max(0, mark.time - row.startTime) : 0;
-    const elapsedRounded = Math.floor(elapsed / 1000) * 1000;
+    const elapsed = !noMark && row.startTime && mark.time
+      ? Math.max(0, mark.time - row.startTime)
+      : null;
+    const elapsedRounded = elapsed === null ? null : Math.floor(elapsed / 1000) * 1000;
     // Этап — разница уже округлённых накопленных времён: сумма этапов
     // сходится с последним накопленным, без расхождения в секунду
-    const leg = startPoint || previousRounded === null ? null : elapsedRounded - previousRounded;
+    const leg = noMark || startPoint || previousRounded === null
+      ? null
+      : elapsedRounded - previousRounded;
     const point = pointByCode.get(code);
     const acceptedLeg = acceptedCheckpoint && previousAcceptedTime !== null && mark.time
       ? Math.floor(Math.max(0, mark.time - previousAcceptedTime) / 1000) * 1000
@@ -3349,6 +3391,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     num.className = 'split-number';
     if (startPoint || finishPoint) num.textContent = '';
     else if (repeat) num.textContent = 'дубль';
+    else if (noMark) num.textContent = mark.routeNumber ? `${mark.routeNumber}.` : '';
     else num.textContent = number + '.';
 
     const value = document.createElement('span');
@@ -3356,11 +3399,13 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     const first = document.createElement('span');
     first.className = 'split-line';
-    first.textContent = leg === null ? label : `${label} ${formatSplitTime(leg)}`;
+    first.textContent = noMark
+      ? `${label} нет отметки`
+      : (leg === null ? label : `${label} ${formatSplitTime(leg)}`);
 
     const second = document.createElement('span');
     second.className = 'split-line total';
-    second.textContent = formatSplitTime(elapsedRounded);
+    second.textContent = noMark ? '' : formatSplitTime(elapsedRounded);
 
     value.append(first, second);
     item.append(num, value);
@@ -3383,8 +3428,10 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     }
     list.append(item);
 
-    previousRounded = elapsedRounded;
-    previousCode = code;
+    if (!noMark) {
+      previousRounded = elapsedRounded;
+      previousCode = code;
+    }
     if (accepted) {
       previousAcceptedCode = code;
       previousAcceptedTime = mark.time;
