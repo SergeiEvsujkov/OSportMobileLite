@@ -3442,6 +3442,18 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     }
   });
 
+  const statusReason = row.status === 'DSQ'
+    ? 'Нарушен порядок прохождения КП'
+    : (row.status === 'DNF'
+      ? 'Нет финиша'
+      : (row.status === 'DNS' ? 'Нет старта' : null));
+  if (statusReason) {
+    const reason = document.createElement('div');
+    reason.className = 'split-reason';
+    reason.textContent = statusReason;
+    list.append(reason);
+  }
+
   // Своя отметка: сумма баллов одной строкой под таблицей, не в сводке.
   // Прежнюю строку убираем, иначе при повторном открытии они копились бы
   const oldTotal = $('myMarksTotal');

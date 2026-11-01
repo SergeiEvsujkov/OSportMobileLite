@@ -489,6 +489,11 @@ body {
 .split-behind { min-width: 104px; text-align: right; font-variant-numeric: tabular-nums; color: var(--on-surface-variant); }
 .split-row.off-route { color: var(--error); }
 .split-row.off-route .split-behind { color: var(--error); }
+.split-reason {
+  padding: 10px 4px 2px;
+  font-size: 13px;
+  color: var(--on-surface-variant);
+}
 
 .proto-row.head {
   font-size: 13px;
