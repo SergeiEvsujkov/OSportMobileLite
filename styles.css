@@ -153,6 +153,12 @@ body {
 
 .event-icon-img { width: 28px; height: 28px; display: block; }
 
+/* Чёрная PNG-иконка группы на тёмном фоне: инверсия только в тёмной теме */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .event-icon-img { filter: invert(1); }
+}
+html[data-theme="dark"] .event-icon-img { filter: invert(1); }
+
 .head-actions { display: flex; align-items: center; gap: 2px; margin-left: auto; }
 .head-actions .icon-button { margin-left: 0; }
 
