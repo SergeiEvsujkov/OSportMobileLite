@@ -3134,6 +3134,36 @@ function courseStatsWeb(points, startTime, finishTime) {
  * DNF участвует наравне с финишировавшими. Берутся только верные отметки
  * по порядку маршрута.
  */
+/**
+ * Отметки ориентирования до последней правильной. DSQ и DNF не показывают
+ * хвост после ошибки; при DSQ финиш тоже скрыт.
+ */
+function visibleOrienteeringMarks(distance, marks, status) {
+  if (status === 'OK') return marks;
+  const route = (distance.order || []).map((code) => String(code));
+  if (!route.length) return marks;
+  const starts = startAliasCodes(distance);
+  let position = -1;
+  let lastAccepted = -1;
+  marks.forEach((mark, index) => {
+    const code = String(mark.code);
+    if (starts.has(code)) {
+      position = Math.max(0, route.indexOf(code));
+      lastAccepted = index;
+      return;
+    }
+    const expected = route[position + 1];
+    if (expected !== undefined && expected === code) {
+      position += 1;
+      lastAccepted = index;
+    }
+  });
+  if (lastAccepted < 0) return [];
+  let shown = marks.slice(0, lastAccepted + 1);
+  if (status === 'DSQ') shown = shown.filter((mark) => !isFinish(String(mark.code), false));
+  return shown;
+}
+
 /** Отметки рогейна без повторных КП: для скорости и общего расстояния. */
 function uniqueRogaineMarks(marks) {
   const seen = new Set();
@@ -3221,7 +3251,10 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
   const list = $('participantMarks');
   list.textContent = '';
-  const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  const allMarks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  const marks = rogaine
+    ? allMarks
+    : visibleOrienteeringMarks(distance, allMarks, row.status);
   const pointByCode = new Map((distance.points || []).map((point) => [String(point.code), point]));
   const statsMarks = rogaine ? uniqueRogaineMarks(marks) : marks;
   const courseStats = courseStatsWeb(
@@ -3229,7 +3262,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     row.startTime,
     row.finishTime
   );
-  if (courseStats) {
+  if (courseStats && row.status === 'OK') {
     summaryRow('Средняя скорость', courseStats.average || '—');
     if (rogaine) summaryRow('Расстояние', formatDistance(courseStats.meters));
   }
