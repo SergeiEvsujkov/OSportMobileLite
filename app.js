@@ -3763,7 +3763,7 @@ function renderMark() {
     if (state.autoMarked !== code) {
       state.autoMarked = code;
       state.manualRefused = false;
-      markByCode(code, pointFix ? { time: pointFix.at } : {});
+      markByCode(code);
     }
   } else {
     // Ушли с пункта, встали на старт/финиш или выключили автоотметку:
@@ -3802,7 +3802,7 @@ function markCandidate() {
     return;
   }
   state.manualRefused = false;
-  markByCode(code, state.candidateFix ? { time: state.candidateFix.at } : {});
+  markByCode(code);
 }
 
 /**
@@ -3831,7 +3831,8 @@ function sanitizeMarks() {
 
 /** Запись отметки: одно правило и одни слова для кнопки, автоматики и QR. */
 function markByCode(code, options = {}) {
-  const time = Number(options.time) || Date.now();
+  // Время — только момент отметки. Буфер GPS даёт координаты, но не время
+  const time = Date.now();
   const start = isStart(code, rogaineMode());
   const finish = isFinish(code, rogaineMode());
 
