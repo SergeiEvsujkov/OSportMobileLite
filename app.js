@@ -3333,7 +3333,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       accepted = expected !== undefined && expected === code;
       if (accepted) routePosition += 1;
     }
-    const acceptedCheckpoint = !rogaine && accepted && !startPoint && !finishPoint;
+    // Финиш — такая же точка отрезка: скорость и лидер считаются и для него
+    const acceptedCheckpoint = !rogaine && accepted && !startPoint;
     // Повтор КП рогейна: в протоколе он не нумеруется, а скорость и
     // расстояние с ним не считаются в любом окне
     const rogaineCheckpoint = rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
@@ -3443,14 +3444,14 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   });
 
   const statusReason = row.status === 'DSQ'
-    ? 'Нарушен порядок прохождения КП'
+    ? 'нарушен порядок прохождения КП'
     : (row.status === 'DNF'
-      ? 'Нет финиша'
-      : (row.status === 'DNS' ? 'Нет старта' : null));
+      ? 'нет финиша'
+      : (row.status === 'DNS' ? 'нет старта' : null));
   if (statusReason) {
     const reason = document.createElement('div');
     reason.className = 'split-reason';
-    reason.textContent = statusReason;
+    reason.textContent = `Причина отсутствия результата:\n${statusReason}`;
     list.append(reason);
   }
 

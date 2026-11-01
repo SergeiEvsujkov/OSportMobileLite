@@ -493,6 +493,7 @@ body {
   padding: 10px 4px 2px;
   font-size: 13px;
   color: var(--on-surface-variant);
+  white-space: pre-line;
 }
 
 .proto-row.head {
