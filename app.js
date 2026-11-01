@@ -3134,6 +3134,18 @@ function courseStatsWeb(points, startTime, finishTime) {
  * DNF участвует наравне с финишировавшими. Берутся только верные отметки
  * по порядку маршрута.
  */
+/** Отметки рогейна без повторных КП: для скорости и общего расстояния. */
+function uniqueRogaineMarks(marks) {
+  const seen = new Set();
+  return (marks || []).filter((mark) => {
+    const code = String(mark.code);
+    if (!/^[1-9]/.test(code)) return true;
+    if (seen.has(code)) return false;
+    seen.add(code);
+    return true;
+  });
+}
+
 function orienteeringLegLeaders(distance) {
   const leaders = new Map();
   const route = (distance.order || []).map((code) => String(code));
@@ -3211,8 +3223,9 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   list.textContent = '';
   const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
   const pointByCode = new Map((distance.points || []).map((point) => [String(point.code), point]));
+  const statsMarks = rogaine ? uniqueRogaineMarks(marks) : marks;
   const courseStats = courseStatsWeb(
-    marks.map((mark) => pointByCode.get(String(mark.code))),
+    statsMarks.map((mark) => pointByCode.get(String(mark.code))),
     row.startTime,
     row.finishTime
   );
@@ -3231,6 +3244,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   let previousCode = null;
   let previousAcceptedCode = null;
   let previousAcceptedTime = null;
+  let previousRogaineCode = null;
+  let previousRogaineTime = null;
   // Пункты, отмеченные хотя бы раз: повтор номера не получает, а помечается
   // словом «дубль» — как на экране сплита в приложении
   const seen = new Set();
@@ -3249,25 +3264,35 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       if (accepted) routePosition += 1;
     }
     const acceptedCheckpoint = !rogaine && accepted && !startPoint && !finishPoint;
+    // Повтор КП рогейна: в протоколе он не нумеруется, а скорость и
+    // расстояние с ним не считаются в любом окне
+    const rogaineCheckpoint = rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
+    const repeatMark = rogaineCheckpoint && seen.has(code);
+    if (rogaineCheckpoint) seen.add(code);
     // Из протокола повтор помечается «дубль» и номера не получает; в «Моих
     // отметках» нумеруются все отметки подряд, включая повторные
-    const checkpoint = fromProtocol && rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
-    const repeat = checkpoint && seen.has(code);
-    if (checkpoint) seen.add(code);
+    const checkpoint = fromProtocol && rogaineCheckpoint;
+    const repeat = checkpoint && repeatMark;
     const elapsed = row.startTime && mark.time ? Math.max(0, mark.time - row.startTime) : 0;
     const elapsedRounded = Math.floor(elapsed / 1000) * 1000;
     // Этап — разница уже округлённых накопленных времён: сумма этапов
     // сходится с последним накопленным, без расхождения в секунду
     const leg = startPoint || previousRounded === null ? null : elapsedRounded - previousRounded;
     const point = pointByCode.get(code);
-    const previousPoint = previousAcceptedCode === null ? null : pointByCode.get(previousAcceptedCode);
     const acceptedLeg = acceptedCheckpoint && previousAcceptedTime !== null && mark.time
       ? Math.floor(Math.max(0, mark.time - previousAcceptedTime) / 1000) * 1000
       : null;
+    const rogaineLeg = rogaineCheckpoint && !repeatMark && previousRogaineTime !== null && mark.time
+      ? Math.floor(Math.max(0, mark.time - previousRogaineTime) / 1000) * 1000
+      : null;
+    const showSpeed = rogaine ? (rogaineCheckpoint && !repeatMark) : acceptedCheckpoint;
+    const speedLeg = rogaine ? rogaineLeg : acceptedLeg;
+    const speedPrevious = rogaine ? previousRogaineCode : previousAcceptedCode;
+    const previousPoint = speedPrevious === null ? null : pointByCode.get(speedPrevious);
     let speed = null;
-    if (gps && acceptedCheckpoint && acceptedLeg !== null && acceptedLeg > 0 && point && previousPoint) {
+    if (gps && showSpeed && speedLeg !== null && speedLeg > 0 && point && previousPoint) {
       const meters = distanceMeters(previousPoint.latitude, previousPoint.longitude, point.latitude, point.longitude);
-      if (meters > 0) speed = formatPace((acceptedLeg * 1000) / meters);
+      if (meters > 0) speed = formatPace((speedLeg * 1000) / meters);
     }
     let best = null;
     if (!rogaine && fromProtocol && acceptedCheckpoint && previousAcceptedCode !== null && acceptedLeg !== null) {
@@ -3331,6 +3356,10 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     if (accepted) {
       previousAcceptedCode = code;
       previousAcceptedTime = mark.time;
+    }
+    if (rogaine && (startPoint || (rogaineCheckpoint && !repeatMark))) {
+      previousRogaineCode = code;
+      previousRogaineTime = mark.time;
     }
   });
 
