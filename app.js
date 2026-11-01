@@ -3129,15 +3129,38 @@ function courseStatsWeb(points, startTime, finishTime) {
   return { meters, average };
 }
 
-/** Лучшие на отрезках — только по строкам протокола, отобранным настройкой. */
+/**
+ * Лучшие на отрезках — по всем строкам протокола, где отрезок пройден.
+ * DNF участвует наравне с финишировавшими. Берутся только верные отметки
+ * по порядку маршрута.
+ */
 function orienteeringLegLeaders(distance) {
   const leaders = new Map();
-  buildProtocol(distance).filter((row) => row.status === 'OK').forEach((row) => {
+  const route = (distance.order || []).map((code) => String(code));
+  const starts = startAliasCodes(distance);
+  if (!route.length) return leaders;
+
+  buildProtocol(distance).forEach((row) => {
     const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
-    for (let index = 1; index < marks.length; index += 1) {
-      const leg = (marks[index].time || 0) - (marks[index - 1].time || 0);
+    const accepted = [];
+    let position = -1;
+    marks.forEach((mark) => {
+      const code = String(mark.code);
+      if (starts.has(code)) {
+        position = Math.max(0, route.indexOf(code));
+        accepted.push(mark);
+        return;
+      }
+      const expected = route[position + 1];
+      if (expected !== undefined && expected === code) {
+        position += 1;
+        accepted.push(mark);
+      }
+    });
+    for (let index = 1; index < accepted.length; index += 1) {
+      const leg = (accepted[index].time || 0) - (accepted[index - 1].time || 0);
       if (leg <= 0) continue;
-      const key = `${marks[index - 1].code}>${marks[index].code}`;
+      const key = `${accepted[index - 1].code}>${accepted[index].code}`;
       const known = leaders.get(key);
       if (!known || leg < known.millis) {
         leaders.set(key, { nick: row.nick || row.userId || 'Участник', millis: leg });
