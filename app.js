@@ -3201,9 +3201,13 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   const starts = startAliasCodes(distance);
   const gps = String(distance.markMode || '').toUpperCase() !== 'QR';
   const legLeaders = !rogaine && fromProtocol ? orienteeringLegLeaders(distance) : new Map();
+  const route = (distance.order || []).map((code) => String(code));
+  let routePosition = -1;
   let number = 0;
   let previousRounded = null;
   let previousCode = null;
+  let previousAcceptedCode = null;
+  let previousAcceptedTime = null;
   // Пункты, отмеченные хотя бы раз: повтор номера не получает, а помечается
   // словом «дубль» — как на экране сплита в приложении
   const seen = new Set();
@@ -3212,6 +3216,16 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const code = String(mark.code);
     const startPoint = starts.has(code);
     const finishPoint = isFinish(code, rogaine);
+    // Верная отметка ориентирования: только следующий пункт маршрута.
+    // Неверные КП в расчёте скорости и отставания не участвуют.
+    if (startPoint && route.length) routePosition = Math.max(0, route.indexOf(code));
+    let accepted = startPoint;
+    if (!startPoint && route.length) {
+      const expected = route[routePosition + 1];
+      accepted = expected !== undefined && expected === code;
+      if (accepted) routePosition += 1;
+    }
+    const acceptedCheckpoint = !rogaine && accepted && !startPoint && !finishPoint;
     // Из протокола повтор помечается «дубль» и номера не получает; в «Моих
     // отметках» нумеруются все отметки подряд, включая повторные
     const checkpoint = fromProtocol && rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
@@ -3223,16 +3237,19 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     // сходится с последним накопленным, без расхождения в секунду
     const leg = startPoint || previousRounded === null ? null : elapsedRounded - previousRounded;
     const point = pointByCode.get(code);
-    const previousPoint = previousCode === null ? null : pointByCode.get(previousCode);
+    const previousPoint = previousAcceptedCode === null ? null : pointByCode.get(previousAcceptedCode);
+    const acceptedLeg = acceptedCheckpoint && previousAcceptedTime !== null && mark.time
+      ? Math.floor(Math.max(0, mark.time - previousAcceptedTime) / 1000) * 1000
+      : null;
     let speed = null;
-    if (gps && leg !== null && leg > 0 && point && previousPoint) {
+    if (gps && acceptedCheckpoint && acceptedLeg !== null && acceptedLeg > 0 && point && previousPoint) {
       const meters = distanceMeters(previousPoint.latitude, previousPoint.longitude, point.latitude, point.longitude);
-      if (meters > 0) speed = formatPace((leg * 1000) / meters);
+      if (meters > 0) speed = formatPace((acceptedLeg * 1000) / meters);
     }
     let best = null;
-    if (!rogaine && fromProtocol && previousCode !== null && leg !== null) {
-      const leader = legLeaders.get(`${previousCode}>${code}`);
-      if (leader) best = `${leader.nick}\n+${formatSplitTime(Math.max(0, leg - leader.millis))}`;
+    if (!rogaine && fromProtocol && acceptedCheckpoint && previousAcceptedCode !== null && acceptedLeg !== null) {
+      const leader = legLeaders.get(`${previousAcceptedCode}>${code}`);
+      if (leader) best = `${leader.nick}\n+${formatSplitTime(Math.max(0, acceptedLeg - leader.millis))}`;
     }
 
     let label;
@@ -3288,6 +3305,10 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     previousRounded = elapsedRounded;
     previousCode = code;
+    if (accepted) {
+      previousAcceptedCode = code;
+      previousAcceptedTime = mark.time;
+    }
   });
 
   // Своя отметка: сумма баллов одной строкой под таблицей, не в сводке.
