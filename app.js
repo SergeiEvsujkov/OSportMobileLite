@@ -2895,6 +2895,14 @@ function resultStatusOf(row, distance) {
 }
 
 /** Баллы рогейна: очки пунктов без повторов, старт и финиш не считаются. */
+function formatRogainePoints(score) {
+  const value = Number(score);
+  const word = (value % 100 >= 11 && value % 100 <= 14)
+    ? 'баллов'
+    : (value % 10 === 1 ? 'балл' : ((value % 10 >= 2 && value % 10 <= 4) ? 'балла' : 'баллов'));
+  return `- ${value} ${word}`;
+}
+
 function rogainePoints(marks) {
   const seen = new Set();
   let total = 0;
@@ -3486,7 +3494,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const num = document.createElement('span');
     num.className = 'split-number';
     if (startPoint || finishPoint) num.textContent = '';
-    else if (repeat) num.textContent = 'дубль';
+    else if (repeat) num.textContent = '';
     else if (noMark) num.textContent = '';
     else num.textContent = number + '.';
 
@@ -3517,8 +3525,15 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       times.append(stage, total);
       item.append(times);
     }
-    const pointsText = rogaine && !repeatMark && point && Number.isFinite(Number(point.score))
-      ? `${point.score} б.`
+    if (repeatMark) {
+      const repeatTime = document.createElement('span');
+      repeatTime.className = 'split-times';
+      repeatTime.textContent = 'дубль';
+      item.append(repeatTime);
+    }
+    const pointsText = rogaine && !repeatMark && !finishPoint && point &&
+      Number.isFinite(Number(point.score))
+      ? formatRogainePoints(point.score)
       : null;
     if (pointsText) {
       const points = document.createElement('span');
