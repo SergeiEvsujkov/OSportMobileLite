@@ -3492,8 +3492,14 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     const codeEl = document.createElement('span');
     codeEl.className = 'split-code';
-    codeEl.textContent = noMark ? `${label} нет отметки` : label;
-    item.append(num, codeEl);
+    if (finishPoint && !noMark) {
+      num.textContent = 'Финиш';
+      num.classList.add('split-finish');
+      item.append(num);
+    } else {
+      codeEl.textContent = noMark ? `${label} нет отметки` : label;
+      item.append(num, codeEl);
+    }
 
     const showTimes = !noMark && !repeatMark &&
       (validRow || (finishPoint && mark.time));

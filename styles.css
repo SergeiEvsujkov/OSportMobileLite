@@ -498,13 +498,15 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   color: var(--on-surface-variant);
   border-bottom: 1px solid var(--outline);
 }
-.split-head .split-number { min-width: 64px; }
-.split-head .split-code { flex: 1; }
-.split-head .split-times { min-width: 70px; text-align: right; }
+.split-head .split-number { width: 64px; flex: none; }
+.split-head .split-code { width: 96px; flex: none; }
+.split-head .split-times { width: 70px; flex: none; text-align: right; }
 
 .split-table { display: flex; flex-direction: column; }
-.split-code { flex: 1; min-width: 0; }
-.split-times { min-width: 70px; display: flex; flex-direction: column; text-align: right; }
+.split-number.split-finish { width: 160px; min-width: 160px; text-align: left; }
+.split-code { width: 96px; flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.split-times { width: 70px; flex: none; display: flex; flex-direction: column; text-align: right; }
+.split-speed { margin-left: auto; }
 .split-line { font-size: 16px; }
 .split-line.total { color: var(--on-surface-variant); }
 .split-speed {
