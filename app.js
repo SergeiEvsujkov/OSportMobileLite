@@ -2895,6 +2895,14 @@ function resultStatusOf(row, distance) {
 }
 
 /** Баллы рогейна: очки пунктов без повторов, старт и финиш не считаются. */
+/** Балл КП рогейна: score из облака или первая цифра кода. */
+function rogainePointScore(point) {
+  const direct = Number(point && point.score);
+  if (Number.isFinite(direct)) return direct;
+  const code = String((point && point.code) || '');
+  return /^[1-9]/.test(code) ? Number(code[0]) : null;
+}
+
 function formatRogainePoints(score) {
   const value = Number(score);
   const word = (value % 100 >= 11 && value % 100 <= 14)
@@ -3531,9 +3539,9 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       repeatTime.textContent = 'дубль';
       item.append(repeatTime);
     }
-    const pointsText = rogaine && !repeatMark && !finishPoint && point &&
-      Number.isFinite(Number(point.score))
-      ? formatRogainePoints(point.score)
+    const pointScore = rogainePointScore(point);
+    const pointsText = rogaine && !repeatMark && !finishPoint && pointScore !== null
+      ? formatRogainePoints(pointScore)
       : null;
     if (pointsText) {
       const points = document.createElement('span');
