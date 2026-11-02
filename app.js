@@ -3592,10 +3592,13 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   const orderBroken = !rogaine && routeCheckpoints.length > 0 &&
     (markedCheckpoints.length !== routeCheckpoints.length ||
       markedCheckpoints.some((code, index) => code !== routeCheckpoints[index]));
+  const hasFinishMark = (row.marks || []).some(
+    (mark) => isFinish(String(mark.code), rogaine)
+  );
   const reasons = [];
   if (!row.startTime) reasons.push('нет старта');
   if (orderBroken) reasons.push('нарушен порядок прохождения КП');
-  if (!row.finishTime) reasons.push('нет финиша');
+  if (!row.finishTime && !hasFinishMark) reasons.push('нет финиша');
   if (reasons.length) {
     const reason = document.createElement('div');
     reason.className = 'split-reason';
@@ -4871,6 +4874,8 @@ window.addEventListener('popstate', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Старый HTML мог остаться в кэше: промежуточный заголовок сплита убираем
+  document.querySelectorAll('.split-head').forEach((node) => node.remove());
   // Отложенные результаты: пробуем при запуске, затем по таймеру и при
   // появлении сети — очередь должна разбираться сама, без действий человека
   flushPendingResults().catch(() => {});
