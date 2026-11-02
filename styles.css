@@ -498,13 +498,13 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   color: var(--on-surface-variant);
   border-bottom: 1px solid var(--outline);
 }
-.split-head .split-number { width: 64px; flex: none; }
-.split-head .split-code { width: 96px; flex: none; }
+.split-head .split-number { width: 40px; flex: none; }
+.split-head .split-code { width: 56px; flex: none; }
 .split-head .split-times { width: 70px; flex: none; text-align: right; }
 
 .split-table { display: flex; flex-direction: column; }
-.split-number.split-finish { width: 160px; min-width: 160px; text-align: left; }
-.split-code { width: 96px; flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.split-number.split-finish { width: 96px; min-width: 96px; text-align: left; }
+.split-code { width: 56px; flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .split-times { width: 70px; flex: none; display: flex; flex-direction: column; text-align: right; }
 .split-speed { margin-left: auto; }
 .split-line { font-size: 16px; }
