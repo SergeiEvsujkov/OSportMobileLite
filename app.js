@@ -3385,6 +3385,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   let previousAcceptedTime = null;
   let previousRogaineCode = null;
   let previousRogaineTime = null;
+  let previousValidTime = null;
   // Пункты, отмеченные хотя бы раз: повтор номера не получает, а помечается
   // словом «дубль» — как на экране сплита в приложении
   const seen = new Set();
@@ -3424,20 +3425,21 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     // отметках» нумеруются все отметки подряд, включая повторные
     const checkpoint = fromProtocol && rogaineCheckpoint;
     const repeat = checkpoint && repeatMark;
-    const elapsed = !noMark && row.startTime && mark.time
+    const rogainePoint = rogaine && !startPoint;
+    const validRow = rogaine ? (rogainePoint && !repeatMark) : acceptedCheckpoint;
+    const elapsed = validRow && row.startTime && mark.time
       ? Math.max(0, mark.time - row.startTime)
       : null;
     const elapsedRounded = elapsed === null ? null : Math.floor(elapsed / 1000) * 1000;
-    // Этап — разница уже округлённых накопленных времён: сумма этапов
-    // сходится с последним накопленным, без расхождения в секунду
-    const leg = noMark || startPoint || previousRounded === null
+    // Этап — разница между соседними известными отметками. Старт для него
+    // не нужен; дубли и неверные отметки пропускаются
+    const leg = !validRow || startPoint || previousValidTime === null
       ? null
-      : elapsedRounded - previousRounded;
+      : Math.floor(Math.max(0, mark.time - previousValidTime) / 1000) * 1000;
     const point = pointByCode.get(code);
     const acceptedLeg = acceptedCheckpoint && previousAcceptedTime !== null && mark.time
       ? Math.floor(Math.max(0, mark.time - previousAcceptedTime) / 1000) * 1000
       : null;
-    const rogainePoint = rogaine && !startPoint;
     const rogaineLeg = rogainePoint && !repeatMark && previousRogaineTime !== null && mark.time
       ? Math.floor(Math.max(0, mark.time - previousRogaineTime) / 1000) * 1000
       : null;
@@ -3487,8 +3489,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     const second = document.createElement('span');
     second.className = 'split-line total';
-    second.textContent = noMark || elapsedRounded === null
-      ? ''
+    second.textContent = elapsedRounded === null
+      ? '—'
       : formatSplitTime(elapsedRounded);
 
     value.append(first, second);
@@ -3512,8 +3514,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     }
     list.append(item);
 
-    if (!noMark && elapsedRounded !== null) {
-      previousRounded = elapsedRounded;
+    if (!noMark && (startPoint || validRow)) {
+      previousValidTime = mark.time;
       previousCode = code;
     }
     if (accepted) {
