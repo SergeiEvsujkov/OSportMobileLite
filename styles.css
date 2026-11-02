@@ -188,6 +188,15 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   border-bottom: 1px solid var(--outline-variant);
 }
 .search-icon { font-size: 22px; color: var(--on-surface-variant); }
+.cloud-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 2px;
+  font-size: 15px;
+  color: var(--on-surface);
+}
+.cloud-filter input { width: 18px; height: 18px; accent-color: var(--primary); }
 .search-input {
   flex: 1;
   border: none;

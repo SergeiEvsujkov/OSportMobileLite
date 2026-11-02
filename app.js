@@ -900,10 +900,16 @@ async function openCloud() {
 
 function renderCloud() {
   const filter = $('cloudSearch').value.trim();
+  const me = readJson(STORAGE.identity, { nick: '', code: '' });
+  const onlyMine = Boolean(me.code) && $('cloudOnlyMine').checked;
+  $('cloudOnlyMineRow').classList.toggle('hidden', !me.code);
+  const source = onlyMine
+    ? cloudEntries.filter((entry) => String(entry.ownerId) === String(me.code))
+    : cloudEntries;
 
   // Группа — только по groupId; без него запись одиночная, как в приложении
   const groups = new Map();
-  cloudEntries.forEach((entry) => {
+  source.forEach((entry) => {
     const key = entry.groupId ? 'g:' + entry.groupId : 's:' + entry.id;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(entry);
@@ -4656,6 +4662,7 @@ function bind() {
   $('cloudRefresh').addEventListener('click', openCloud);
   $('cloudBack').addEventListener('click', () => showTab('events'));
   $('cloudSearch').addEventListener('input', renderCloud);
+  $('cloudOnlyMine').addEventListener('change', renderCloud);
 
   $('groupBack').addEventListener('click', () => showTab('events'));
   $('participantBack').addEventListener('click', () => openDetail());
