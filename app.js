@@ -3410,6 +3410,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const noMark = mark.routeState === 'noMark';
     // Старт нужен только как начало отсчёта; строкой в сплите не показываем
     if (startPoint) {
+      // Старт не показываем строкой, но в расчёте маршрута он участвует
+      if (route.length) routePosition = Math.max(0, route.indexOf(code));
       previousValidTime = mark.time;
       previousAcceptedCode = code;
       previousAcceptedTime = mark.time;
