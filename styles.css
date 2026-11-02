@@ -506,6 +506,7 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
 .split-number.split-finish { width: 76px; min-width: 76px; text-align: left; }
 .split-code { flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .split-times { width: 70px; flex: none; display: flex; flex-direction: column; text-align: right; }
+.split-points { width: 44px; flex: none; text-align: right; white-space: nowrap; }
 .split-speed { margin-left: auto; }
 .split-line { font-size: 16px; }
 .split-line.total { color: var(--on-surface-variant); }

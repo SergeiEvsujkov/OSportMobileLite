@@ -2870,7 +2870,7 @@ function formatClock(millis) {
 }
 
 /** Сколько строк протокола видно без «Показать всех». */
-const PROTOCOL_PREVIEW_ROWS = 8;
+const PROTOCOL_PREVIEW_ROWS = 10;
 
 /**
  * Статус результата — те же правила, что в приложении:
@@ -3467,7 +3467,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     let best = null;
     if (!rogaine && fromProtocol && acceptedCheckpoint && previousAcceptedCode !== null && acceptedLeg !== null) {
       const leader = legLeaders.get(`${previousAcceptedCode}>${code}`);
-      if (leader) best = `${leader.nick}\n+${formatSplitTime(Math.max(0, acceptedLeg - leader.millis))}`;
+      if (leader) best = `+${formatSplitTime(Math.max(0, acceptedLeg - leader.millis))}\n${leader.nick}`;
     }
 
     let label;
@@ -3517,20 +3517,29 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       times.append(stage, total);
       item.append(times);
     }
+    const pointsText = rogaine && !repeatMark && point && Number.isFinite(Number(point.score))
+      ? `${point.score} б.`
+      : null;
+    if (pointsText) {
+      const points = document.createElement('span');
+      points.className = 'split-points';
+      points.textContent = pointsText;
+      item.append(points);
+    }
     if (speed || best) {
       const block = document.createElement('div');
       block.className = 'split-speed';
-      if (speed) {
-        const speedLine = document.createElement('span');
-        speedLine.className = 'split-speed-value';
-        speedLine.textContent = speed;
-        block.append(speedLine);
-      }
       if (best) {
         const bestLine = document.createElement('span');
         bestLine.className = 'split-speed-best';
         bestLine.textContent = best;
         block.append(bestLine);
+      }
+      if (speed) {
+        const speedLine = document.createElement('span');
+        speedLine.className = 'split-speed-value';
+        speedLine.textContent = speed;
+        block.append(speedLine);
       }
       item.append(block);
     }
@@ -3550,15 +3559,24 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     }
   });
 
-  const statusReason = row.status === 'DSQ'
-    ? 'нарушен порядок прохождения КП'
-    : (row.status === 'DNF'
-      ? 'нет финиша'
-      : (row.status === 'DNS' ? 'нет старта' : null));
-  if (statusReason) {
+  const reasonStarts = startAliasCodes(distance);
+  const routeCheckpoints = (distance.order || [])
+    .map((code) => String(code))
+    .filter((code) => !reasonStarts.has(code) && !isFinish(code, false));
+  const markedCheckpoints = (row.marks || [])
+    .map((mark) => String(mark.code))
+    .filter((code) => !reasonStarts.has(code) && !isFinish(code, false));
+  const orderBroken = !rogaine && routeCheckpoints.length > 0 &&
+    (markedCheckpoints.length !== routeCheckpoints.length ||
+      markedCheckpoints.some((code, index) => code !== routeCheckpoints[index]));
+  const reasons = [];
+  if (!row.startTime) reasons.push('нет старта');
+  if (orderBroken) reasons.push('нарушен порядок прохождения КП');
+  if (!row.finishTime) reasons.push('нет финиша');
+  if (reasons.length) {
     const reason = document.createElement('div');
     reason.className = 'split-reason';
-    reason.textContent = `Причина отсутствия результата:\n${statusReason}`;
+    reason.textContent = `Причина отсутствия результата:\n${reasons.join('\n')}`;
     list.append(reason);
   }
 
