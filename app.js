@@ -3235,15 +3235,10 @@ function fullRouteMarks(distance, marks) {
     if (row && String(row.code) === code) return row;
     if (isFinish(code, false) && finishMark) return finishMark;
     const finish = isFinish(code, false);
-    const checkpoint = !starts.has(code) && !finish;
-    const routeNumber = checkpoint
-      ? route.slice(0, index).filter((item) => !starts.has(item) && !isFinish(item, false)).length + 1
-      : null;
     return {
       code,
       time: null,
       routeState: 'noMark',
-      routeNumber,
     };
   });
 }
@@ -3320,7 +3315,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   // дистанция, ник и свои отметки, как в приложении
   if (fromProtocol) {
     summaryRow('Время старта', row.startTime ? formatClock(row.startTime) : '—');
-    const finishClock = (firstFinishMark && firstFinishMark.time) || row.finishTime || 0;
+    const finishClock = (firstFinishMark && firstFinishMark.time) || 0;
     summaryRow('Время финиша', finishClock ? formatClock(finishClock) : '—');
     summaryRow(
       'Результат',
@@ -3339,6 +3334,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   const list = $('participantMarks');
   list.textContent = '';
   const fullRoute = !rogaine && (row.status === 'DSQ' || row.status === 'DNF');
+  const noStart = !rogaine && !row.startTime;
   const rogaineMarks = allMarks.filter((mark) =>
     !isFinish(String(mark.code), true) || mark === firstFinishMark
   );
@@ -3346,7 +3342,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     ? rogaineMarks
     : (fullRoute
       ? fullRouteMarks(distance, allMarks)
-      : visibleOrienteeringMarks(distance, allMarks, row.status));
+      : (noStart ? allMarks : visibleOrienteeringMarks(distance, allMarks, row.status)));
   const displayedMarks = marks.filter((mark) =>
     !isFinish(String(mark.code), rogaine) || mark === firstFinishMark
   );
@@ -3367,6 +3363,14 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   const gps = String(distance.markMode || '').toUpperCase() !== 'QR';
   const legLeaders = !rogaine && fromProtocol ? orienteeringLegLeaders(distance) : new Map();
   const route = (distance.order || []).map((code) => String(code));
+  const noStartRoute = !hasStart && !rogaine;
+  const noStartCheckpoints = route.filter((code) =>
+    !starts.has(code) && !isFinish(code, false)
+  );
+  const finishPredecessor = noStartRoute
+    ? (noStartCheckpoints[noStartCheckpoints.length - 1] || null)
+    : (route.filter((code) => !starts.has(code) && !isFinish(code, false)).slice(-1)[0] || null);
+  let noStartPosition = 0;
   let routePosition = -1;
   let number = 0;
   let previousRounded = null;
@@ -3388,13 +3392,23 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     // Неверные КП в расчёте скорости и отставания не участвуют.
     if (!noMark && startPoint && route.length) routePosition = Math.max(0, route.indexOf(code));
     let accepted = !noMark && startPoint;
-    if (!noMark && !startPoint && route.length) {
+    if (!noMark && noStartRoute && !startPoint && !finishPoint) {
+      // Без старта правильность КП считаем по порядку маршрута: первая
+      // отметка задаёт начало, дальше — только следующий КП
+      const expected = noStartCheckpoints[noStartPosition];
+      accepted = expected !== undefined && expected === code;
+      if (accepted) noStartPosition += 1;
+    } else if (!noMark && !startPoint && route.length) {
       const expected = route[routePosition + 1];
       accepted = expected !== undefined && expected === code;
       if (accepted) routePosition += 1;
     }
     // Финиш — такая же точка отрезка: скорость и лидер считаются и для него
-    const acceptedCheckpoint = !rogaine && accepted && !startPoint;
+    const acceptedCheckpoint = !rogaine && (
+      finishPoint
+        ? (finishPredecessor !== null && previousAcceptedCode === finishPredecessor)
+        : (accepted && !startPoint)
+    );
     // Повтор КП рогейна: в протоколе он не нумеруется, а скорость и
     // расстояние с ним не считаются в любом окне
     const rogaineCheckpoint = rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
@@ -3453,7 +3467,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     num.className = 'split-number';
     if (startPoint || finishPoint) num.textContent = '';
     else if (repeat) num.textContent = 'дубль';
-    else if (noMark) num.textContent = mark.routeNumber ? `${mark.routeNumber}.` : '';
+    else if (noMark) num.textContent = '';
     else num.textContent = number + '.';
 
     const value = document.createElement('span');
