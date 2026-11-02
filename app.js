@@ -3312,13 +3312,16 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     summary.append(line);
   };
 
+  const allMarks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  const firstFinishMark = allMarks.find((mark) => isFinish(String(mark.code), rogaine));
   summaryRow('Дистанция', distance.name || '—');
   summaryRow('Ник', row.nick);
   // В «Моих отметках» времени, результата, баллов и места нет: там только
   // дистанция, ник и свои отметки, как в приложении
   if (fromProtocol) {
     summaryRow('Время старта', row.startTime ? formatClock(row.startTime) : '—');
-    summaryRow('Время финиша', row.finishTime ? formatClock(row.finishTime) : '—');
+    const finishClock = row.finishTime || (firstFinishMark && firstFinishMark.time) || 0;
+    summaryRow('Время финиша', finishClock ? formatClock(finishClock) : '—');
     summaryRow(
       'Результат',
       row.status && row.status !== 'OK'
@@ -3335,10 +3338,12 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
   const list = $('participantMarks');
   list.textContent = '';
-  const allMarks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
   const fullRoute = !rogaine && (row.status === 'DSQ' || row.status === 'DNF');
+  const rogaineMarks = allMarks.filter((mark) =>
+    !isFinish(String(mark.code), true) || mark === firstFinishMark
+  );
   const marks = rogaine
-    ? allMarks
+    ? rogaineMarks
     : (fullRoute
       ? fullRouteMarks(distance, allMarks)
       : visibleOrienteeringMarks(distance, allMarks, row.status));
@@ -3355,6 +3360,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   }
 
   const starts = startAliasCodes(distance);
+  const hasStart = Boolean(row.startTime);
   const gps = String(distance.markMode || '').toUpperCase() !== 'QR';
   const legLeaders = !rogaine && fromProtocol ? orienteeringLegLeaders(distance) : new Map();
   const route = (distance.order || []).map((code) => String(code));
@@ -3408,10 +3414,11 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const acceptedLeg = acceptedCheckpoint && previousAcceptedTime !== null && mark.time
       ? Math.floor(Math.max(0, mark.time - previousAcceptedTime) / 1000) * 1000
       : null;
-    const rogaineLeg = rogaineCheckpoint && !repeatMark && previousRogaineTime !== null && mark.time
+    const rogainePoint = rogaine && !startPoint;
+    const rogaineLeg = rogainePoint && !repeatMark && previousRogaineTime !== null && mark.time
       ? Math.floor(Math.max(0, mark.time - previousRogaineTime) / 1000) * 1000
       : null;
-    const showSpeed = rogaine ? (rogaineCheckpoint && !repeatMark) : acceptedCheckpoint;
+    const showSpeed = rogaine ? (rogainePoint && !repeatMark) : acceptedCheckpoint;
     const speedLeg = rogaine ? rogaineLeg : acceptedLeg;
     const speedPrevious = rogaine ? previousRogaineCode : previousAcceptedCode;
     const previousPoint = speedPrevious === null ? null : pointByCode.get(speedPrevious);
@@ -3457,7 +3464,9 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     const second = document.createElement('span');
     second.className = 'split-line total';
-    second.textContent = noMark ? '' : formatSplitTime(elapsedRounded);
+    second.textContent = noMark || elapsedRounded === null
+      ? ''
+      : formatSplitTime(elapsedRounded);
 
     value.append(first, second);
     item.append(num, value);
@@ -3480,7 +3489,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     }
     list.append(item);
 
-    if (!noMark) {
+    if (!noMark && elapsedRounded !== null) {
       previousRounded = elapsedRounded;
       previousCode = code;
     }
@@ -3488,7 +3497,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       previousAcceptedCode = code;
       previousAcceptedTime = mark.time;
     }
-    if (rogaine && (startPoint || (rogaineCheckpoint && !repeatMark))) {
+    if (rogaine && !noMark && (startPoint || (rogainePoint && !repeatMark))) {
       previousRogaineCode = code;
       previousRogaineTime = mark.time;
     }
