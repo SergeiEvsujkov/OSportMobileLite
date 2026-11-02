@@ -2896,7 +2896,11 @@ function resultStatusOf(row, distance) {
 
 /** Баллы рогейна: очки пунктов без повторов, старт и финиш не считаются. */
 function formatRogainePoints(score) {
-  return `+ ${Number(score)}`;
+  const value = Number(score);
+  const word = (value % 100 >= 11 && value % 100 <= 14)
+    ? 'баллов'
+    : (value % 10 === 1 ? 'балл' : ((value % 10 >= 2 && value % 10 <= 4) ? 'балла' : 'баллов'));
+  return `+ ${value} ${word}`;
 }
 
 function rogainePoints(marks) {
