@@ -3396,6 +3396,17 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const startPoint = starts.has(code);
     const finishPoint = isFinish(code, rogaine);
     const noMark = mark.routeState === 'noMark';
+    // Старт нужен только как начало отсчёта; строкой в сплите не показываем
+    if (startPoint) {
+      previousValidTime = mark.time;
+      previousAcceptedCode = code;
+      previousAcceptedTime = mark.time;
+      if (rogaine) {
+        previousRogaineCode = code;
+        previousRogaineTime = mark.time;
+      }
+      return;
+    }
     // Верная отметка ориентирования: только следующий пункт маршрута.
     // Неверные КП в расчёте скорости и отставания не участвуют.
     if (!noMark && startPoint && route.length) routePosition = Math.max(0, route.indexOf(code));
