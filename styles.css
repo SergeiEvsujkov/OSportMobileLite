@@ -499,10 +499,12 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   border-bottom: 1px solid var(--outline);
 }
 .split-head .split-number { min-width: 64px; }
-.split-head .split-value { flex: 1; }
+.split-head .split-code { flex: 1; }
+.split-head .split-times { min-width: 70px; text-align: right; }
 
 .split-table { display: flex; flex-direction: column; }
-.split-value { flex: 1; display: flex; flex-direction: column; }
+.split-code { flex: 1; min-width: 0; }
+.split-times { min-width: 70px; display: flex; flex-direction: column; text-align: right; }
 .split-line { font-size: 16px; }
 .split-line.total { color: var(--on-surface-variant); }
 .split-speed {

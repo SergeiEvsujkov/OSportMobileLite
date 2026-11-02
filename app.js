@@ -3474,7 +3474,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     if (startPoint) {
       label = '(Старт)';
     } else if (finishPoint) {
-      label = '(Финиш)';
+      label = 'Финиш';
     } else {
       if (!repeat) number += 1;
       label = `(${code})`;
@@ -3490,17 +3490,16 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     else if (noMark) num.textContent = '';
     else num.textContent = number + '.';
 
-    const value = document.createElement('span');
-    value.className = 'split-value';
-
-    const first = document.createElement('span');
-    first.className = 'split-line';
-    first.textContent = noMark ? `${label} нет отметки` : label;
+    const codeEl = document.createElement('span');
+    codeEl.className = 'split-code';
+    codeEl.textContent = noMark ? `${label} нет отметки` : label;
+    item.append(num, codeEl);
 
     const showTimes = !noMark && !repeatMark &&
       (validRow || (finishPoint && mark.time));
-    value.append(first);
     if (showTimes) {
+      const times = document.createElement('span');
+      times.className = 'split-times';
       const stage = document.createElement('span');
       stage.className = 'split-line';
       stage.textContent = leg === null ? '—' : formatSplitTime(leg);
@@ -3509,9 +3508,9 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       total.textContent = elapsedRounded === null
         ? '—'
         : formatSplitTime(elapsedRounded);
-      value.append(stage, total);
+      times.append(stage, total);
+      item.append(times);
     }
-    item.append(num, value);
     if (speed || best) {
       const block = document.createElement('div');
       block.className = 'split-speed';
