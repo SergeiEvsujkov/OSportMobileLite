@@ -3483,17 +3483,22 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     const first = document.createElement('span');
     first.className = 'split-line';
-    first.textContent = noMark
-      ? `${label} нет отметки`
-      : (leg === null ? label : `${label} ${formatSplitTime(leg)}`);
+    first.textContent = noMark ? `${label} нет отметки` : label;
 
-    const second = document.createElement('span');
-    second.className = 'split-line total';
-    second.textContent = elapsedRounded === null
-      ? '—'
-      : formatSplitTime(elapsedRounded);
-
-    value.append(first, second);
+    const showTimes = !noMark && !repeatMark &&
+      (validRow || (finishPoint && mark.time));
+    value.append(first);
+    if (showTimes) {
+      const stage = document.createElement('span');
+      stage.className = 'split-line';
+      stage.textContent = leg === null ? '—' : formatSplitTime(leg);
+      const total = document.createElement('span');
+      total.className = 'split-line total';
+      total.textContent = elapsedRounded === null
+        ? '—'
+        : formatSplitTime(elapsedRounded);
+      value.append(stage, total);
+    }
     item.append(num, value);
     if (speed || best) {
       const block = document.createElement('div');
