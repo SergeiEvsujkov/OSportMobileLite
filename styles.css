@@ -524,7 +524,7 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
 
 .split-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 10px 4px;
   font-size: 15px;

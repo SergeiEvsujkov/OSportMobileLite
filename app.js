@@ -3359,7 +3359,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     row.startTime,
     row.finishTime
   );
-  if (courseStats && row.status === 'OK') {
+  const gpsMode = String(distance.markMode || '').toUpperCase() !== 'QR';
+  if (courseStats && row.status === 'OK' && gpsMode) {
     summaryRow('Средняя скорость', courseStats.average || '—');
     if (rogaine) summaryRow('Расстояние', formatDistance(courseStats.meters));
   }
