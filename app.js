@@ -3320,7 +3320,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   // дистанция, ник и свои отметки, как в приложении
   if (fromProtocol) {
     summaryRow('Время старта', row.startTime ? formatClock(row.startTime) : '—');
-    const finishClock = row.finishTime || (firstFinishMark && firstFinishMark.time) || 0;
+    const finishClock = (firstFinishMark && firstFinishMark.time) || row.finishTime || 0;
     summaryRow('Время финиша', finishClock ? formatClock(finishClock) : '—');
     summaryRow(
       'Результат',
@@ -3347,8 +3347,11 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     : (fullRoute
       ? fullRouteMarks(distance, allMarks)
       : visibleOrienteeringMarks(distance, allMarks, row.status));
+  const displayedMarks = marks.filter((mark) =>
+    !isFinish(String(mark.code), rogaine) || mark === firstFinishMark
+  );
   const pointByCode = new Map((distance.points || []).map((point) => [String(point.code), point]));
-  const statsMarks = rogaine ? uniqueRogaineMarks(marks) : marks;
+  const statsMarks = rogaine ? uniqueRogaineMarks(displayedMarks) : displayedMarks;
   const courseStats = courseStatsWeb(
     statsMarks.map((mark) => pointByCode.get(String(mark.code))),
     row.startTime,
@@ -3376,7 +3379,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   // словом «дубль» — как на экране сплита в приложении
   const seen = new Set();
 
-  marks.forEach((mark) => {
+  displayedMarks.forEach((mark) => {
     const code = String(mark.code);
     const startPoint = starts.has(code);
     const finishPoint = isFinish(code, rogaine);
