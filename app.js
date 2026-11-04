@@ -3897,28 +3897,46 @@ function renderHint(point, rough, auto) {
 /** Стрелка на выбранный КП: только GPS, только с разрешения автора и участника. */
 function updateHintArrow(distance, position, point) {
   const row = $('hintTargetRow');
+  const select = $('hintTarget');
   const arrow = $('hintArrow');
   const label = $('markButtonLabel');
-  const allowed = Boolean(distance && distance.hintsAllowed) && Boolean(settings().hints) &&
-    !qrMode() && Boolean(position) && !point;
-  row.classList.toggle('hidden', !allowed);
-  if (!allowed) {
+  const hintText = $('hintText');
+  const enabled = Boolean(distance && distance.hintsAllowed) && Boolean(settings().hints) && !qrMode();
+  row.classList.toggle('hidden', !enabled);
+  hintText.classList.toggle('hidden', !enabled);
+  if (!enabled) {
     arrow.classList.add('hidden');
     label.classList.remove('hidden');
     return;
   }
-  const code = $('hintTarget').value.trim();
-  const target = (distance.points || []).find((point) => String(codeOf(point)) === code);
-  if (!target || !Number.isFinite(target.latitude) || !Number.isFinite(target.longitude)) {
+  // Только пункты этого события, без повторов
+  const codes = [...new Set((distance.points || []).map((item) => String(codeOf(item))))]
+    .sort((left, right) => left.localeCompare(right, 'ru', { numeric: true }));
+  const currentValue = select.value;
+  select.textContent = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Выберите КП';
+  select.append(placeholder);
+  codes.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = item;
+    option.textContent = labelOf(item);
+    select.append(option);
+  });
+  if (codes.includes(currentValue)) select.value = currentValue;
+  const code = select.value;
+  const target = (distance.points || []).find((item) => String(codeOf(item)) === code);
+  if (!target || !position || point || !Number.isFinite(target.latitude) || !Number.isFinite(target.longitude)) {
     arrow.classList.add('hidden');
     label.classList.remove('hidden');
+    hintText.textContent = '';
     return;
   }
   const meters = Math.round(distanceMeters(position.lat, position.lon, target.latitude, target.longitude));
   const bearing = bearingDegrees(position.lat, position.lon, target.latitude, target.longitude);
   const turn = ((bearing - state.heading + 540) % 360) - 180;
-  $('hintArrowCode').textContent = code;
-  $('hintArrowInfo').textContent = `${meters} м · ${Math.round(bearing)}°`;
+  hintText.textContent = `${labelOf(code)} · ${meters} м · ${Math.round(bearing)}°`;
   $('hintArrowPointer').style.transform = `rotate(${turn}deg)`;
   arrow.classList.remove('hidden');
   label.classList.add('hidden');
@@ -4739,7 +4757,7 @@ function bind() {
     window.addEventListener('deviceorientationabsolute', updateHeading, true);
     window.addEventListener('deviceorientation', updateHeading, true);
   }
-  $('hintTarget').addEventListener('input', renderMark);
+  $('hintTarget').addEventListener('change', renderMark);
   $('tabEvents').addEventListener('click', () => showTab('events'));
   $('tabMark').addEventListener('click', () => showTab('mark'));
   $('tabProfile').addEventListener('click', () => showTab('profile'));
