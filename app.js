@@ -83,6 +83,19 @@ function marksKey(eventId) {
   return STORAGE.marks + '.' + eventId;
 }
 
+function hintTargetKey(eventId) {
+  return 'osport.lite.hintTarget.' + eventId;
+}
+
+function clearHintTarget(eventId) {
+  if (!eventId) return;
+  try {
+    localStorage.removeItem(hintTargetKey(eventId));
+  } catch (error) {
+    // приватный режим — просто не сохраняем
+  }
+}
+
 function loadMarks(eventId) {
   return eventId ? readJson(marksKey(eventId), []) : [];
 }
@@ -1542,6 +1555,7 @@ function deactivateDistance() {
 
   // Деактивация стирает отметки этой дистанции
   if (eventId) {
+    clearHintTarget(eventId);
     try {
       localStorage.removeItem(marksKey(eventId));
     } catch (error) {
@@ -2070,6 +2084,7 @@ function deleteEvent(eventId) {
     }
   }
 
+  clearHintTarget(eventId);
   try {
     localStorage.removeItem(marksKey(eventId));
     localStorage.removeItem(STORAGE.event + '.' + eventId);
@@ -3935,6 +3950,15 @@ function updateHintArrow(distance, position, point) {
     if (codes.includes(currentValue)) select.value = currentValue;
     select.dataset.signature = signature;
   }
+  if (!codes.includes(select.value)) {
+    let stored = '';
+    try {
+      stored = localStorage.getItem(hintTargetKey(state.event && state.event.id)) || '';
+    } catch (error) {
+      // приватный режим
+    }
+    select.value = codes.includes(stored) ? stored : '';
+  }
   const code = select.value;
   const target = (distance.points || []).find((item) => String(codeOf(item)) === code);
   if (!target || !position || point || !Number.isFinite(target.latitude) || !Number.isFinite(target.longitude)) {
@@ -4794,7 +4818,19 @@ function bind() {
     window.addEventListener('deviceorientationabsolute', (event) => updateHeading(event, true), true);
     window.addEventListener('deviceorientation', (event) => updateHeading(event, false), true);
   }
-  $('hintTarget').addEventListener('change', renderMark);
+  $('hintTarget').addEventListener('change', (event) => {
+    const eventId = state.event && state.event.id;
+    const value = event.target.value;
+    if (eventId) {
+      try {
+        if (value) localStorage.setItem(hintTargetKey(eventId), value);
+        else localStorage.removeItem(hintTargetKey(eventId));
+      } catch (error) {
+        // приватный режим
+      }
+    }
+    renderMark();
+  });
   $('tabEvents').addEventListener('click', () => showTab('events'));
   $('tabMark').addEventListener('click', () => showTab('mark'));
   $('tabProfile').addEventListener('click', () => showTab('profile'));
