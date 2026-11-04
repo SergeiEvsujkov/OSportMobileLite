@@ -1100,6 +1100,10 @@ function mapLineCloud(entry) {
   return line;
 }
 
+function hintLineCloud() {
+  return plainRow('Подсказки: есть');
+}
+
 /** Автор: значок нужного цвета и имя, у своих — «— Это Вы». */
 function authorRowCloud(entry) {
   const row = document.createElement('div');
