@@ -32,6 +32,9 @@ const state = {
   marks: [],
   position: null,
   heading: 0,
+  headingSeen: false,
+  lastHeadingAt: 0,
+  headingAbsolute: false,
   hintBearing: null,
   watchId: null,
   candidate: null,
@@ -4755,19 +4758,41 @@ function bindPullToRefresh() {
 }
 
 function bind() {
-  const updateHeading = (event) => {
+  const arrowTurn = (bearing, heading) => {
+    const screenAngle = Number(
+      (window.screen && window.screen.orientation && window.screen.orientation.angle) || 0
+    );
+    return ((bearing - heading - screenAngle + 540) % 360) - 180;
+  };
+  const updateHeading = (event, absolute) => {
+    // Абсолютный датчик предпочтительнее: обычный deviceorientation на
+    // Android может отдавать не компас, а произвольный относительный угол.
+    if (absolute) state.headingAbsolute = true;
+    else if (state.headingAbsolute) return;
     const compass = Number(event.webkitCompassHeading);
     const alpha = Number(event.alpha);
-    if (Number.isFinite(compass)) state.heading = compass;
-    else if (Number.isFinite(alpha)) state.heading = (360 - alpha + 360) % 360;
-    if (state.hintBearing !== null) {
-      const turn = ((state.hintBearing - state.heading + 540) % 360) - 180;
+    const raw = Number.isFinite(compass)
+      ? compass
+      : (Number.isFinite(alpha) ? (360 - alpha + 360) % 360 : null);
+    if (raw === null) return;
+    if (!state.headingSeen) {
+      state.heading = raw;
+      state.headingSeen = true;
+    } else {
+      // Короткий путь и мягкое сглаживание: магнитный датчик шумит
+      const delta = ((raw - state.heading + 540) % 360) - 180;
+      state.heading = (state.heading + delta * 0.18 + 360) % 360;
+    }
+    const now = Date.now();
+    if (state.hintBearing !== null && now - state.lastHeadingAt >= 50) {
+      state.lastHeadingAt = now;
+      const turn = arrowTurn(state.hintBearing, state.heading);
       $('hintArrowPointer').style.transform = `rotate(${turn}deg)`;
     }
   };
   if (window.DeviceOrientationEvent) {
-    window.addEventListener('deviceorientationabsolute', updateHeading, true);
-    window.addEventListener('deviceorientation', updateHeading, true);
+    window.addEventListener('deviceorientationabsolute', (event) => updateHeading(event, true), true);
+    window.addEventListener('deviceorientation', (event) => updateHeading(event, false), true);
   }
   $('hintTarget').addEventListener('change', renderMark);
   $('tabEvents').addEventListener('click', () => showTab('events'));
