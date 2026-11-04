@@ -3916,7 +3916,7 @@ function updateHintArrow(distance, position, point) {
   select.textContent = '';
   const placeholder = document.createElement('option');
   placeholder.value = '';
-  placeholder.textContent = 'Выберите КП';
+  placeholder.textContent = 'Без подсказки';
   select.append(placeholder);
   codes.forEach((item) => {
     const option = document.createElement('option');
