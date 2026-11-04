@@ -284,7 +284,17 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   justify-content: center;
 }
 
+.hint-target { display:flex; align-items:center; gap:8px; justify-content:center; margin-bottom:8px; }
+.hint-target.hidden { display:none; }
+.hint-target input { width:72px; padding:6px 8px; border:1px solid var(--outline); border-radius:8px; background:var(--surface); color:var(--on-surface); font:inherit; }
+.hint-arrow { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:#fff; font-weight:700; }
+.hint-arrow.hidden { display:none; }
+.hint-arrow-pointer { display:block; font-size:64px; line-height:1; transition:transform .18s linear; }
+.hint-arrow-code { font-size:28px; }
+.hint-arrow-info { font-size:14px; font-weight:500; }
+
 .mark-circle {
+  position: relative;
   width: 240px;
   height: 240px;
   max-width: 63vw;

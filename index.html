@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=205">
+  <link rel="stylesheet" href="styles.css?v=206">
 </head>
 <body>
   <main id="app">
@@ -81,6 +81,11 @@
           <input type="checkbox" id="setAutoMark">
         </label>
         <p class="hint">GPS — как только кнопка становится зелёной; QR — как только код попал в кадр.</p>
+        <label class="switch-row">
+          <span>Пользоваться подсказками</span>
+          <input type="checkbox" id="setHints">
+        </label>
+        <p class="hint">Стрелка на выбранный КП, если автор дистанции разрешил подсказки.</p>
         <label class="switch-row">
           <span>Отправлять отметки после финиша</span>
           <input type="checkbox" id="setAutoSend">
@@ -206,10 +211,19 @@
       <div class="mark-center">
         <button id="bigMark" class="mark-circle" disabled>
           <span id="markButtonLabel">Подойдите к пункту</span>
+          <span id="hintArrow" class="hint-arrow hidden">
+            <span id="hintArrowPointer" class="hint-arrow-pointer">➤</span>
+            <span id="hintArrowCode"></span>
+            <span id="hintArrowInfo"></span>
+          </span>
         </button>
       </div>
 
       <div class="mark-bottom">
+        <label class="hint-target hidden" id="hintTargetRow">
+          <span>Код КП для стрелки</span>
+          <input id="hintTarget" inputmode="numeric" placeholder="31" maxlength="3">
+        </label>
         <p class="mark-hint" id="markHint">Кнопка станет зелёной у пункта — тогда нажмите</p>
         <p class="mark-outcome hidden" id="markOutcome"></p>
         <div class="mark-labels hidden" id="markLabels"></div>
@@ -287,8 +301,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=205"></script>
-  <script src="marking.js?v=205"></script>
-  <script src="app.js?v=205"></script>
+  <script src="jsQR.js?v=206"></script>
+  <script src="marking.js?v=206"></script>
+  <script src="app.js?v=206"></script>
 </body>
 </html>
