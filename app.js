@@ -383,6 +383,7 @@ function renderHome() {
       inner.append(detailsLine(item), iconsRow(false, item.entry, item.distance));
       if (pendingResultFor(item.id)) inner.append(pendingRow());
       if (item.entry && item.entry.mapExt) inner.append(mapLine());
+      if (hintsAvailable(item)) inner.append(hintsLine());
       inner.addEventListener('click', (event) => {
         // Дистанция внутри карточки: не даём событию дойти до группы
         event.stopPropagation();
@@ -424,6 +425,7 @@ function renderHome() {
   }
 
   if (entry.mapExt) card.append(mapLine());
+  if (hintsAvailable(item)) card.append(hintsLine());
 
   // Свой результат на карточке — как events_my_result в приложении
   const meCode = readJson(STORAGE.identity, { nick: '', code: '' }).code;
@@ -700,6 +702,28 @@ function detailsLine(item) {
 
 function mapLine() {
   return plainRow('Карта: есть');
+}
+
+function hintsAvailable(item) {
+  const distance = (item && item.distance) || {};
+  return String(distance.markMode || '').toUpperCase() === 'GPS' && distance.hintsAllowed === true;
+}
+
+function hintsLine() {
+  return plainRow('Подсказки: есть');
+}
+
+/** Значок способа отметки: QR или GPS — как MarkModeIcon в Android. */
+function modeIconMarkup(entry) {
+  const qr = String((entry && entry.markMode) || '').toUpperCase() === 'QR';
+  return `<svg class="icon small"><use href="icons.svg#${qr ? 'qrcode' : 'mylocation'}"></use></svg>`;
+}
+
+function modeIconElement(entry) {
+  const box = document.createElement('span');
+  box.className = 'mode-icon';
+  box.innerHTML = modeIconMarkup(entry);
+  return box.firstElementChild;
 }
 
 /**
@@ -980,7 +1004,7 @@ function renderCloud() {
       items.forEach((entry) => {
         const line = document.createElement('span');
         line.className = 'line with-icon';
-        line.innerHTML = '<svg class="icon small"><use href="icons.svg#mylocation"></use></svg>';
+        line.innerHTML = modeIconMarkup(entry);
         const text = document.createElement('span');
         text.textContent = groupDetails(entry);
         line.append(text);
@@ -989,6 +1013,7 @@ function renderCloud() {
     } else {
       body.append(detailsBlock(first));
       body.append(mapLineCloud(first));
+      if (hintsAvailable({ distance: first })) body.append(hintLineCloud());
     }
 
     body.append(authorRowCloud(first));
@@ -1025,6 +1050,7 @@ function groupDetails(entry) {
     parts.push(`Карта: ${entry.mapExt ? 'есть' : 'нет'}`);
     if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
   }
+  if (hintsAvailable({ distance: entry })) parts.push('Подсказки: есть');
   parts.push(`Участников: ${entry.participants || 0}`);
   return parts.join(' · ');
 }
@@ -1078,6 +1104,7 @@ function mapLineCloud(entry) {
 function authorRowCloud(entry) {
   const row = document.createElement('div');
   row.className = 'author-row';
+  row.append(modeIconElement(entry));
 
   const person = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   person.setAttribute('class', 'icon small author-icon');
@@ -1386,6 +1413,7 @@ function renderDetail() {
     if (entry.maxScore) counts.push(`Макс. балл: ${entry.maxScore}`);
     if (counts.length) rows.append(detailRow(counts.join(' · ')));
     rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
+    if (hintsAvailable({ distance })) rows.append(detailRow('Подсказки: есть'));
     if (distance.controlTimeMinutes) rows.append(detailRow(`Контр.время: ${distance.controlTimeMinutes} мин`));
     if (distance.penaltyPerMinute) rows.append(detailRow(`Штраф: ${distance.penaltyPerMinute} балл/мин`));
     if (distance.description) rows.append(detailRow(distance.description));
@@ -1398,6 +1426,7 @@ function renderDetail() {
     rows.append(detailRow(`Количество КП: ${checkpoints}`));
     if (distance.longInMeters) rows.append(detailRow(`Дистанция: ${distance.longInMeters} м`));
     rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
+    if (hintsAvailable({ distance })) rows.append(detailRow('Подсказки: есть'));
     if (distance.description) rows.append(detailRow(distance.description));
   }
 
