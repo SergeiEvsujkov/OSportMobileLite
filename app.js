@@ -32,6 +32,7 @@ const state = {
   marks: [],
   position: null,
   heading: 0,
+  hintBearing: null,
   watchId: null,
   candidate: null,
   // Буфер последних GPS-точек: на бегу отмечаем ближайшую, а не последнюю
@@ -3907,35 +3908,43 @@ function updateHintArrow(distance, position, point) {
   if (!enabled) {
     arrow.classList.add('hidden');
     label.classList.remove('hidden');
+    state.hintBearing = null;
     return;
   }
   // Только пункты этого события, без повторов
   const codes = [...new Set((distance.points || []).map((item) => String(codeOf(item))))]
     .sort((left, right) => left.localeCompare(right, 'ru', { numeric: true }));
-  const currentValue = select.value;
-  select.textContent = '';
-  const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = 'Без подсказки';
-  select.append(placeholder);
-  codes.forEach((item) => {
-    const option = document.createElement('option');
-    option.value = item;
-    option.textContent = labelOf(item);
-    select.append(option);
-  });
-  if (codes.includes(currentValue)) select.value = currentValue;
+  // Список перестраиваем только при смене набора КП, иначе выбор мигает
+  const signature = codes.join('|');
+  if (select.dataset.signature !== signature) {
+    const currentValue = select.value;
+    select.textContent = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Без подсказки';
+    select.append(placeholder);
+    codes.forEach((item) => {
+      const option = document.createElement('option');
+      option.value = item;
+      option.textContent = labelOf(item);
+      select.append(option);
+    });
+    if (codes.includes(currentValue)) select.value = currentValue;
+    select.dataset.signature = signature;
+  }
   const code = select.value;
   const target = (distance.points || []).find((item) => String(codeOf(item)) === code);
   if (!target || !position || point || !Number.isFinite(target.latitude) || !Number.isFinite(target.longitude)) {
     arrow.classList.add('hidden');
     label.classList.remove('hidden');
     hintText.textContent = '';
+    state.hintBearing = null;
     return;
   }
   const meters = Math.round(distanceMeters(position.lat, position.lon, target.latitude, target.longitude));
   const bearing = bearingDegrees(position.lat, position.lon, target.latitude, target.longitude);
   const turn = ((bearing - state.heading + 540) % 360) - 180;
+  state.hintBearing = bearing;
   hintText.textContent = `${labelOf(code)} · ${meters} м · ${Math.round(bearing)}°`;
   $('hintArrowPointer').style.transform = `rotate(${turn}deg)`;
   arrow.classList.remove('hidden');
@@ -4751,7 +4760,10 @@ function bind() {
     const alpha = Number(event.alpha);
     if (Number.isFinite(compass)) state.heading = compass;
     else if (Number.isFinite(alpha)) state.heading = (360 - alpha + 360) % 360;
-    renderMark();
+    if (state.hintBearing !== null) {
+      const turn = ((state.hintBearing - state.heading + 540) % 360) - 180;
+      $('hintArrowPointer').style.transform = `rotate(${turn}deg)`;
+    }
   };
   if (window.DeviceOrientationEvent) {
     window.addEventListener('deviceorientationabsolute', updateHeading, true);
