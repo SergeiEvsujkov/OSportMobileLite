@@ -31,6 +31,7 @@ const state = {
   activeId: null,   // id активированной дистанции
   marks: [],
   position: null,
+  heading: 0,
   watchId: null,
   candidate: null,
   // Буфер последних GPS-точек: на бегу отмечаем ближайшую, а не последнюю
@@ -819,6 +820,7 @@ const DEFAULT_SETTINGS = {
   large: false,
   showOnStart: false,
   autoMark: false,
+  hints: false,
   autoSend: false,
   sound: true,
   vibration: true,
@@ -864,6 +866,7 @@ function renderSettings() {
   $('setLarge').checked = current.large;
   $('setShowOnStart').checked = current.showOnStart;
   $('setAutoMark').checked = current.autoMark;
+  $('setHints').checked = current.hints;
   $('setAutoSend').checked = current.autoSend;
   $('setSound').checked = current.sound;
   $('setVibration').checked = current.vibration;
@@ -3891,6 +3894,54 @@ function renderHint(point, rough, auto) {
     : 'Кнопка станет зелёной у пункта — тогда нажмите';
 }
 
+/** Стрелка на выбранный КП: только GPS, только с разрешения автора и участника. */
+function updateHintArrow(distance, position, point) {
+  const row = $('hintTargetRow');
+  const select = $('hintTarget');
+  const arrow = $('hintArrow');
+  const label = $('markButtonLabel');
+  const hintText = $('hintText');
+  const enabled = Boolean(distance && distance.hintsAllowed) && Boolean(settings().hints) && !qrMode();
+  row.classList.toggle('hidden', !enabled);
+  hintText.classList.toggle('hidden', !enabled);
+  if (!enabled) {
+    arrow.classList.add('hidden');
+    label.classList.remove('hidden');
+    return;
+  }
+  // Только пункты этого события, без повторов
+  const codes = [...new Set((distance.points || []).map((item) => String(codeOf(item))))]
+    .sort((left, right) => left.localeCompare(right, 'ru', { numeric: true }));
+  const currentValue = select.value;
+  select.textContent = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Без подсказки';
+  select.append(placeholder);
+  codes.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = item;
+    option.textContent = labelOf(item);
+    select.append(option);
+  });
+  if (codes.includes(currentValue)) select.value = currentValue;
+  const code = select.value;
+  const target = (distance.points || []).find((item) => String(codeOf(item)) === code);
+  if (!target || !position || point || !Number.isFinite(target.latitude) || !Number.isFinite(target.longitude)) {
+    arrow.classList.add('hidden');
+    label.classList.remove('hidden');
+    hintText.textContent = '';
+    return;
+  }
+  const meters = Math.round(distanceMeters(position.lat, position.lon, target.latitude, target.longitude));
+  const bearing = bearingDegrees(position.lat, position.lon, target.latitude, target.longitude);
+  const turn = ((bearing - state.heading + 540) % 360) - 180;
+  hintText.textContent = `${labelOf(code)} · ${meters} м · ${Math.round(bearing)}°`;
+  $('hintArrowPointer').style.transform = `rotate(${turn}deg)`;
+  arrow.classList.remove('hidden');
+  label.classList.add('hidden');
+}
+
 /** Отрисовка экрана отметки по состоянию: GPS и QR. */
 function renderMark() {
   const event = state.event;
@@ -3962,6 +4013,7 @@ function renderMark() {
 
   if (point) setCircle(point, labelOf(codeOf(point)), true);
   else setCircle(null, 'Подойдите к пункту', false);
+  updateHintArrow(distance, position, point);
 
   // Автоматическая отметка: одна на пункт, старт и финиш не автоматизируются.
   // Ближайшая точка из буфера тоже годится: участник мог уже выйти из зоны
@@ -4694,6 +4746,18 @@ function bindPullToRefresh() {
 }
 
 function bind() {
+  const updateHeading = (event) => {
+    const compass = Number(event.webkitCompassHeading);
+    const alpha = Number(event.alpha);
+    if (Number.isFinite(compass)) state.heading = compass;
+    else if (Number.isFinite(alpha)) state.heading = (360 - alpha + 360) % 360;
+    renderMark();
+  };
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientationabsolute', updateHeading, true);
+    window.addEventListener('deviceorientation', updateHeading, true);
+  }
+  $('hintTarget').addEventListener('change', renderMark);
   $('tabEvents').addEventListener('click', () => showTab('events'));
   $('tabMark').addEventListener('click', () => showTab('mark'));
   $('tabProfile').addEventListener('click', () => showTab('profile'));
@@ -4710,6 +4774,10 @@ function bind() {
   $('setLarge').addEventListener('change', (event) => updateSetting('large', event.target.checked));
   $('setShowOnStart').addEventListener('change', (event) => updateSetting('showOnStart', event.target.checked));
   $('setAutoMark').addEventListener('change', (event) => updateSetting('autoMark', event.target.checked));
+  $('setHints').addEventListener('change', (event) => {
+    updateSetting('hints', event.target.checked);
+    renderMark();
+  });
   $('setAutoSend').addEventListener('change', (event) => updateSetting('autoSend', event.target.checked));
   $('setSound').addEventListener('change', (event) => updateSetting('sound', event.target.checked));
   $('setVibration').addEventListener('change', (event) => updateSetting('vibration', event.target.checked));
