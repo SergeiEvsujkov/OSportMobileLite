@@ -1016,7 +1016,7 @@ function renderCloud() {
       if (hintsAvailable({ distance: first })) body.append(hintLineCloud());
     }
 
-    body.append(authorRowCloud(first));
+    body.append(authorRowCloud(first, items.length === 1));
 
     // Справа: галочка, если все дистанции записи уже скачаны, иначе стрелка
     const downloaded = items.every((entry) => state.history.some((saved) => saved.id === entry.id));
@@ -1105,10 +1105,10 @@ function hintLineCloud() {
 }
 
 /** Автор: значок нужного цвета и имя, у своих — «— Это Вы». */
-function authorRowCloud(entry) {
+function authorRowCloud(entry, showMode = true) {
   const row = document.createElement('div');
   row.className = 'author-row';
-  row.append(modeIconElement(entry));
+  if (showMode) row.append(modeIconElement(entry));
 
   const person = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   person.setAttribute('class', 'icon small author-icon');
