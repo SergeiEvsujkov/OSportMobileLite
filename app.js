@@ -2336,6 +2336,7 @@ const mapState = {
   center: null,    // { latitude, longitude }
   labels: null,    // подписи пунктов для группы: код → «1 - 31»
   showRoute: true, // у группы линия маршрута не рисуется
+  routeCodes: null, // порядок линии на сплите участника; null — order дистанции
   box: null,       // контейнер карты, которую сейчас показываем
   coords: null,    // подпись координат внутри карты (у группы её нет)
 };
@@ -2352,10 +2353,13 @@ function resetMapView() {
 }
 
 /** Показывает карту группы в её контейнере: подписи заданы, линия не рисуется. */
-function showMapOn(box, points) {
+function showMapOn(box, points, options = {}) {
   mapState.points = (points || []).filter(
     (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
   );
+  mapState.routeCodes = options.routeCodes || null;
+  mapState.labels = options.labels || null;
+  if (options.showRoute !== undefined) mapState.showRoute = options.showRoute;
   mapState.zoom = null;
   mapState.center = null;
 
@@ -2391,6 +2395,7 @@ function showMap(points) {
   }
 
   mapState.points = visible;
+  mapState.routeCodes = null;
 
   const box = $('detailMap');
   box.textContent = '';
@@ -2767,7 +2772,7 @@ function drawMap(box) {
 
   // Линия маршрута: как в приложении — красная, по порядку пунктов
   const current = state.event || {};
-  const order = (current.distance && current.distance.order) || [];
+  const order = mapState.routeCodes || (current.distance && current.distance.order) || [];
   const routeVisible = mapState.showRoute
     && !(current.distance && current.distance.routeVisible === false);
   // Линия маршрута: красная, 1.6, круглые концы, каждый отрезок укорочен
@@ -3669,6 +3674,60 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     total.id = 'myMarksTotal';
     total.textContent = `Баллы: ${row.total ?? 0}`;
     list.after(total);
+  }
+
+  // Карта порядка прохождения — только в сплите участника GPS-рогейна и
+  // только если автор разрешил показ пунктов. Дубли в линию не попадают.
+  const participantMap = $('participantMap');
+  const participantMapTitle = $('participantMapTitle');
+  const showParticipantMap = rogaine && fromProtocol && gps &&
+    distance.routeVisible !== false;
+  if (!showParticipantMap) {
+    participantMap.classList.add('hidden');
+    participantMapTitle.classList.add('hidden');
+    participantMap.textContent = '';
+    if (mapState.box === participantMap) mapState.box = null;
+  } else {
+    const seenCodes = new Set();
+    const routePoints = [];
+    const routeCodes = [];
+    const labels = new Map();
+    displayedMarks.forEach((mark) => {
+      const code = String(mark.code);
+      if (seenCodes.has(code)) return;
+      seenCodes.add(code);
+      let point = pointByCode.get(code);
+      // Старт мог не храниться отдельным пунктом, а лежать в полях дистанции
+      if (!point && isStart(code, true) &&
+          Number.isFinite(Number(distance.latitude)) &&
+          Number.isFinite(Number(distance.longitude))) {
+        point = {
+          code,
+          latitude: Number(distance.latitude),
+          longitude: Number(distance.longitude),
+          accuracyMeters: 0
+        };
+      }
+      if (!point || !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return;
+      routePoints.push(point);
+      routeCodes.push(code);
+      labels.set(code, isStart(code, true) || isFinish(code, true) ? null : code);
+    });
+
+    if (!routePoints.length) {
+      participantMap.classList.add('hidden');
+      participantMapTitle.classList.add('hidden');
+      participantMap.textContent = '';
+      if (mapState.box === participantMap) mapState.box = null;
+    } else {
+      participantMapTitle.classList.remove('hidden');
+      participantMap.classList.remove('hidden');
+      showMapOn(participantMap, routePoints, {
+        routeCodes,
+        labels,
+        showRoute: true
+      });
+    }
   }
 
   showTab('participant');
