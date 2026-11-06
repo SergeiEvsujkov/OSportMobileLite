@@ -1117,6 +1117,7 @@ function selectCloudMapGroup(units) {
     });
     card.append(row);
   });
+  addCloudCardClose(card);
   card.classList.remove('hidden');
 }
 
@@ -1143,12 +1144,16 @@ function selectCloudMapUnit(unit) {
   action.className = downloaded ? 'cloud-card-icon checked' : 'cloud-card-icon';
   action.innerHTML = `<svg class="icon"><use href="icons.svg#${downloaded ? 'check' : 'download'}"></use></svg>`;
   if (!downloaded) {
-    action.addEventListener('click', (event) => {
+    action.addEventListener('click', async (event) => {
       event.stopPropagation();
-      downloadGroup(entry, false);
+      await downloadGroup(entry, false);
+      if (cloudMapCardEntry && cloudMapCardEntry[0] && cloudMapCardEntry[0].id === entry.id) {
+        selectCloudMapUnit(cloudMapCardEntry);
+      }
     });
   }
   card.append(title, period, author, action);
+  addCloudCardClose(card);
   card.classList.remove('hidden');
 }
 
@@ -1170,13 +1175,30 @@ function selectCloudMapEntry(entry, unit = [entry]) {
   action.className = downloaded ? 'cloud-card-icon checked' : 'cloud-card-icon';
   action.innerHTML = `<svg class="icon"><use href="icons.svg#${downloaded ? 'check' : 'download'}"></use></svg>`;
   if (!downloaded) {
-    action.addEventListener('click', (event) => {
+    action.addEventListener('click', async (event) => {
       event.stopPropagation();
-      downloadEvent(entry);
+      await downloadEvent(entry);
+      if (cloudMapCardEntry && cloudMapCardEntry[0] && cloudMapCardEntry[0].id === entry.id) {
+        selectCloudMapUnit(cloudMapCardEntry);
+      }
     });
   }
   card.append(title, period, author, action);
+  addCloudCardClose(card);
   card.classList.remove('hidden');
+}
+
+function addCloudCardClose(card) {
+  const close = document.createElement('button');
+  close.className = 'cloud-card-close';
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Закрыть');
+  close.textContent = '×';
+  close.addEventListener('click', (event) => {
+    event.stopPropagation();
+    closeCloudMapCard();
+  });
+  card.append(close);
 }
 
 function closeCloudMapCard() {
@@ -5504,13 +5526,13 @@ function bind() {
     cloudMapToggle.title = cloudMapMode ? 'Показать списком' : 'Показать карту';
     renderCloud();
   });
-  document.addEventListener('pointerdown', (event) => {
+  document.addEventListener('click', (event) => {
     if (!cloudMapMode) return;
     const card = $('cloudMapCard');
     if (!card || card.classList.contains('hidden')) return;
     if (card.contains(event.target) || (event.target.closest && event.target.closest('.cloud-map-pin'))) return;
     closeCloudMapCard();
-  }, { passive: true });
+  });
   $('cloudBack').addEventListener('click', () => showTab('events'));
   $('cloudSearch')?.addEventListener('input', renderCloud);
   $('cloudOnlyMine')?.addEventListener('change', renderCloud);

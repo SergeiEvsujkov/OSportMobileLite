@@ -228,7 +228,7 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   background: var(--surface);
   border-radius: 16px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
-  padding: 12px;
+  padding: 12px 44px 12px 12px;
   z-index: 5;
 }
 .cloud-map-pin {
@@ -266,6 +266,20 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   color: #c62828;
   font-size: 15px;
   line-height: 41px;
+}
+.cloud-card-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
 }
 .cloud-card-icon {
   display: inline-flex;
