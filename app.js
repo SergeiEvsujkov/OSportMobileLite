@@ -1015,11 +1015,14 @@ function renderCloudCard(units) {
   card.textContent = '';
   if (safeUnits.length > 1) {
     const title = document.createElement('div');
-    title.className = 'name';
+    title.className = 'cloud-card-head';
     title.textContent = `Событий: ${safeUnits.length}`;
     card.append(title);
   }
-  safeUnits.forEach((unit) => card.append(cloudCard(unit)));
+  const body = document.createElement('div');
+  body.className = 'cloud-map-card-body';
+  safeUnits.forEach((unit) => body.append(cloudCard(unit)));
+  card.append(body);
   addCloudCardClose(card);
   card.classList.remove('hidden');
 }

@@ -228,12 +228,23 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   background: var(--surface);
   border-radius: 16px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
-  padding: 12px 44px 12px 12px;
   max-height: 46dvh;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+}
+.cloud-card-head {
+  flex: none;
+  padding: 12px 44px 0 12px;
+  font-weight: 700;
+}
+.cloud-map-card-body {
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  z-index: 5;
+  padding: 12px 44px 12px 12px;
 }
 .cloud-map-pin {
   position: absolute;
