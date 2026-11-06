@@ -1570,6 +1570,7 @@ function activateDistance() {
 
 /** Деактивация: отметки стираются, дистанция перестаёт быть активной. */
 function deactivateDistance() {
+  resetCompass();
   stopWatch();
   stopQrScanner();
   const eventId = state.event && state.event.id;
@@ -2037,6 +2038,7 @@ function openGroupDeleteDialog(groupId) {
 
 /** Удаляет всю группу: каждую дистанцию и её отметки. */
 function deleteGroup(groupId) {
+  resetCompass();
   const group = readJson(STORAGE.group, null);
   const groupItems = (group && group.items) || [];
 
@@ -2099,6 +2101,7 @@ function deleteGroup(groupId) {
 
 /** Удаляет событие с устройства: запись, отметки, активность и группу. */
 function deleteEvent(eventId) {
+  resetCompass();
   stopWatch();
   stopQrScanner();
 
@@ -2337,6 +2340,8 @@ const mapState = {
   compass: false,
   compassLoaded: false,
   compassHeading: 0,
+  compassSeen: false,
+  compassAbsolute: false,
   compassTimer: null,
   compassListening: false,
   rotation: 0,
@@ -2471,17 +2476,33 @@ function applyMapLayerTransform() {
     `scale(${mapState.layerScale}) rotate(${mapState.rotation}deg)`;
 }
 
-function onDeviceOrientation(event) {
+function onDeviceOrientation(event, absolute) {
+  // Абсолютный датчик предпочтительнее: обычный на Android может отдавать
+  // относительный угол и давать рывки.
+  if (absolute) mapState.compassAbsolute = true;
+  else if (mapState.compassAbsolute) return;
+
   let heading = null;
   if (typeof event.webkitCompassHeading === 'number') {
     heading = event.webkitCompassHeading;
   } else if (typeof event.alpha === 'number') {
     heading = 360 - event.alpha;
   }
-  if (Number.isFinite(heading)) {
-    mapState.compassHeading = (heading + 360) % 360;
+  if (!Number.isFinite(heading)) return;
+  heading = (heading + 360) % 360;
+
+  if (!mapState.compassSeen) {
+    mapState.compassHeading = heading;
+    mapState.compassSeen = true;
+  } else {
+    const delta = ((heading - mapState.compassHeading + 540) % 360) - 180;
+    mapState.compassHeading =
+      (mapState.compassHeading + delta * 0.12 + 360) % 360;
   }
 }
+
+const onCompassAbsolute = (event) => onDeviceOrientation(event, true);
+const onCompassRelative = (event) => onDeviceOrientation(event, false);
 
 function compassFrame() {
   if (!mapState.compass) return;
@@ -2498,22 +2519,30 @@ function compassFrame() {
 function startCompass() {
   if (mapState.compassListening) return;
   mapState.compassListening = true;
-  window.addEventListener('deviceorientationabsolute', onDeviceOrientation, true);
-  window.addEventListener('deviceorientation', onDeviceOrientation, true);
+  mapState.compassSeen = false;
+  mapState.compassAbsolute = false;
+  window.addEventListener('deviceorientationabsolute', onCompassAbsolute, true);
+  window.addEventListener('deviceorientation', onCompassRelative, true);
   if (mapState.compassTimer) cancelAnimationFrame(mapState.compassTimer);
   mapState.compassTimer = requestAnimationFrame(compassFrame);
 }
 
 function stopCompass() {
   mapState.compassListening = false;
-  window.removeEventListener('deviceorientationabsolute', onDeviceOrientation, true);
-  window.removeEventListener('deviceorientation', onDeviceOrientation, true);
+  window.removeEventListener('deviceorientationabsolute', onCompassAbsolute, true);
+  window.removeEventListener('deviceorientation', onCompassRelative, true);
   if (mapState.compassTimer) {
     cancelAnimationFrame(mapState.compassTimer);
     mapState.compassTimer = null;
   }
   mapState.rotation = 0;
   applyMapLayerTransform();
+}
+
+function resetCompass() {
+  mapState.compass = false;
+  saveCompassPreference();
+  stopCompass();
 }
 
 async function toggleCompass() {
