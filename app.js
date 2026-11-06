@@ -1174,7 +1174,8 @@ function fitCloudMap(map, points) {
       break;
     }
   }
-  mapState.zoom = zoom;
+  // Один уровень запаса: кластеры у границ не должны обрезаться
+  mapState.zoom = Math.max(2, zoom - 1);
   mapState.center = {
     latitude: (minLat + maxLat) / 2,
     longitude: (minLon + maxLon) / 2,
