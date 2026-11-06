@@ -1138,14 +1138,17 @@ function selectCloudMapUnit(unit) {
   const author = document.createElement('div');
   author.className = 'line';
   author.textContent = entry.organizer ? `Автор: ${entry.organizer}` : '';
-  const download = document.createElement('button');
-  download.className = 'primary';
-  download.textContent = 'Скачать группу';
-  download.addEventListener('click', (event) => {
-    event.stopPropagation();
-    downloadGroup(entry, state.history.some((saved) => saved.id === entry.id));
-  });
-  card.append(title, period, author, download);
+  const downloaded = unit.every((item) => state.history.some((saved) => saved.id === item.id));
+  const action = document.createElement(downloaded ? 'span' : 'button');
+  action.className = downloaded ? 'cloud-card-icon checked' : 'cloud-card-icon';
+  action.innerHTML = `<svg class="icon"><use href="icons.svg#${downloaded ? 'check' : 'download'}"></use></svg>`;
+  if (!downloaded) {
+    action.addEventListener('click', (event) => {
+      event.stopPropagation();
+      downloadGroup(entry, false);
+    });
+  }
+  card.append(title, period, author, action);
   card.classList.remove('hidden');
 }
 
@@ -1162,15 +1165,26 @@ function selectCloudMapEntry(entry, unit = [entry]) {
   const author = document.createElement('div');
   author.className = 'line';
   author.textContent = entry.organizer ? `Автор: ${entry.organizer}` : '';
-  const download = document.createElement('button');
-  download.className = 'primary';
-  download.textContent = 'Скачать';
-  download.addEventListener('click', (event) => {
-    event.stopPropagation();
-    downloadEvent(entry);
-  });
-  card.append(title, period, author, download);
+  const downloaded = state.history.some((saved) => saved.id === entry.id);
+  const action = document.createElement(downloaded ? 'span' : 'button');
+  action.className = downloaded ? 'cloud-card-icon checked' : 'cloud-card-icon';
+  action.innerHTML = `<svg class="icon"><use href="icons.svg#${downloaded ? 'check' : 'download'}"></use></svg>`;
+  if (!downloaded) {
+    action.addEventListener('click', (event) => {
+      event.stopPropagation();
+      downloadEvent(entry);
+    });
+  }
+  card.append(title, period, author, action);
   card.classList.remove('hidden');
+}
+
+function closeCloudMapCard() {
+  cloudMapCardEntry = null;
+  const card = $('cloudMapCard');
+  if (!card) return;
+  card.classList.add('hidden');
+  card.textContent = '';
 }
 
 /** Сведения о дистанции в строке группы. */
@@ -5490,6 +5504,13 @@ function bind() {
     cloudMapToggle.title = cloudMapMode ? 'Показать списком' : 'Показать карту';
     renderCloud();
   });
+  document.addEventListener('pointerdown', (event) => {
+    if (!cloudMapMode) return;
+    const card = $('cloudMapCard');
+    if (!card || card.classList.contains('hidden')) return;
+    if (card.contains(event.target) || (event.target.closest && event.target.closest('.cloud-map-pin'))) return;
+    closeCloudMapCard();
+  }, { passive: true });
   $('cloudBack').addEventListener('click', () => showTab('events'));
   $('cloudSearch')?.addEventListener('input', renderCloud);
   $('cloudOnlyMine')?.addEventListener('change', renderCloud);
