@@ -1146,7 +1146,7 @@ function selectCloudMapUnit(unit) {
   if (!downloaded) {
     action.addEventListener('click', async (event) => {
       event.stopPropagation();
-      await downloadGroup(entry, false);
+      await downloadEvent(entry);
       if (cloudMapCardEntry && cloudMapCardEntry[0] && cloudMapCardEntry[0].id === entry.id) {
         selectCloudMapUnit(cloudMapCardEntry);
       }
