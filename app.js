@@ -2283,6 +2283,15 @@ function deleteGroup(groupId) {
 
 /** Удаляет событие с устройства: запись, отметки, активность и группу. */
 function deleteEvent(eventId) {
+  // Группа удаляется только целиком: отдельную дистанцию из неё не убираем
+  const event = readJson(STORAGE.event + '.' + eventId, null)
+    || (state.event && state.event.id === eventId ? state.event : null);
+  const groupId = String((event && event.entry && event.entry.groupId) || '');
+  if (groupId) {
+    deleteGroup(groupId);
+    return;
+  }
+
   resetCompass();
   stopWatch();
   stopQrScanner();
