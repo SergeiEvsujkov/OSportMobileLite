@@ -944,12 +944,16 @@ async function openCloud() {
 }
 
 function renderCloud() {
-  const filter = $('cloudSearch').value.trim();
+  const search = $('cloudSearch');
+  const onlyMineInput = $('cloudOnlyMine');
+  const filter = search ? search.value.trim() : '';
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
-  const onlyMine = Boolean(me.code) && $('cloudOnlyMine').checked;
-  $('cloudOnlyMineRow').classList.toggle('hidden', !me.code);
-  const kindFilter = $('cloudKind').value;
-  const markFilter = $('cloudMark').value;
+  const onlyMine = Boolean(me.code) && Boolean(onlyMineInput && onlyMineInput.checked);
+  $('cloudOnlyMineRow')?.classList.toggle('hidden', !me.code);
+  const kindElement = $('cloudKind');
+  const markElement = $('cloudMark');
+  const kindFilter = kindElement ? kindElement.value : '';
+  const markFilter = markElement ? markElement.value : '';
   const source = cloudEntries.filter((entry) => {
     if (onlyMine && (!me.code || String(entry.ownerId) !== String(me.code))) return false;
     if (kindFilter && entry.kind !== kindFilter) return false;
@@ -1046,7 +1050,7 @@ function renderCloud() {
   list.classList.toggle('hidden', cloudMapMode);
   $('cloudMap').classList.toggle('hidden', !cloudMapMode);
   $('cloudMapCard').classList.toggle('hidden', !cloudMapMode || !cloudMapCardEntry);
-  if (cloudMapMode) renderCloudMap(matched.flat());
+  if (cloudMapMode) renderCloudMap(matched);
   else {
     mapState.cloudEntries = null;
     cloudMapCardEntry = null;
@@ -1057,10 +1061,10 @@ function renderCloud() {
 let cloudMapMode = false;
 let cloudMapCardEntry = null;
 
-function renderCloudMap(entries) {
-  const located = entries.filter(
-    (entry) => Number.isFinite(Number(entry.latitude)) && Number.isFinite(Number(entry.longitude))
-  );
+function renderCloudMap(units) {
+  const located = units.filter((unit) => unit.length > 0
+    && Number.isFinite(Number(unit[0].latitude))
+    && Number.isFinite(Number(unit[0].longitude)));
   const map = $('cloudMap');
   if (!located.length) {
     map.classList.add('hidden');
@@ -1068,13 +1072,13 @@ function renderCloudMap(entries) {
     return;
   }
   const byCode = new Map();
-  const points = located.map((entry, index) => {
-    const code = 'cloud:' + entry.id;
-    byCode.set(code, entry);
+  const points = located.map((unit, index) => {
+    const code = 'cloud:' + (unit[0].groupId || unit[0].id || index);
+    byCode.set(code, unit);
     return {
       code,
-      latitude: Number(entry.latitude),
-      longitude: Number(entry.longitude),
+      latitude: Number(unit[0].latitude),
+      longitude: Number(unit[0].longitude),
     };
   });
   mapState.zoom = null;
@@ -1082,40 +1086,71 @@ function renderCloudMap(entries) {
   showMapOn(map, points, {
     showRoute: false,
     cloudEntries: byCode,
-    labels: new Map(points.map((point, index) => [point.code, String(located[index].number || index + 1)])),
+    labels: new Map(points.map((point, index) => [point.code, String(located[index][0].number || index + 1)])),
   });
   map.classList.remove('hidden');
-  if (cloudMapCardEntry) selectCloudMapEntry(cloudMapCardEntry);
+  if (cloudMapCardEntry) selectCloudMapUnit(cloudMapCardEntry);
 }
 
-function selectCloudMapGroup(entries) {
-  if (entries.length === 1) {
-    selectCloudMapEntry(entries[0]);
+function selectCloudMapGroup(units) {
+  if (units.length === 1) {
+    selectCloudMapUnit(units[0]);
     return;
   }
-  cloudMapCardEntry = entries[0];
+  cloudMapCardEntry = units[0];
   const card = $('cloudMapCard');
   card.textContent = '';
   const title = document.createElement('div');
   title.className = 'name';
-  title.textContent = `Событий: ${entries.length}`;
+  title.textContent = `Событий: ${units.length}`;
   card.append(title);
-  entries.forEach((entry) => {
+  units.forEach((unit) => {
+    const entry = unit[0];
     const row = document.createElement('button');
     row.className = 'cloud-map-choice';
     row.textContent = (entry.number ? `№ ${entry.number}  ` : '') +
-      (entry.name || 'Без названия');
+      (entry.name || 'Без названия') +
+      (unit.length > 1 ? ` · группа, ${unit.length}` : '');
     row.addEventListener('click', (event) => {
       event.stopPropagation();
-      selectCloudMapEntry(entry);
+      selectCloudMapUnit(unit);
     });
     card.append(row);
   });
   card.classList.remove('hidden');
 }
 
-function selectCloudMapEntry(entry) {
-  cloudMapCardEntry = entry;
+function selectCloudMapUnit(unit) {
+  cloudMapCardEntry = unit;
+  if (unit.length === 1) {
+    selectCloudMapEntry(unit[0], unit);
+    return;
+  }
+  const entry = unit[0];
+  const card = $('cloudMapCard');
+  card.textContent = '';
+  const title = document.createElement('div');
+  title.className = 'name';
+  title.textContent = `Группа: ${entry.name || 'Без названия'} · ${unit.length}`;
+  const period = document.createElement('div');
+  period.className = 'period';
+  period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
+  const author = document.createElement('div');
+  author.className = 'line';
+  author.textContent = entry.organizer ? `Автор: ${entry.organizer}` : '';
+  const download = document.createElement('button');
+  download.className = 'primary';
+  download.textContent = 'Скачать группу';
+  download.addEventListener('click', (event) => {
+    event.stopPropagation();
+    downloadGroup(entry, state.history.some((saved) => saved.id === entry.id));
+  });
+  card.append(title, period, author, download);
+  card.classList.remove('hidden');
+}
+
+function selectCloudMapEntry(entry, unit = [entry]) {
+  cloudMapCardEntry = unit;
   const card = $('cloudMapCard');
   card.textContent = '';
   const title = document.createElement('div');
@@ -3110,34 +3145,34 @@ function drawMap(box) {
   if (mapState.cloudEntries) {
     const pins = [];
     points.forEach((point) => {
-      const entry = mapState.cloudEntries.get(String(codeOf(point)));
-      if (!entry) return;
+      const unit = mapState.cloudEntries.get(String(codeOf(point)));
+      if (!unit) return;
       const { x, y } = positionOf(point);
       const near = pins.find((pin) => Math.hypot(pin.x - x, pin.y - y) <= 48);
       if (near) {
-        near.entries.push(entry);
-        near.x = (near.x * (near.entries.length - 1) + x) / near.entries.length;
-        near.y = (near.y * (near.entries.length - 1) + y) / near.entries.length;
+        near.units.push(unit);
+        near.x = (near.x * (near.units.length - 1) + x) / near.units.length;
+        near.y = (near.y * (near.units.length - 1) + y) / near.units.length;
       } else {
-        pins.push({ x, y, entries: [entry] });
+        pins.push({ x, y, units: [unit] });
       }
     });
     pins.forEach((group) => {
       const pin = document.createElement('button');
-      pin.className = 'cloud-map-pin';
+      pin.className = 'cloud-map-pin' + (group.units.length > 1 ? ' cluster' : '');
       pin.style.left = `${group.x}px`;
       pin.style.top = `${group.y}px`;
-      pin.title = group.entries.length === 1
-        ? (group.entries[0].name || 'Событие')
-        : `Событий: ${group.entries.length}`;
+      pin.title = group.units.length === 1
+        ? (group.units[0][0].name || 'Событие')
+        : `Событий: ${group.units.length}`;
       const number = document.createElement('span');
-      number.textContent = group.entries.length > 1
-        ? String(group.entries.length)
-        : String(group.entries[0].number || '');
+      number.textContent = group.units.length > 1
+        ? String(group.units.length)
+        : String(group.units[0][0].number || '');
       pin.append(number);
       pin.addEventListener('click', (event) => {
         event.stopPropagation();
-        selectCloudMapGroup(group.entries);
+        selectCloudMapGroup(group.units);
       });
       layer.append(pin);
     });
@@ -5324,12 +5359,14 @@ function bindPullToRefresh() {
     };
 
     screen.addEventListener('touchstart', (event) => {
+      if (event.target && event.target.closest && event.target.closest('#cloudMap')) return;
       if (event.touches.length !== 1 || !atTop()) return;
       startY = event.touches[0].clientY;
       pulled = 0;
     }, { passive: true });
 
     screen.addEventListener('touchmove', (event) => {
+      if (event.target && event.target.closest && event.target.closest('#cloudMap')) return;
       if (startY === null) return;
       pulled = Math.max(0, event.touches[0].clientY - startY);
       if (pulled <= 4) return;
@@ -5442,19 +5479,20 @@ function bind() {
   });
   $('openCloud').addEventListener('click', openCloud);
   $('cloudRefresh').addEventListener('click', openCloud);
-  $('cloudMapToggle').addEventListener('click', async () => {
+  const cloudMapToggle = $('cloudMapToggle');
+  if (cloudMapToggle) cloudMapToggle.addEventListener('click', async () => {
     cloudMapMode = !cloudMapMode;
-    $('cloudMapToggle').innerHTML = cloudMapMode
+    cloudMapToggle.innerHTML = cloudMapMode
       ? '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#list"></use></svg>'
       : '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#map"></use></svg>';
-    $('cloudMapToggle').title = cloudMapMode ? 'Показать списком' : 'Показать карту';
+    cloudMapToggle.title = cloudMapMode ? 'Показать списком' : 'Показать карту';
     renderCloud();
   });
   $('cloudBack').addEventListener('click', () => showTab('events'));
-  $('cloudSearch').addEventListener('input', renderCloud);
-  $('cloudOnlyMine').addEventListener('change', renderCloud);
-  $('cloudKind').addEventListener('change', renderCloud);
-  $('cloudMark').addEventListener('change', renderCloud);
+  $('cloudSearch')?.addEventListener('input', renderCloud);
+  $('cloudOnlyMine')?.addEventListener('change', renderCloud);
+  $('cloudKind')?.addEventListener('change', renderCloud);
+  $('cloudMark')?.addEventListener('change', renderCloud);
 
   $('groupBack').addEventListener('click', () => showTab('events'));
   $('participantBack').addEventListener('click', () => openDetail());
