@@ -1150,6 +1150,38 @@ function renderCloud() {
 let cloudMapMode = false;
 let cloudMapCardEntry = null;
 
+/** Принудительно вписывает все старты в реальный размер карты. */
+function fitCloudMap(map, points) {
+  const width = map.clientWidth || 360;
+  const height = map.clientHeight || 300;
+  const lats = points.map((point) => Number(point.latitude));
+  const lons = points.map((point) => Number(point.longitude));
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons);
+  const maxLon = Math.max(...lons);
+  let zoom = 2;
+  for (let candidate = 18; candidate >= 2; candidate--) {
+    const size = 256 * Math.pow(2, candidate);
+    const px = (lat, lon) => ({
+      x: ((lon + 180) / 360) * size,
+      y: ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * size,
+    });
+    const a = px(maxLat, minLon);
+    const b = px(minLat, maxLon);
+    if (Math.abs(b.x - a.x) <= width - 120 && Math.abs(b.y - a.y) <= height - 120) {
+      zoom = candidate;
+      break;
+    }
+  }
+  mapState.zoom = zoom;
+  mapState.center = {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLon + maxLon) / 2,
+  };
+  redrawMap();
+}
+
 function renderCloudMap(units) {
   const located = units.filter((unit) => unit.length > 0
     && Number.isFinite(Number(unit[0].latitude))
@@ -1181,13 +1213,7 @@ function renderCloudMap(units) {
   // После раскладки у карты появляется настоящая высота: подгоняем все точки ещё раз
   requestAnimationFrame(() => {
     if (mapState.box !== map || !mapState.cloudEntries) return;
-    mapState.zoom = null;
-    mapState.center = null;
-    showMapOn(map, points, {
-      showRoute: false,
-      cloudEntries: byCode,
-      labels: new Map(points.map((point, index) => [point.code, String(located[index][0].number || index + 1)])),
-    });
+    fitCloudMap(map, points);
   });
   if (cloudMapCardEntry) selectCloudMapUnit(cloudMapCardEntry);
 }
