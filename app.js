@@ -944,12 +944,16 @@ async function openCloud() {
 }
 
 function renderCloud() {
-  const filter = $('cloudSearch').value.trim();
+  const search = $('cloudSearch');
+  const onlyMineInput = $('cloudOnlyMine');
+  const filter = search ? search.value.trim() : '';
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
-  const onlyMine = Boolean(me.code) && $('cloudOnlyMine').checked;
-  $('cloudOnlyMineRow').classList.toggle('hidden', !me.code);
-  const kindFilter = $('cloudKind').value;
-  const markFilter = $('cloudMark').value;
+  const onlyMine = Boolean(me.code) && Boolean(onlyMineInput && onlyMineInput.checked);
+  $('cloudOnlyMineRow')?.classList.toggle('hidden', !me.code);
+  const kindElement = $('cloudKind');
+  const markElement = $('cloudMark');
+  const kindFilter = kindElement ? kindElement.value : '';
+  const markFilter = markElement ? markElement.value : '';
   const source = cloudEntries.filter((entry) => {
     if (onlyMine && (!me.code || String(entry.ownerId) !== String(me.code))) return false;
     if (kindFilter && entry.kind !== kindFilter) return false;
@@ -5442,19 +5446,20 @@ function bind() {
   });
   $('openCloud').addEventListener('click', openCloud);
   $('cloudRefresh').addEventListener('click', openCloud);
-  $('cloudMapToggle').addEventListener('click', async () => {
+  const cloudMapToggle = $('cloudMapToggle');
+  if (cloudMapToggle) cloudMapToggle.addEventListener('click', async () => {
     cloudMapMode = !cloudMapMode;
-    $('cloudMapToggle').innerHTML = cloudMapMode
+    cloudMapToggle.innerHTML = cloudMapMode
       ? '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#list"></use></svg>'
       : '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#map"></use></svg>';
-    $('cloudMapToggle').title = cloudMapMode ? 'Показать списком' : 'Показать карту';
+    cloudMapToggle.title = cloudMapMode ? 'Показать списком' : 'Показать карту';
     renderCloud();
   });
   $('cloudBack').addEventListener('click', () => showTab('events'));
-  $('cloudSearch').addEventListener('input', renderCloud);
-  $('cloudOnlyMine').addEventListener('change', renderCloud);
-  $('cloudKind').addEventListener('change', renderCloud);
-  $('cloudMark').addEventListener('change', renderCloud);
+  $('cloudSearch')?.addEventListener('input', renderCloud);
+  $('cloudOnlyMine')?.addEventListener('change', renderCloud);
+  $('cloudKind')?.addEventListener('change', renderCloud);
+  $('cloudMark')?.addEventListener('change', renderCloud);
 
   $('groupBack').addEventListener('click', () => showTab('events'));
   $('participantBack').addEventListener('click', () => openDetail());

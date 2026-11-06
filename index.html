@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
@@ -12,30 +12,30 @@
 </head>
 <body>
   <main id="app">
-    <div class="pull-indicator hidden" id="pullIndicator">Потяните, чтобы обновить</div>
-    <!-- Главный экран: одна запись — активное событие -->
+    <div class="pull-indicator hidden" id="pullIndicator">РџРѕС‚СЏРЅРёС‚Рµ, С‡С‚РѕР±С‹ РѕР±РЅРѕРІРёС‚СЊ</div>
+    <!-- Р“Р»Р°РІРЅС‹Р№ СЌРєСЂР°РЅ: РѕРґРЅР° Р·Р°РїРёСЃСЊ вЂ” Р°РєС‚РёРІРЅРѕРµ СЃРѕР±С‹С‚РёРµ -->
     <section class="screen" id="homeScreen">
       <header class="page-head">
-        <h1>События</h1>
+        <h1>РЎРѕР±С‹С‚РёСЏ</h1>
         <div class="head-actions">
-          <button id="openSettings" class="icon-button" title="Настройки"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#settings"></use></svg></button>
-          <button id="homeRefresh" class="icon-button" title="Обновить из облака"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#refresh"></use></svg></button>
-          <button id="openCloud" class="icon-button" title="Облако"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#cloud"></use></svg></button>
+          <button id="openSettings" class="icon-button" title="РќР°СЃС‚СЂРѕР№РєРё"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#settings"></use></svg></button>
+          <button id="homeRefresh" class="icon-button" title="РћР±РЅРѕРІРёС‚СЊ РёР· РѕР±Р»Р°РєР°"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#refresh"></use></svg></button>
+          <button id="openCloud" class="icon-button" title="РћР±Р»Р°РєРѕ"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#cloud"></use></svg></button>
         </div>
       </header>
       <div class="events-list" id="eventsList"></div>
-      <p class="hint" id="homeHint">События нет: откройте облако и скачайте событие.</p>
+      <p class="hint" id="homeHint">РЎРѕР±С‹С‚РёСЏ РЅРµС‚: РѕС‚РєСЂРѕР№С‚Рµ РѕР±Р»Р°РєРѕ Рё СЃРєР°С‡Р°Р№С‚Рµ СЃРѕР±С‹С‚РёРµ.</p>
     </section>
 
-    <!-- Экран группы: просмотр дистанций группы -->
+    <!-- Р­РєСЂР°РЅ РіСЂСѓРїРїС‹: РїСЂРѕСЃРјРѕС‚СЂ РґРёСЃС‚Р°РЅС†РёР№ РіСЂСѓРїРїС‹ -->
     <section class="screen hidden" id="groupScreen">
       <header class="page-head">
-        <button id="groupBack" class="icon-button left" title="Назад">←</button>
+        <button id="groupBack" class="icon-button left" title="РќР°Р·Р°Рґ">в†ђ</button>
         <div class="head-text">
-          <h1 id="groupTitle">Группа дистанций</h1>
+          <h1 id="groupTitle">Р“СЂСѓРїРїР° РґРёСЃС‚Р°РЅС†РёР№</h1>
           <p class="sub" id="groupSub"></p>
         </div>
-        <button id="groupDelete" class="icon-button" title="Удалить">
+        <button id="groupDelete" class="icon-button" title="РЈРґР°Р»РёС‚СЊ">
           <svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#delete"></use></svg>
         </button>
       </header>
@@ -44,91 +44,91 @@
 
       <div class="map hidden" id="groupMap"></div>
 
-      <h2 class="proto-title">Дистанции группы</h2>
+      <h2 class="proto-title">Р”РёСЃС‚Р°РЅС†РёРё РіСЂСѓРїРїС‹</h2>
       <div class="group-distances" id="groupDistances"></div>
     </section>
 
-    <!-- Настройки -->
+    <!-- РќР°СЃС‚СЂРѕР№РєРё -->
     <section class="screen hidden" id="settingsScreen">
       <header class="page-head">
-        <button id="settingsBack" class="icon-button left" title="Назад">←</button>
-        <h1>Настройки</h1>
+        <button id="settingsBack" class="icon-button left" title="РќР°Р·Р°Рґ">в†ђ</button>
+        <h1>РќР°СЃС‚СЂРѕР№РєРё</h1>
       </header>
 
-      <h2 class="settings-group">Оформление</h2>
+      <h2 class="settings-group">РћС„РѕСЂРјР»РµРЅРёРµ</h2>
       <div class="card">
-        <p class="label">Тема</p>
+        <p class="label">РўРµРјР°</p>
         <div class="theme-row" id="themeRow">
-          <button class="theme-chip" data-theme="system">Как в системе</button>
-          <button class="theme-chip" data-theme="light">Светлая</button>
-          <button class="theme-chip" data-theme="dark">Тёмная</button>
+          <button class="theme-chip" data-theme="system">РљР°Рє РІ СЃРёСЃС‚РµРјРµ</button>
+          <button class="theme-chip" data-theme="light">РЎРІРµС‚Р»Р°СЏ</button>
+          <button class="theme-chip" data-theme="dark">РўС‘РјРЅР°СЏ</button>
         </div>
         <label class="switch-row">
-          <span>Крупный интерфейс</span>
+          <span>РљСЂСѓРїРЅС‹Р№ РёРЅС‚РµСЂС„РµР№СЃ</span>
           <input type="checkbox" id="setLarge">
         </label>
-        <p class="hint">Увеличить кнопки и текст — удобнее в перчатке и на ходу.</p>
+        <p class="hint">РЈРІРµР»РёС‡РёС‚СЊ РєРЅРѕРїРєРё Рё С‚РµРєСЃС‚ вЂ” СѓРґРѕР±РЅРµРµ РІ РїРµСЂС‡Р°С‚РєРµ Рё РЅР° С…РѕРґСѓ.</p>
       </div>
 
-      <h2 class="settings-group">Отметки</h2>
+      <h2 class="settings-group">РћС‚РјРµС‚РєРё</h2>
       <div class="card">
         <label class="switch-row">
-          <span>Открывать экран отметки при запуске</span>
+          <span>РћС‚РєСЂС‹РІР°С‚СЊ СЌРєСЂР°РЅ РѕС‚РјРµС‚РєРё РїСЂРё Р·Р°РїСѓСЃРєРµ</span>
           <input type="checkbox" id="setShowOnStart">
         </label>
         <label class="switch-row">
-          <span>Автоматическая отметка</span>
+          <span>РђРІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РѕС‚РјРµС‚РєР°</span>
           <input type="checkbox" id="setAutoMark">
         </label>
-        <p class="hint">GPS — как только кнопка становится зелёной; QR — как только код попал в кадр.</p>
+        <p class="hint">GPS вЂ” РєР°Рє С‚РѕР»СЊРєРѕ РєРЅРѕРїРєР° СЃС‚Р°РЅРѕРІРёС‚СЃСЏ Р·РµР»С‘РЅРѕР№; QR вЂ” РєР°Рє С‚РѕР»СЊРєРѕ РєРѕРґ РїРѕРїР°Р» РІ РєР°РґСЂ.</p>
         <label class="switch-row">
-          <span>Пользоваться подсказками</span>
+          <span>РџРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ РїРѕРґСЃРєР°Р·РєР°РјРё</span>
           <input type="checkbox" id="setHints">
         </label>
-        <p class="hint">Стрелка на выбранный КП, если автор дистанции разрешил подсказки.</p>
+        <p class="hint">РЎС‚СЂРµР»РєР° РЅР° РІС‹Р±СЂР°РЅРЅС‹Р№ РљРџ, РµСЃР»Рё Р°РІС‚РѕСЂ РґРёСЃС‚Р°РЅС†РёРё СЂР°Р·СЂРµС€РёР» РїРѕРґСЃРєР°Р·РєРё.</p>
         <label class="switch-row">
-          <span>Отправлять отметки после финиша</span>
+          <span>РћС‚РїСЂР°РІР»СЏС‚СЊ РѕС‚РјРµС‚РєРё РїРѕСЃР»Рµ С„РёРЅРёС€Р°</span>
           <input type="checkbox" id="setAutoSend">
         </label>
         <label class="switch-row">
-          <span>Звук отметки</span>
+          <span>Р—РІСѓРє РѕС‚РјРµС‚РєРё</span>
           <input type="checkbox" id="setSound">
         </label>
         <label class="switch-row">
-          <span>Вибрация отметки</span>
+          <span>Р’РёР±СЂР°С†РёСЏ РѕС‚РјРµС‚РєРё</span>
           <input type="checkbox" id="setVibration">
         </label>
       </div>
 
-      <button id="settingsReset" class="button outlined" style="width:100%">Сбросить настройки</button>
-      <p class="hint">Вернуть настройки к значениям по умолчанию? Вид и отметки станут как при первом запуске.</p>
+      <button id="settingsReset" class="button outlined" style="width:100%">РЎР±СЂРѕСЃРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё</button>
+      <p class="hint">Р’РµСЂРЅСѓС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё Рє Р·РЅР°С‡РµРЅРёСЏРј РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ? Р’РёРґ Рё РѕС‚РјРµС‚РєРё СЃС‚Р°РЅСѓС‚ РєР°Рє РїСЂРё РїРµСЂРІРѕРј Р·Р°РїСѓСЃРєРµ.</p>
     </section>
 
-    <!-- Экран участника: сплиты -->
+    <!-- Р­РєСЂР°РЅ СѓС‡Р°СЃС‚РЅРёРєР°: СЃРїР»РёС‚С‹ -->
     <section class="screen hidden" id="participantScreen">
       <header class="page-head">
-        <button id="participantBack" class="icon-button left" title="Назад">←</button>
+        <button id="participantBack" class="icon-button left" title="РќР°Р·Р°Рґ">в†ђ</button>
         <div class="head-text">
-          <h1>Сплит участника</h1>
+          <h1>РЎРїР»РёС‚ СѓС‡Р°СЃС‚РЅРёРєР°</h1>
         </div>
       </header>
       <div class="split-summary" id="participantSummary"></div>
 
       <div class="split-table" id="participantMarks"></div>
 
-      <h2 class="proto-title hidden" id="participantMapTitle">Порядок прохождения на карте</h2>
+      <h2 class="proto-title hidden" id="participantMapTitle">РџРѕСЂСЏРґРѕРє РїСЂРѕС…РѕР¶РґРµРЅРёСЏ РЅР° РєР°СЂС‚Рµ</h2>
       <div class="map hidden" id="participantMap"></div>
     </section>
 
-    <!-- Экран дистанции -->
+    <!-- Р­РєСЂР°РЅ РґРёСЃС‚Р°РЅС†РёРё -->
     <section class="screen hidden" id="detailScreen">
       <header class="page-head">
-        <button id="detailBack" class="icon-button left" title="Назад"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#back"></use></svg></button>
+        <button id="detailBack" class="icon-button left" title="РќР°Р·Р°Рґ"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#back"></use></svg></button>
         <div class="head-text">
-          <h1 id="detailTitle">Событие</h1>
+          <h1 id="detailTitle">РЎРѕР±С‹С‚РёРµ</h1>
           <p class="sub" id="detailSub"></p>
         </div>
-        <button id="detailDelete" class="icon-button" title="Удалить">
+        <button id="detailDelete" class="icon-button" title="РЈРґР°Р»РёС‚СЊ">
           <svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#delete"></use></svg>
         </button>
       </header>
@@ -137,118 +137,118 @@
 
       <div class="map hidden" id="detailMap"></div>
 
-      <button id="detailActivate" class="button" style="width:100%;margin-top:12px">Активировать</button>
+      <button id="detailActivate" class="button" style="width:100%;margin-top:12px">РђРєС‚РёРІРёСЂРѕРІР°С‚СЊ</button>
 
 
       <div class="actions">
-        <button id="detailMapDownload" class="button tonal hidden" style="width:100%">Скачать карту</button>
-        <button id="detailMark" class="button" style="width:100%">Отметить</button>
-        <button id="detailSend" class="button tonal" style="width:100%">Отправить отметки</button>
-        <button id="detailMarksButton" class="button outlined" style="width:100%">Отметки на устройстве</button>
+        <button id="detailMapDownload" class="button tonal hidden" style="width:100%">РЎРєР°С‡Р°С‚СЊ РєР°СЂС‚Сѓ</button>
+        <button id="detailMark" class="button" style="width:100%">РћС‚РјРµС‚РёС‚СЊ</button>
+        <button id="detailSend" class="button tonal" style="width:100%">РћС‚РїСЂР°РІРёС‚СЊ РѕС‚РјРµС‚РєРё</button>
+        <button id="detailMarksButton" class="button outlined" style="width:100%">РћС‚РјРµС‚РєРё РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµ</button>
       </div>
 
       <section class="proto hidden" id="detailProtocol">
-        <h2 class="proto-title">Протокол</h2>
-        <p class="meta" id="protoCount">Участников: 0</p>
+        <h2 class="proto-title">РџСЂРѕС‚РѕРєРѕР»</h2>
+        <p class="meta" id="protoCount">РЈС‡Р°СЃС‚РЅРёРєРѕРІ: 0</p>
         <div class="proto" id="protoList"></div>
-        <p class="meta" id="protoEmpty">Участников пока нет</p>
-        <button class="button outlined hidden" id="protoMore" style="margin-top:8px;width:100%">Показать всех</button>
-        <p class="meta proto-legend hidden" id="protoLegend">Жёлтым выделены повторные результаты участника</p>
+        <p class="meta" id="protoEmpty">РЈС‡Р°СЃС‚РЅРёРєРѕРІ РїРѕРєР° РЅРµС‚</p>
+        <button class="button outlined hidden" id="protoMore" style="margin-top:8px;width:100%">РџРѕРєР°Р·Р°С‚СЊ РІСЃРµС…</button>
+        <p class="meta proto-legend hidden" id="protoLegend">Р–С‘Р»С‚С‹Рј РІС‹РґРµР»РµРЅС‹ РїРѕРІС‚РѕСЂРЅС‹Рµ СЂРµР·СѓР»СЊС‚Р°С‚С‹ СѓС‡Р°СЃС‚РЅРёРєР°</p>
       </section>
     </section>
 
-    <!-- Облако -->
+    <!-- РћР±Р»Р°РєРѕ -->
     <section class="screen hidden" id="cloudScreen">
       <header class="page-head">
-        <button id="cloudBack" class="icon-button left" title="Назад"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#back"></use></svg></button>
-        <h1>Дистанции в облаке</h1>
-        <button id="cloudMapToggle" class="icon-button" title="Показать карту"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#map"></use></svg></button>
-        <button id="cloudRefresh" class="icon-button" title="Обновить"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#refresh"></use></svg></button>
+        <button id="cloudBack" class="icon-button left" title="РќР°Р·Р°Рґ"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#back"></use></svg></button>
+        <h1>Р”РёСЃС‚Р°РЅС†РёРё РІ РѕР±Р»Р°РєРµ</h1>
+        <button id="cloudMapToggle" class="icon-button" title="РџРѕРєР°Р·Р°С‚СЊ РєР°СЂС‚Сѓ"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#map"></use></svg></button>
+        <button id="cloudRefresh" class="icon-button" title="РћР±РЅРѕРІРёС‚СЊ"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#refresh"></use></svg></button>
       </header>
 
       <div class="search">
         <span class="search-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#search"></use></svg></span>
-        <input id="cloudSearch" class="search-input" type="text" inputmode="numeric" placeholder="Поиск по номеру">
+        <input id="cloudSearch" class="search-input" type="text" inputmode="numeric" placeholder="РџРѕРёСЃРє РїРѕ РЅРѕРјРµСЂСѓ">
       </div>
 
       <label class="cloud-filter hidden" id="cloudOnlyMineRow">
         <input type="checkbox" id="cloudOnlyMine">
-        <span>Только мои</span>
+        <span>РўРѕР»СЊРєРѕ РјРѕРё</span>
       </label>
       <div class="cloud-filters">
         <select id="cloudKind">
-          <option value="">Все виды</option>
-          <option value="distance">Ориентирование</option>
-          <option value="rogaine">Рогейн</option>
+          <option value="">Р’СЃРµ РІРёРґС‹</option>
+          <option value="distance">РћСЂРёРµРЅС‚РёСЂРѕРІР°РЅРёРµ</option>
+          <option value="rogaine">Р РѕРіРµР№РЅ</option>
         </select>
         <select id="cloudMark">
-          <option value="">Любая отметка</option>
+          <option value="">Р›СЋР±Р°СЏ РѕС‚РјРµС‚РєР°</option>
           <option value="QR">QR</option>
           <option value="GPS">GPS</option>
         </select>
       </div>
 
-      <p class="meta" id="cloudHint">Загружаю список…</p>
+      <p class="meta" id="cloudHint">Р—Р°РіСЂСѓР¶Р°СЋ СЃРїРёСЃРѕРєвЂ¦</p>
       <div class="cloud-list" id="cloudList"></div>
       <div class="map cloud-map hidden" id="cloudMap"></div>
       <div class="cloud-map-card hidden" id="cloudMapCard"></div>
     </section>
 
-    <!-- Отметка -->
+    <!-- РћС‚РјРµС‚РєР° -->
     <section class="screen hidden" id="markScreen">
       <div class="mark-banner hidden" id="markBanner" role="status" aria-live="assertive">
-        <span class="mark-banner-icon">✓</span>
+        <span class="mark-banner-icon">вњ“</span>
         <span class="mark-banner-text">
-          <strong id="markBannerTitle">ОТМЕТКА ЗАПИСАНА</strong>
+          <strong id="markBannerTitle">РћРўРњР•РўРљРђ Р—РђРџРРЎРђРќРђ</strong>
           <span id="markBannerDetail"></span>
         </span>
       </div>
       <div class="mark-flash" id="markFlash" aria-hidden="true"></div>
       <div class="location-warning hidden" id="periodWarning" role="alert">
         <div class="location-warning-card">
-          <h2 id="periodWarningTitle">Отметка недоступна</h2>
+          <h2 id="periodWarningTitle">РћС‚РјРµС‚РєР° РЅРµРґРѕСЃС‚СѓРїРЅР°</h2>
           <p id="periodWarningText"></p>
           <div class="location-warning-actions">
-            <button id="periodWarningOk" class="button">Понятно</button>
+            <button id="periodWarningOk" class="button">РџРѕРЅСЏС‚РЅРѕ</button>
           </div>
         </div>
       </div>
       <div class="location-warning hidden" id="locationWarning" role="alert">
         <div class="location-warning-card">
-          <h2 id="locationWarningTitle">Геолокация выключена</h2>
-          <p id="locationWarningText">Включите геолокацию, чтобы отмечаться по GPS.</p>
+          <h2 id="locationWarningTitle">Р“РµРѕР»РѕРєР°С†РёСЏ РІС‹РєР»СЋС‡РµРЅР°</h2>
+          <p id="locationWarningText">Р’РєР»СЋС‡РёС‚Рµ РіРµРѕР»РѕРєР°С†РёСЋ, С‡С‚РѕР±С‹ РѕС‚РјРµС‡Р°С‚СЊСЃСЏ РїРѕ GPS.</p>
           <div class="location-warning-actions">
-            <button id="locationEnable" class="button">Включить</button>
-            <button id="locationLater" class="button tonal">Позже</button>
+            <button id="locationEnable" class="button">Р’РєР»СЋС‡РёС‚СЊ</button>
+            <button id="locationLater" class="button tonal">РџРѕР·Р¶Рµ</button>
           </div>
         </div>
       </div>
       <div class="mark-top">
-        <h2 class="mark-title" id="markTitle">Событие</h2>
-        <p class="mark-sub" id="markAccuracy">Координаты пока не получены</p>
+        <h2 class="mark-title" id="markTitle">РЎРѕР±С‹С‚РёРµ</h2>
+        <p class="mark-sub" id="markAccuracy">РљРѕРѕСЂРґРёРЅР°С‚С‹ РїРѕРєР° РЅРµ РїРѕР»СѓС‡РµРЅС‹</p>
         <p class="mark-ready hidden" id="markReady"></p>
-        <p class="mark-mode" id="markMode">Отметка ручная</p>
+        <p class="mark-mode" id="markMode">РћС‚РјРµС‚РєР° СЂСѓС‡РЅР°СЏ</p>
       </div>
 
       <div class="qr hidden" id="qrBox">
         <video id="qrVideo" playsinline muted></video>
       </div>
 
-      <!-- Подтверждение кода с камеры: номер пункта и кнопки, как в приложении -->
+      <!-- РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РєРѕРґР° СЃ РєР°РјРµСЂС‹: РЅРѕРјРµСЂ РїСѓРЅРєС‚Р° Рё РєРЅРѕРїРєРё, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё -->
       <div class="qr-confirm hidden" id="qrConfirm">
         <p class="qr-label" id="qrLabel"></p>
         <p class="qr-warning hidden" id="qrWarning"></p>
         <div class="qr-hints hidden" id="qrHints"></div>
         <div class="qr-buttons">
-          <button class="button" id="qrMark">Отметить</button>
-          <button class="button outlined" id="qrSkip">Отменить</button>
+          <button class="button" id="qrMark">РћС‚РјРµС‚РёС‚СЊ</button>
+          <button class="button outlined" id="qrSkip">РћС‚РјРµРЅРёС‚СЊ</button>
         </div>
       </div>
 
       <p class="mark-hint-text hidden" id="hintText"></p>
       <div class="mark-center">
         <button id="bigMark" class="mark-circle" disabled>
-          <span id="markButtonLabel">Подойдите к пункту</span>
+          <span id="markButtonLabel">РџРѕРґРѕР№РґРёС‚Рµ Рє РїСѓРЅРєС‚Сѓ</span>
           <span id="hintArrow" class="hint-arrow hidden">
             <svg id="hintArrowPointer" class="hint-arrow-pointer" viewBox="0 0 40 160" aria-hidden="true">
               <path d="M20 152 V30 M20 30 L8 50 M20 30 L32 50" fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -258,76 +258,76 @@
       </div>
 
       <label class="hint-target hidden" id="hintTargetRow">
-        <span>Номер КП для подсказки</span>
+        <span>РќРѕРјРµСЂ РљРџ РґР»СЏ РїРѕРґСЃРєР°Р·РєРё</span>
         <select id="hintTarget"></select>
       </label>
 
       <div class="mark-bottom">
-        <p class="mark-hint" id="markHint">Кнопка станет зелёной у пункта — тогда нажмите</p>
+        <p class="mark-hint" id="markHint">РљРЅРѕРїРєР° СЃС‚Р°РЅРµС‚ Р·РµР»С‘РЅРѕР№ Сѓ РїСѓРЅРєС‚Р° вЂ” С‚РѕРіРґР° РЅР°Р¶РјРёС‚Рµ</p>
         <p class="mark-outcome hidden" id="markOutcome"></p>
         <p class="mark-return hidden" id="markReturn"></p>
         <div class="mark-labels hidden" id="markLabels"></div>
       </div>
-      <button class="button tonal hidden" id="gpsRetry" style="margin:0 24px 16px">Проверить геолокацию снова</button>
+      <button class="button tonal hidden" id="gpsRetry" style="margin:0 24px 16px">РџСЂРѕРІРµСЂРёС‚СЊ РіРµРѕР»РѕРєР°С†РёСЋ СЃРЅРѕРІР°</button>
     </section>
 
-    <!-- Аварийная отметка при грубой погрешности -->
+    <!-- РђРІР°СЂРёР№РЅР°СЏ РѕС‚РјРµС‚РєР° РїСЂРё РіСЂСѓР±РѕР№ РїРѕРіСЂРµС€РЅРѕСЃС‚Рё -->
     <div class="overlay hidden" id="emergencyDialog">
       <div class="overlay-card">
-        <p class="overlay-title">Отметить при плохой точности?</p>
+        <p class="overlay-title">РћС‚РјРµС‚РёС‚СЊ РїСЂРё РїР»РѕС…РѕР№ С‚РѕС‡РЅРѕСЃС‚Рё?</p>
         <p class="overlay-text" id="emergencyText"></p>
         <div class="overlay-buttons">
-          <button class="button" id="emergencyConfirm">Отметить</button>
-          <button class="button outlined" id="emergencyWait">Подождать</button>
+          <button class="button" id="emergencyConfirm">РћС‚РјРµС‚РёС‚СЊ</button>
+          <button class="button outlined" id="emergencyWait">РџРѕРґРѕР¶РґР°С‚СЊ</button>
         </div>
       </div>
     </div>
 
-    <!-- Профиль -->
+    <!-- РџСЂРѕС„РёР»СЊ -->
     <section class="screen hidden" id="profileScreen">
       <header class="page-head">
-        <h1>Профиль</h1>
+        <h1>РџСЂРѕС„РёР»СЊ</h1>
       </header>
 
-      <!-- Поддержка проекта: код, подпись и сообщество — наверху всегда -->
+      <!-- РџРѕРґРґРµСЂР¶РєР° РїСЂРѕРµРєС‚Р°: РєРѕРґ, РїРѕРґРїРёСЃСЊ Рё СЃРѕРѕР±С‰РµСЃС‚РІРѕ вЂ” РЅР°РІРµСЂС…Сѓ РІСЃРµРіРґР° -->
       <div class="profile-support">
-        <img id="supportQr" class="support-qr" src="icons/donation-qr.png" alt="Поддержать проект">
-        <p class="hint profile-support-text">Поддержите, пожалуйста, проект, чтобы он Вас радовал дольше! Особенно, если проводите коммерческие старты. 🙂 Код можно отсканировать телефоном или просто нажать на него — откроется страница поддержки.</p>
+        <img id="supportQr" class="support-qr" src="icons/donation-qr.png" alt="РџРѕРґРґРµСЂР¶Р°С‚СЊ РїСЂРѕРµРєС‚">
+        <p class="hint profile-support-text">РџРѕРґРґРµСЂР¶РёС‚Рµ, РїРѕР¶Р°Р»СѓР№СЃС‚Р°, РїСЂРѕРµРєС‚, С‡С‚РѕР±С‹ РѕРЅ Р’Р°СЃ СЂР°РґРѕРІР°Р» РґРѕР»СЊС€Рµ! РћСЃРѕР±РµРЅРЅРѕ, РµСЃР»Рё РїСЂРѕРІРѕРґРёС‚Рµ РєРѕРјРјРµСЂС‡РµСЃРєРёРµ СЃС‚Р°СЂС‚С‹. рџ™‚ РљРѕРґ РјРѕР¶РЅРѕ РѕС‚СЃРєР°РЅРёСЂРѕРІР°С‚СЊ С‚РµР»РµС„РѕРЅРѕРј РёР»Рё РїСЂРѕСЃС‚Рѕ РЅР°Р¶Р°С‚СЊ РЅР° РЅРµРіРѕ вЂ” РѕС‚РєСЂРѕРµС‚СЃСЏ СЃС‚СЂР°РЅРёС†Р° РїРѕРґРґРµСЂР¶РєРё.</p>
         <a class="vk-community" href="https://vk.ru/osportmobile" target="_blank" rel="noopener">
           <span class="vk-mark">VK</span>
           <span class="vk-community-text">
-            <span>Сообщество ВКонтакте</span>
+            <span>РЎРѕРѕР±С‰РµСЃС‚РІРѕ Р’РљРѕРЅС‚Р°РєС‚Рµ</span>
             <span class="sub">vk.ru/osportmobile</span>
           </span>
         </a>
       </div>
 
-      <!-- Гость: пояснение и кнопка входа ВК ID -->
+      <!-- Р“РѕСЃС‚СЊ: РїРѕСЏСЃРЅРµРЅРёРµ Рё РєРЅРѕРїРєР° РІС…РѕРґР° Р’Рљ ID -->
       <div id="profileGuest" class="profile-guest">
-        <p class="hint">Нет ВКонтакте? Нажмите «Войти в другой аккаунт» — на экране VK ID будет вход по номеру телефона, понадобится код из SMS.</p>
+        <p class="hint">РќРµС‚ Р’РљРѕРЅС‚Р°РєС‚Рµ? РќР°Р¶РјРёС‚Рµ В«Р’РѕР№С‚Рё РІ РґСЂСѓРіРѕР№ Р°РєРєР°СѓРЅС‚В» вЂ” РЅР° СЌРєСЂР°РЅРµ VK ID Р±СѓРґРµС‚ РІС…РѕРґ РїРѕ РЅРѕРјРµСЂСѓ С‚РµР»РµС„РѕРЅР°, РїРѕРЅР°РґРѕР±РёС‚СЃСЏ РєРѕРґ РёР· SMS.</p>
         <div id="vkLoginBox" class="vk-login-box">
           <div id="vkOneTap"></div>
         </div>
       </div>
 
-      <!-- Вошедший: кто вошёл, смена ника и выход -->
+      <!-- Р’РѕС€РµРґС€РёР№: РєС‚Рѕ РІРѕС€С‘Р», СЃРјРµРЅР° РЅРёРєР° Рё РІС‹С…РѕРґ -->
       <div id="profileSigned" class="profile-signed hidden">
         <div class="profile-card">
           <img id="profilePhoto" class="profile-photo hidden" alt="">
           <svg id="profilePhotoStub" class="icon profile-photo-stub" width="24" height="24" viewBox="0 0 24 24"><use href="icons.svg#person"></use></svg>
           <div class="profile-card-text">
-            <span class="profile-caption">Вы вошли как</span>
+            <span class="profile-caption">Р’С‹ РІРѕС€Р»Рё РєР°Рє</span>
             <span id="profileNick" class="profile-nick"></span>
           </div>
         </div>
 
         <div class="card profile-nick-card">
-          <button id="profileChangeNick" class="button text" style="width:100%">Изменить ник</button>
+          <button id="profileChangeNick" class="button text" style="width:100%">РР·РјРµРЅРёС‚СЊ РЅРёРє</button>
         </div>
 
         <button id="profileSignOut" class="button outlined vk-signout" style="width:100%">
           <span class="vk-mark">VK</span>
-          <span>Выйти</span>
+          <span>Р’С‹Р№С‚Рё</span>
         </button>
       </div>
     </section>
@@ -336,13 +336,14 @@
   </main>
 
   <nav class="bottom-bar">
-    <button class="tab active" id="tabEvents"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#home"></use></svg></span><span class="tab-label">События</span></button>
-    <button class="tab" id="tabMark"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#list"></use></svg></span><span class="tab-label">Отметить</span></button>
-    <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
+    <button class="tab active" id="tabEvents"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#home"></use></svg></span><span class="tab-label">РЎРѕР±С‹С‚РёСЏ</span></button>
+    <button class="tab" id="tabMark"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#list"></use></svg></span><span class="tab-label">РћС‚РјРµС‚РёС‚СЊ</span></button>
+    <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">РџСЂРѕС„РёР»СЊ</span></button>
   </nav>
 
   <script src="jsQR.js?v=230"></script>
   <script src="marking.js?v=230"></script>
-  <script src="app.js?v=230"></script>
+  <script src="app.js?v=230-1"></script>
 </body>
 </html>
+
