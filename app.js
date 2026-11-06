@@ -4614,14 +4614,29 @@ async function checkLocationAccess() {
     showLocationWarning('unavailable');
     return;
   }
+  let probe = true;
   try {
     if (navigator.permissions && navigator.permissions.query) {
       const permission = await navigator.permissions.query({ name: 'geolocation' });
-      if (permission.state === 'denied') showLocationWarning('denied');
+      if (permission.state === 'denied') return showLocationWarning('denied');
+      // При вопросе браузер сам покажет разрешение после startWatch.
+      if (permission.state === 'prompt') probe = false;
     }
   } catch (error) {
-    // Safari может не поддерживать запрос разрешения — ждём ошибку GPS
+    // Safari может не поддерживать запрос разрешения — проверим запросом GPS
   }
+  if (!probe) return;
+  // Если разрешение уже выдано, а службы геолокации выключены, ошибка
+  // приходит быстро; не ждём 20 секунд основного watch.
+  navigator.geolocation.getCurrentPosition(
+    hideLocationWarning,
+    (error) => {
+      if (error && (error.code === 1 || error.code === 2)) {
+        showLocationWarning(error.code === 1 ? 'denied' : 'unavailable');
+      }
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 4000 }
+  );
 }
 
 function startWatch() {
