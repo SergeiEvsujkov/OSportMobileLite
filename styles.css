@@ -263,6 +263,7 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   border: 2px solid #c62828;
 }
 .cloud-map-pin.cluster span {
+  transform: none;
   color: #c62828;
   font-size: 15px;
   line-height: 41px;

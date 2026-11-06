@@ -1089,6 +1089,17 @@ function renderCloudMap(units) {
     labels: new Map(points.map((point, index) => [point.code, String(located[index][0].number || index + 1)])),
   });
   map.classList.remove('hidden');
+  // После раскладки у карты появляется настоящая высота: подгоняем все точки ещё раз
+  requestAnimationFrame(() => {
+    if (mapState.box !== map || !mapState.cloudEntries) return;
+    mapState.zoom = null;
+    mapState.center = null;
+    showMapOn(map, points, {
+      showRoute: false,
+      cloudEntries: byCode,
+      labels: new Map(points.map((point, index) => [point.code, String(located[index][0].number || index + 1)])),
+    });
+  });
   if (cloudMapCardEntry) selectCloudMapUnit(cloudMapCardEntry);
 }
 
