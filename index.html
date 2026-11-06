@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=229">
+  <link rel="stylesheet" href="styles.css?v=230">
 </head>
 <body>
   <main id="app">
@@ -175,6 +175,18 @@
         <input type="checkbox" id="cloudOnlyMine">
         <span>Только мои</span>
       </label>
+      <div class="cloud-filters">
+        <select id="cloudKind">
+          <option value="">Все виды</option>
+          <option value="distance">Ориентирование</option>
+          <option value="rogaine">Рогейн</option>
+        </select>
+        <select id="cloudMark">
+          <option value="">Любая отметка</option>
+          <option value="QR">QR</option>
+          <option value="GPS">GPS</option>
+        </select>
+      </div>
 
       <p class="meta" id="cloudHint">Загружаю список…</p>
       <div class="cloud-list" id="cloudList"></div>
@@ -329,8 +341,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=229"></script>
-  <script src="marking.js?v=229"></script>
-  <script src="app.js?v=229"></script>
+  <script src="jsQR.js?v=230"></script>
+  <script src="marking.js?v=230"></script>
+  <script src="app.js?v=230"></script>
 </body>
 </html>

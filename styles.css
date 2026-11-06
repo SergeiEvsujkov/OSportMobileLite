@@ -207,6 +207,19 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
 }
 
 .cloud-list { display: flex; flex-direction: column; }
+.cloud-filters {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 4px;
+}
+.cloud-filters select {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--outline);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--on-surface);
+}
 .cloud-map { height: calc(100dvh - 210px); margin: 8px 12px 12px; }
 .cloud-map-card {
   position: sticky;
@@ -229,6 +242,17 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   background: var(--primary);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
   cursor: pointer;
+}
+.cloud-map-choice {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  text-align: left;
+  border: 1px solid var(--outline);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--on-surface);
 }
 .cloud-map-pin span {
   display: block;

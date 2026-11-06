@@ -948,9 +948,14 @@ function renderCloud() {
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
   const onlyMine = Boolean(me.code) && $('cloudOnlyMine').checked;
   $('cloudOnlyMineRow').classList.toggle('hidden', !me.code);
-  const source = onlyMine
-    ? cloudEntries.filter((entry) => String(entry.ownerId) === String(me.code))
-    : cloudEntries;
+  const kindFilter = $('cloudKind').value;
+  const markFilter = $('cloudMark').value;
+  const source = cloudEntries.filter((entry) => {
+    if (onlyMine && (!me.code || String(entry.ownerId) !== String(me.code))) return false;
+    if (kindFilter && entry.kind !== kindFilter) return false;
+    if (markFilter && String(entry.markMode || '').toUpperCase() !== markFilter) return false;
+    return true;
+  });
 
   // Группа — только по groupId; без него запись одиночная, как в приложении
   const groups = new Map();
@@ -1081,6 +1086,32 @@ function renderCloudMap(entries) {
   });
   map.classList.remove('hidden');
   if (cloudMapCardEntry) selectCloudMapEntry(cloudMapCardEntry);
+}
+
+function selectCloudMapGroup(entries) {
+  if (entries.length === 1) {
+    selectCloudMapEntry(entries[0]);
+    return;
+  }
+  cloudMapCardEntry = entries[0];
+  const card = $('cloudMapCard');
+  card.textContent = '';
+  const title = document.createElement('div');
+  title.className = 'name';
+  title.textContent = `Событий: ${entries.length}`;
+  card.append(title);
+  entries.forEach((entry) => {
+    const row = document.createElement('button');
+    row.className = 'cloud-map-choice';
+    row.textContent = (entry.number ? `№ ${entry.number}  ` : '') +
+      (entry.name || 'Без названия');
+    row.addEventListener('click', (event) => {
+      event.stopPropagation();
+      selectCloudMapEntry(entry);
+    });
+    card.append(row);
+  });
+  card.classList.remove('hidden');
 }
 
 function selectCloudMapEntry(entry) {
@@ -3076,26 +3107,46 @@ function drawMap(box) {
     }
   }
 
-  points.forEach((point) => {
-    const { x, y } = positionOf(point);
-    const code = String(codeOf(point));
-    const cloudEntry = mapState.cloudEntries && mapState.cloudEntries.get(code);
-    if (cloudEntry) {
+  if (mapState.cloudEntries) {
+    const pins = [];
+    points.forEach((point) => {
+      const entry = mapState.cloudEntries.get(String(codeOf(point)));
+      if (!entry) return;
+      const { x, y } = positionOf(point);
+      const near = pins.find((pin) => Math.hypot(pin.x - x, pin.y - y) <= 48);
+      if (near) {
+        near.entries.push(entry);
+        near.x = (near.x * (near.entries.length - 1) + x) / near.entries.length;
+        near.y = (near.y * (near.entries.length - 1) + y) / near.entries.length;
+      } else {
+        pins.push({ x, y, entries: [entry] });
+      }
+    });
+    pins.forEach((group) => {
       const pin = document.createElement('button');
       pin.className = 'cloud-map-pin';
-      pin.style.left = `${x}px`;
-      pin.style.top = `${y}px`;
-      pin.title = cloudEntry.name || 'Событие';
+      pin.style.left = `${group.x}px`;
+      pin.style.top = `${group.y}px`;
+      pin.title = group.entries.length === 1
+        ? (group.entries[0].name || 'Событие')
+        : `Событий: ${group.entries.length}`;
       const number = document.createElement('span');
-      number.textContent = String(cloudEntry.number || '');
+      number.textContent = group.entries.length > 1
+        ? String(group.entries.length)
+        : String(group.entries[0].number || '');
       pin.append(number);
       pin.addEventListener('click', (event) => {
         event.stopPropagation();
-        selectCloudMapEntry(cloudEntry);
+        selectCloudMapGroup(group.entries);
       });
       layer.append(pin);
-      return;
-    }
+    });
+    return;
+  }
+
+  points.forEach((point) => {
+    const { x, y } = positionOf(point);
+    const code = String(codeOf(point));
     const start = isStart(code, rogaineMode());
     const finish = isFinish(code, rogaineMode());
     const radius = 14;
@@ -5402,6 +5453,8 @@ function bind() {
   $('cloudBack').addEventListener('click', () => showTab('events'));
   $('cloudSearch').addEventListener('input', renderCloud);
   $('cloudOnlyMine').addEventListener('change', renderCloud);
+  $('cloudKind').addEventListener('change', renderCloud);
+  $('cloudMark').addEventListener('change', renderCloud);
 
   $('groupBack').addEventListener('click', () => showTab('events'));
   $('participantBack').addEventListener('click', () => openDetail());
