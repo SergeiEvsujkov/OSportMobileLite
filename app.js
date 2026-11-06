@@ -3009,7 +3009,7 @@ function bindMapGestures(box) {
     if (!startMiddle) return;
 
     if (pointers.size >= 2 && startDistance > 0) {
-      lastScale = Math.min(6, Math.max(0.2, distance() / startDistance));
+      lastScale = Math.min(32, Math.max(0.2, distance() / startDistance));
       lastMiddle = middle();
       applyTransform(lastScale, lastMiddle.x - startMiddle.x, lastMiddle.y - startMiddle.y);
     } else if (pointers.size === 1 && startPoint) {
