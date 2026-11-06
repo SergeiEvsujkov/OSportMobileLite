@@ -283,6 +283,7 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   font-size: 15px;
   line-height: 41px;
 }
+.cloud-action { cursor: pointer; }
 .cloud-card-close {
   position: absolute;
   top: 2px;

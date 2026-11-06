@@ -993,14 +993,16 @@ function cloudCard(items) {
     ? '<svg class="icon"><use href="icons.svg#check"></use></svg>'
     : '<svg class="icon"><use href="icons.svg#download"></use></svg>';
 
-  item.append(body, action);
-  item.addEventListener('click', () => {
+  action.classList.add('cloud-action');
+  action.addEventListener('click', (event) => {
+    event.stopPropagation();
     if (downloaded) {
       activateItem({ id: first.id, kind: first.kind, entry: first, distance: null });
     } else {
       downloadEvent(first);
     }
   });
+  item.append(body, action);
   return item;
 }
 
