@@ -932,8 +932,30 @@ async function openCloud() {
   $('cloudList').textContent = '';
 
   try {
-    const data = await callFunction('action=list&full=1&rogaine=1');
-    cloudEntries = (data.entries || []).slice().sort((a, b) => {
+    const all = [];
+    const seen = new Set();
+    let offset = 0;
+    let pages = 0;
+    let more = false;
+    do {
+      const data = await callFunction(
+        `action=list&full=1&rogaine=1&paged=1&offset=${offset}&limit=100`
+      );
+      const page = Array.isArray(data.entries) ? data.entries : [];
+      page.forEach((entry) => {
+        if (entry && entry.id && !seen.has(entry.id)) {
+          seen.add(entry.id);
+          all.push(entry);
+        }
+      });
+      const next = Number(data.nextOffset) || offset + page.length;
+      more = Boolean(data.more) && next > offset;
+      if (more) offset = next;
+      pages += 1;
+      const loaded = Number(data.total) || all.length;
+      $('cloudHint').textContent = `Загружаю список… ${all.length} из ${loaded}`;
+    } while (more && pages < 50);
+    cloudEntries = all.slice().sort((a, b) => {
       const left = a.number === undefined ? 0 : Number(a.number);
       const right = b.number === undefined ? 0 : Number(b.number);
       return left - right;
