@@ -226,13 +226,9 @@ function showTab(name, options = {}) {
   // Вне промежутка проведения отметка не открывается — как в приложении
   if (name === 'mark') {
     const source = (state.event && (state.event.entry || state.event.distance)) || {};
-    const period = periodState(source);
-    if (period === 'BEFORE') {
-      setStatus(`Событие ещё не началось: ${formatDate(source.startTime)}`, 'error');
-      return;
-    }
-    if (period === 'AFTER') {
-      setStatus('Событие уже закончилось', 'error');
+    const block = markingPeriodBlock(source);
+    if (block) {
+      showPeriodWarning(block.before, block.time);
       return;
     }
   }
@@ -1524,20 +1520,13 @@ function activateDistance() {
     return;
   }
 
-  // Участнику нельзя начать до начала и после окончания события
-  const period = periodState({
+  // Срок проведения общий для всех: до начала и после окончания не активируем
+  const periodBlock = markingPeriodBlock({
     startTime: entry.startTime || distance.startTime || 0,
     finishTime: entry.finishTime || distance.finishTime || 0,
   });
-  if (period === 'BEFORE') {
-    setStatus(
-      `Событие ещё не началось: ${formatDate(entry.startTime || distance.startTime)}`,
-      'error'
-    );
-    return;
-  }
-  if (period === 'AFTER') {
-    setStatus('Событие уже закончилось', 'error');
+  if (periodBlock) {
+    showPeriodWarning(periodBlock.before, periodBlock.time);
     return;
   }
 
@@ -2475,13 +2464,9 @@ function addMapChrome(box) {
     mark.addEventListener('click', (event) => {
       event.stopPropagation();
       const source = (state.event.entry || state.event.distance) || {};
-      const period = periodState(source);
-      if (period === 'BEFORE') {
-        showPeriodWarning(true, source.startTime);
-        return;
-      }
-      if (period === 'AFTER') {
-        showPeriodWarning(false, source.finishTime);
+      const block = markingPeriodBlock(source);
+      if (block) {
+        showPeriodWarning(block.before, block.time);
         return;
       }
       state.returnToMap = true;
@@ -4589,6 +4574,15 @@ function stopWatch() {
     navigator.geolocation.clearWatch(state.watchId);
     state.watchId = null;
   }
+}
+
+/** Единое правило периода для активации, экрана отметки и карты. */
+function markingPeriodBlock(source) {
+  const data = source || {};
+  const period = periodState(data);
+  if (period === 'BEFORE') return { before: true, time: data.startTime };
+  if (period === 'AFTER') return { before: false, time: data.finishTime };
+  return null;
 }
 
 function showPeriodWarning(before, time) {
