@@ -2858,6 +2858,7 @@ function drawMap(box) {
     circle.setAttribute('fill', 'none');
     circle.setAttribute('stroke', '#c62828');
     circle.setAttribute('stroke-width', '2.5');
+    if (point.dashed) circle.setAttribute('stroke-dasharray', '6 4');
     svg.append(circle);
 
     const markerLabel = mapState.labels
@@ -3689,9 +3690,16 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     if (mapState.box === participantMap) mapState.box = null;
   } else {
     const seenCodes = new Set();
+    const mapPoints = [];
     const routePoints = [];
     const routeCodes = [];
     const labels = new Map();
+    const addMapPoint = (point, dashed) => {
+      const code = String(point.code);
+      mapPoints.push(Object.assign({}, point, { dashed }));
+      labels.set(code, isStart(code, true) || isFinish(code, true) ? null : code);
+    };
+
     displayedMarks.forEach((mark) => {
       const code = String(mark.code);
       if (seenCodes.has(code)) return;
@@ -3711,10 +3719,20 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       if (!point || !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return;
       routePoints.push(point);
       routeCodes.push(code);
-      labels.set(code, isStart(code, true) || isFinish(code, true) ? null : code);
+      addMapPoint(point, false);
     });
 
-    if (!routePoints.length) {
+    // Все точки дистанции, даже без отметки: они видны, но в путь не входят.
+    // Неотмеченные КП рисуются пунктиром.
+    (distance.points || []).forEach((point) => {
+      const code = String(point.code);
+      if (seenCodes.has(code)) return;
+      if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return;
+      const checkpoint = !isStart(code, true) && !isFinish(code, true);
+      addMapPoint(point, checkpoint);
+    });
+
+    if (!mapPoints.length) {
       participantMap.classList.add('hidden');
       participantMapTitle.classList.add('hidden');
       participantMap.textContent = '';
@@ -3722,7 +3740,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     } else {
       participantMapTitle.classList.remove('hidden');
       participantMap.classList.remove('hidden');
-      showMapOn(participantMap, routePoints, {
+      showMapOn(participantMap, mapPoints, {
         routeCodes,
         labels,
         showRoute: true
