@@ -2925,6 +2925,7 @@ function bindMapGestures(box) {
   };
 
   box.addEventListener('pointerdown', (event) => {
+    if (event.cancelable) event.preventDefault();
     box.setPointerCapture(event.pointerId);
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
@@ -2949,6 +2950,7 @@ function bindMapGestures(box) {
   });
 
   box.addEventListener('pointermove', (event) => {
+    if (event.cancelable) event.preventDefault();
     if (!pointers.has(event.pointerId)) return;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (!startMiddle) return;
