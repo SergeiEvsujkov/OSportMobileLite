@@ -2474,6 +2474,16 @@ function addMapChrome(box) {
     mark.textContent = 'Отметить';
     mark.addEventListener('click', (event) => {
       event.stopPropagation();
+      const source = (state.event.entry || state.event.distance) || {};
+      const period = periodState(source);
+      if (period === 'BEFORE') {
+        showPeriodWarning(true, source.startTime);
+        return;
+      }
+      if (period === 'AFTER') {
+        showPeriodWarning(false, source.finishTime);
+        return;
+      }
       state.returnToMap = true;
       state.autoReturnUsed = false;
       clearMapReturnTimer();
@@ -4581,6 +4591,16 @@ function stopWatch() {
   }
 }
 
+function showPeriodWarning(before, time) {
+  $('periodWarningTitle').textContent = before
+    ? 'Событие ещё не началось'
+    : 'Событие уже закончилось';
+  $('periodWarningText').textContent = before
+    ? `Отметка станет доступна ${formatDate(time)}.`
+    : `Событие закончилось ${formatDate(time)}.`;
+  $('periodWarning').classList.remove('hidden');
+}
+
 function locationHintForBrowser() {
   const ua = navigator.userAgent || '';
   if (/iPhone|iPad|iPod/i.test(ua)) {
@@ -5174,6 +5194,9 @@ function bind() {
     startWatch();
   });
   $('locationLater').addEventListener('click', hideLocationWarning);
+  $('periodWarningOk').addEventListener('click', () => {
+    $('periodWarning').classList.add('hidden');
+  });
 
   $('bigMark').addEventListener('click', markCandidate);
 
