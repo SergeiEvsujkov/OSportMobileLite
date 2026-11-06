@@ -1046,7 +1046,7 @@ function renderCloud() {
   list.classList.toggle('hidden', cloudMapMode);
   $('cloudMap').classList.toggle('hidden', !cloudMapMode);
   $('cloudMapCard').classList.toggle('hidden', !cloudMapMode || !cloudMapCardEntry);
-  if (cloudMapMode) renderCloudMap(matched.flat());
+  if (cloudMapMode) renderCloudMap(matched);
   else {
     mapState.cloudEntries = null;
     cloudMapCardEntry = null;
@@ -1057,10 +1057,10 @@ function renderCloud() {
 let cloudMapMode = false;
 let cloudMapCardEntry = null;
 
-function renderCloudMap(entries) {
-  const located = entries.filter(
-    (entry) => Number.isFinite(Number(entry.latitude)) && Number.isFinite(Number(entry.longitude))
-  );
+function renderCloudMap(units) {
+  const located = units.filter((unit) => unit.length > 0
+    && Number.isFinite(Number(unit[0].latitude))
+    && Number.isFinite(Number(unit[0].longitude)));
   const map = $('cloudMap');
   if (!located.length) {
     map.classList.add('hidden');
@@ -1068,13 +1068,13 @@ function renderCloudMap(entries) {
     return;
   }
   const byCode = new Map();
-  const points = located.map((entry, index) => {
-    const code = 'cloud:' + entry.id;
-    byCode.set(code, entry);
+  const points = located.map((unit, index) => {
+    const code = 'cloud:' + (unit[0].groupId || unit[0].id || index);
+    byCode.set(code, unit);
     return {
       code,
-      latitude: Number(entry.latitude),
-      longitude: Number(entry.longitude),
+      latitude: Number(unit[0].latitude),
+      longitude: Number(unit[0].longitude),
     };
   });
   mapState.zoom = null;
@@ -1082,35 +1082,66 @@ function renderCloudMap(entries) {
   showMapOn(map, points, {
     showRoute: false,
     cloudEntries: byCode,
-    labels: new Map(points.map((point, index) => [point.code, String(located[index].number || index + 1)])),
+    labels: new Map(points.map((point, index) => [point.code, String(located[index][0].number || index + 1)])),
   });
   map.classList.remove('hidden');
-  if (cloudMapCardEntry) selectCloudMapEntry(cloudMapCardEntry);
+  if (cloudMapCardEntry) selectCloudMapUnit(cloudMapCardEntry);
 }
 
-function selectCloudMapGroup(entries) {
-  if (entries.length === 1) {
-    selectCloudMapEntry(entries[0]);
+function selectCloudMapGroup(units) {
+  if (units.length === 1) {
+    selectCloudMapUnit(units[0]);
     return;
   }
-  cloudMapCardEntry = entries[0];
+  cloudMapCardEntry = units[0];
   const card = $('cloudMapCard');
   card.textContent = '';
   const title = document.createElement('div');
   title.className = 'name';
-  title.textContent = `Событий: ${entries.length}`;
+  title.textContent = `Событий: ${units.length}`;
   card.append(title);
-  entries.forEach((entry) => {
+  units.forEach((unit) => {
+    const entry = unit[0];
     const row = document.createElement('button');
     row.className = 'cloud-map-choice';
     row.textContent = (entry.number ? `№ ${entry.number}  ` : '') +
-      (entry.name || 'Без названия');
+      (entry.name || 'Без названия') +
+      (unit.length > 1 ? ` · группа, ${unit.length}` : '');
     row.addEventListener('click', (event) => {
       event.stopPropagation();
-      selectCloudMapEntry(entry);
+      selectCloudMapUnit(unit);
     });
     card.append(row);
   });
+  card.classList.remove('hidden');
+}
+
+function selectCloudMapUnit(unit) {
+  cloudMapCardEntry = unit;
+  if (unit.length === 1) {
+    selectCloudMapEntry(unit[0]);
+    return;
+  }
+  const entry = unit[0];
+  const card = $('cloudMapCard');
+  card.textContent = '';
+  const title = document.createElement('div');
+  title.className = 'name';
+  title.textContent = `Группа: ${entry.name || 'Без названия'} · ${unit.length}`;
+  const period = document.createElement('div');
+  period.className = 'period';
+  period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
+  const author = document.createElement('div');
+  author.className = 'line';
+  author.textContent = entry.organizer ? `Автор: ${entry.organizer}` : '';
+  const download = document.createElement('button');
+  download.className = 'primary';
+  download.textContent = 'Скачать группу';
+  download.addEventListener('click', (event) => {
+    event.stopPropagation();
+    downloadGroup(entry, state.history.some((saved) => saved.id === entry.id));
+  });
+  card.append(title, period, author, download);
   card.classList.remove('hidden');
 }
 
@@ -3110,34 +3141,34 @@ function drawMap(box) {
   if (mapState.cloudEntries) {
     const pins = [];
     points.forEach((point) => {
-      const entry = mapState.cloudEntries.get(String(codeOf(point)));
-      if (!entry) return;
+      const unit = mapState.cloudEntries.get(String(codeOf(point)));
+      if (!unit) return;
       const { x, y } = positionOf(point);
       const near = pins.find((pin) => Math.hypot(pin.x - x, pin.y - y) <= 48);
       if (near) {
-        near.entries.push(entry);
-        near.x = (near.x * (near.entries.length - 1) + x) / near.entries.length;
-        near.y = (near.y * (near.entries.length - 1) + y) / near.entries.length;
+        near.units.push(unit);
+        near.x = (near.x * (near.units.length - 1) + x) / near.units.length;
+        near.y = (near.y * (near.units.length - 1) + y) / near.units.length;
       } else {
-        pins.push({ x, y, entries: [entry] });
+        pins.push({ x, y, units: [unit] });
       }
     });
     pins.forEach((group) => {
       const pin = document.createElement('button');
-      pin.className = 'cloud-map-pin';
+      pin.className = 'cloud-map-pin' + (group.units.length > 1 ? ' cluster' : '');
       pin.style.left = `${group.x}px`;
       pin.style.top = `${group.y}px`;
-      pin.title = group.entries.length === 1
-        ? (group.entries[0].name || 'Событие')
-        : `Событий: ${group.entries.length}`;
+      pin.title = group.units.length === 1
+        ? (group.units[0][0].name || 'Событие')
+        : `Событий: ${group.units.length}`;
       const number = document.createElement('span');
-      number.textContent = group.entries.length > 1
-        ? String(group.entries.length)
-        : String(group.entries[0].number || '');
+      number.textContent = group.units.length > 1
+        ? String(group.units.length)
+        : String(group.units[0][0].number || '');
       pin.append(number);
       pin.addEventListener('click', (event) => {
         event.stopPropagation();
-        selectCloudMapGroup(group.entries);
+        selectCloudMapGroup(group.units);
       });
       layer.append(pin);
     });
