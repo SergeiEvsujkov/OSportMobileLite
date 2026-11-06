@@ -1307,7 +1307,9 @@ async function downloadEvent(entry) {
   // новое не скачиваем
   const downloaded = (state.history || []).filter((item) => item.id !== entry.id);
   if (downloaded.length) {
-    setStatus('Сначала удалите скачанное событие корзиной', 'error');
+    const message = 'Сначала удалите скачанное событие корзиной';
+    setStatus(message, 'error');
+    window.alert(message);
     return;
   }
 
