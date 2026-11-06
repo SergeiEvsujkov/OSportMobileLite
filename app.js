@@ -3106,8 +3106,9 @@ function drawMap(box) {
     const probe = projectAt(candidate);
     const topLeft = probe(maxLat, minLon);
     const bottomRight = probe(minLat, maxLon);
-    const fits = Math.abs(bottomRight.px - topLeft.px) <= width - 60
-      && Math.abs(bottomRight.py - topLeft.py) <= height - 60;
+    const padding = mapState.cloudEntries ? 120 : 60;
+    const fits = Math.abs(bottomRight.px - topLeft.px) <= width - padding
+      && Math.abs(bottomRight.py - topLeft.py) <= height - padding;
     zoom = candidate;
     if (fits) break;
   }
