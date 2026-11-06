@@ -1037,6 +1037,74 @@ function renderCloud() {
     });
     list.append(item);
   });
+
+  list.classList.toggle('hidden', cloudMapMode);
+  $('cloudMap').classList.toggle('hidden', !cloudMapMode);
+  $('cloudMapCard').classList.toggle('hidden', !cloudMapMode || !cloudMapCardEntry);
+  if (cloudMapMode) renderCloudMap(matched.flat());
+  else {
+    mapState.cloudEntries = null;
+    cloudMapCardEntry = null;
+    $('cloudMapCard').textContent = '';
+  }
+}
+
+let cloudMapMode = false;
+let cloudMapCardEntry = null;
+
+function renderCloudMap(entries) {
+  const located = entries.filter(
+    (entry) => Number.isFinite(Number(entry.latitude)) && Number.isFinite(Number(entry.longitude))
+  );
+  const map = $('cloudMap');
+  if (!located.length) {
+    map.classList.add('hidden');
+    $('cloudHint').textContent = 'В каталоге нет координат старта';
+    return;
+  }
+  const byCode = new Map();
+  const points = located.map((entry, index) => {
+    const code = 'cloud:' + entry.id;
+    byCode.set(code, entry);
+    return {
+      code,
+      latitude: Number(entry.latitude),
+      longitude: Number(entry.longitude),
+    };
+  });
+  mapState.zoom = null;
+  mapState.center = null;
+  showMapOn(map, points, {
+    showRoute: false,
+    cloudEntries: byCode,
+    labels: new Map(points.map((point, index) => [point.code, String(located[index].number || index + 1)])),
+  });
+  map.classList.remove('hidden');
+  if (cloudMapCardEntry) selectCloudMapEntry(cloudMapCardEntry);
+}
+
+function selectCloudMapEntry(entry) {
+  cloudMapCardEntry = entry;
+  const card = $('cloudMapCard');
+  card.textContent = '';
+  const title = document.createElement('div');
+  title.className = 'name';
+  title.textContent = (entry.number ? `№ ${entry.number}  ` : '') + (entry.name || 'Без названия');
+  const period = document.createElement('div');
+  period.className = 'period';
+  period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
+  const author = document.createElement('div');
+  author.className = 'line';
+  author.textContent = entry.organizer ? `Автор: ${entry.organizer}` : '';
+  const download = document.createElement('button');
+  download.className = 'primary';
+  download.textContent = 'Скачать';
+  download.addEventListener('click', (event) => {
+    event.stopPropagation();
+    downloadEvent(entry);
+  });
+  card.append(title, period, author, download);
+  card.classList.remove('hidden');
 }
 
 /** Сведения о дистанции в строке группы. */
@@ -2344,6 +2412,7 @@ const mapState = {
   compassAbsolute: false,
   compassTimer: null,
   compassListening: false,
+  cloudEntries: null,
   rotation: 0,
   layerScale: 1,
   layerTx: 0,
@@ -2371,6 +2440,7 @@ function showMapOn(box, points, options = {}) {
   );
   mapState.routeCodes = options.routeCodes || null;
   mapState.labels = options.labels || null;
+  mapState.cloudEntries = options.cloudEntries || null;
   if (options.showRoute !== undefined) mapState.showRoute = options.showRoute;
   mapState.zoom = null;
   mapState.center = null;
@@ -2390,6 +2460,7 @@ function showMapOn(box, points, options = {}) {
 function showMap(points) {
   // Обычная карта события — без поворота; компас только в полноэкранном режиме.
   mapState.fullscreen = false;
+  mapState.cloudEntries = null;
   stopCompass();
   const current = state.event;
   const distance = (current && current.distance) || {};
@@ -3008,6 +3079,23 @@ function drawMap(box) {
   points.forEach((point) => {
     const { x, y } = positionOf(point);
     const code = String(codeOf(point));
+    const cloudEntry = mapState.cloudEntries && mapState.cloudEntries.get(code);
+    if (cloudEntry) {
+      const pin = document.createElement('button');
+      pin.className = 'cloud-map-pin';
+      pin.style.left = `${x}px`;
+      pin.style.top = `${y}px`;
+      pin.title = cloudEntry.name || 'Событие';
+      const number = document.createElement('span');
+      number.textContent = String(cloudEntry.number || '');
+      pin.append(number);
+      pin.addEventListener('click', (event) => {
+        event.stopPropagation();
+        selectCloudMapEntry(cloudEntry);
+      });
+      layer.append(pin);
+      return;
+    }
     const start = isStart(code, rogaineMode());
     const finish = isFinish(code, rogaineMode());
     const radius = 14;
@@ -5303,6 +5391,14 @@ function bind() {
   });
   $('openCloud').addEventListener('click', openCloud);
   $('cloudRefresh').addEventListener('click', openCloud);
+  $('cloudMapToggle').addEventListener('click', async () => {
+    cloudMapMode = !cloudMapMode;
+    $('cloudMapToggle').innerHTML = cloudMapMode
+      ? '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#list"></use></svg>'
+      : '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#map"></use></svg>';
+    $('cloudMapToggle').title = cloudMapMode ? 'Показать списком' : 'Показать карту';
+    renderCloud();
+  });
   $('cloudBack').addEventListener('click', () => showTab('events'));
   $('cloudSearch').addEventListener('input', renderCloud);
   $('cloudOnlyMine').addEventListener('change', renderCloud);
@@ -5447,6 +5543,7 @@ window.addEventListener('popstate', () => {
   // «Назад» в полном экране сворачивает карту и оставляет тот же экран
   if (mapState.fullscreen) {
     mapState.fullscreen = false;
+    stopCompass();
     redrawMap();
     history.pushState({ depth: navStack.length }, '');
     return;
