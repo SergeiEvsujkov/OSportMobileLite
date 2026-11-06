@@ -243,6 +243,30 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
   cursor: pointer;
 }
+.cloud-map-pin.single {
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 0;
+  border-radius: 0;
+  transform: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cpolygon points='14,2 26,26 2,26' fill='none' stroke='%23c62828' stroke-width='2.5'/%3E%3C/svg%3E") center/28px 28px no-repeat;
+  box-shadow: none;
+}
+.cloud-map-pin.cluster {
+  width: 45px;
+  height: 45px;
+  margin: -22.5px 0 0 -22.5px;
+  border-radius: 50%;
+  transform: none;
+  background: #fff;
+  border: 2px solid #c62828;
+}
+.cloud-map-pin.cluster span {
+  color: #c62828;
+  font-size: 15px;
+  line-height: 41px;
+}
 .cloud-map-choice {
   display: block;
   width: 100%;

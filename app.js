@@ -2732,12 +2732,14 @@ function addMapChrome(box) {
       (mapState.compass ? 'Вернуть север вверх' : 'Поворачивать карту по компасу') +
       '"><svg class="icon"><use href="icons.svg#compass"></use></svg></button>'
     : '';
-  controls.innerHTML =
-    '<button class="icon-button" id="mapLayers" title="Слои"><svg class="icon"><use href="icons.svg#layers"></use></svg></button>' +
-    compassButton +
-    (mapState.fullscreen
+  const fullButton = mapState.cloudEntries
+    ? ''
+    : (mapState.fullscreen
       ? '<button class="icon-button" id="mapFull" title="Свернуть"><svg class="icon"><use href="icons.svg#fullscreen_exit"></use></svg></button>'
       : '<button class="icon-button" id="mapFull" title="На весь экран"><svg class="icon"><use href="icons.svg#fullscreen"></use></svg></button>');
+  controls.innerHTML =
+    '<button class="icon-button" id="mapLayers" title="Слои"><svg class="icon"><use href="icons.svg#layers"></use></svg></button>' +
+    compassButton + fullButton;
   box.append(controls);
 
   const compass = controls.querySelector('#mapCompass');
@@ -3159,17 +3161,17 @@ function drawMap(box) {
     });
     pins.forEach((group) => {
       const pin = document.createElement('button');
-      pin.className = 'cloud-map-pin' + (group.units.length > 1 ? ' cluster' : '');
+      pin.className = 'cloud-map-pin' + (group.units.length > 1 ? ' cluster' : ' single');
       pin.style.left = `${group.x}px`;
       pin.style.top = `${group.y}px`;
       pin.title = group.units.length === 1
         ? (group.units[0][0].name || 'Событие')
         : `Событий: ${group.units.length}`;
-      const number = document.createElement('span');
-      number.textContent = group.units.length > 1
-        ? String(group.units.length)
-        : String(group.units[0][0].number || '');
-      pin.append(number);
+      if (group.units.length > 1) {
+        const number = document.createElement('span');
+        number.textContent = String(group.units.length);
+        pin.append(number);
+      }
       pin.addEventListener('click', (event) => {
         event.stopPropagation();
         selectCloudMapGroup(group.units);
