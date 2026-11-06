@@ -2824,7 +2824,8 @@ function addMapChrome(box) {
     redrawMap();
   });
 
-  controls.querySelector('#mapFull').addEventListener('click', (event) => {
+  const fullScreenButton = controls.querySelector('#mapFull');
+  if (fullScreenButton) fullScreenButton.addEventListener('click', (event) => {
     event.stopPropagation();
     // Разворачиваем карту средствами страницы: системный полноэкранный режим
     // браузера не используем, иначе Chrome показывает свою подсказку о выходе
