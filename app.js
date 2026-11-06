@@ -4592,6 +4592,12 @@ function stopWatch() {
 }
 
 function showPeriodWarning(before, time) {
+  const box = $('periodWarning');
+  // Карта открыта на экране события: переносим предупреждение из скрытого
+  // экрана отметки в body, иначе оно не покажется.
+  if (box && box.parentElement && box.parentElement.id === 'markScreen') {
+    document.body.append(box);
+  }
   $('periodWarningTitle').textContent = before
     ? 'Событие ещё не началось'
     : 'Событие уже закончилось';
