@@ -943,6 +943,83 @@ async function openCloud() {
   }
 }
 
+/** Карточка события/группы — та же, что в списке облака. */
+function cloudCard(items) {
+  const first = items[0];
+  const item = document.createElement('button');
+  item.className = 'cloud-item';
+  const body = document.createElement('div');
+  body.className = 'body';
+
+  if (items.length > 1) {
+    const mark = document.createElement('img');
+    mark.src = 'icons/group.png';
+    mark.alt = '';
+    mark.className = 'cloud-icon';
+    body.append(mark);
+  }
+
+  const title = document.createElement('span');
+  title.className = 'name';
+  title.textContent = (first.number ? `№ ${first.number}  ` : '') + (first.name || 'Без названия');
+  body.append(title);
+
+  const period = document.createElement('span');
+  period.className = 'period';
+  period.textContent = formatDate(first.startTime) + ' - ' + formatDate(first.finishTime);
+  body.append(period);
+
+  if (items.length > 1) {
+    items.forEach((entry) => {
+      const line = document.createElement('span');
+      line.className = 'line with-icon';
+      line.innerHTML = modeIconMarkup(entry);
+      const text = document.createElement('span');
+      text.textContent = groupDetails(entry);
+      line.append(text);
+      body.append(line);
+    });
+  } else {
+    body.append(detailsBlock(first));
+    body.append(mapLineCloud(first));
+    if (hintsAvailable({ distance: first })) body.append(hintLineCloud());
+  }
+
+  body.append(authorRowCloud(first, items.length === 1));
+  const downloaded = items.every((entry) => state.history.some((saved) => saved.id === entry.id));
+  const action = document.createElement('span');
+  action.className = 'action';
+  action.innerHTML = downloaded
+    ? '<svg class="icon"><use href="icons.svg#check"></use></svg>'
+    : '<svg class="icon"><use href="icons.svg#download"></use></svg>';
+
+  item.append(body, action);
+  item.addEventListener('click', () => {
+    if (downloaded) {
+      activateItem({ id: first.id, kind: first.kind, entry: first, distance: null });
+    } else {
+      downloadEvent(first);
+    }
+  });
+  return item;
+}
+
+function renderCloudCard(units) {
+  cloudMapCardEntry = units;
+  const card = $('cloudMapCard');
+  if (!card) return;
+  card.textContent = '';
+  if (units.length > 1) {
+    const title = document.createElement('div');
+    title.className = 'name';
+    title.textContent = `Событий: ${units.length}`;
+    card.append(title);
+  }
+  units.forEach((unit) => card.append(cloudCard(unit)));
+  addCloudCardClose(card);
+  card.classList.remove('hidden');
+}
+
 function renderCloud() {
   const search = $('cloudSearch');
   const onlyMineInput = $('cloudOnlyMine');
@@ -1104,99 +1181,15 @@ function renderCloudMap(units) {
 }
 
 function selectCloudMapGroup(units) {
-  if (units.length === 1) {
-    selectCloudMapUnit(units[0]);
-    return;
-  }
-  cloudMapCardEntry = units[0];
-  const card = $('cloudMapCard');
-  card.textContent = '';
-  const title = document.createElement('div');
-  title.className = 'name';
-  title.textContent = `Событий: ${units.length}`;
-  card.append(title);
-  units.forEach((unit) => {
-    const entry = unit[0];
-    const row = document.createElement('button');
-    row.className = 'cloud-map-choice';
-    row.textContent = (entry.number ? `№ ${entry.number}  ` : '') +
-      (entry.name || 'Без названия') +
-      (unit.length > 1 ? ` · группа, ${unit.length}` : '');
-    row.addEventListener('click', (event) => {
-      event.stopPropagation();
-      selectCloudMapUnit(unit);
-    });
-    card.append(row);
-  });
-  addCloudCardClose(card);
-  card.classList.remove('hidden');
+  renderCloudCard(units);
 }
 
 function selectCloudMapUnit(unit) {
-  cloudMapCardEntry = unit;
-  if (unit.length === 1) {
-    selectCloudMapEntry(unit[0], unit);
-    return;
-  }
-  const entry = unit[0];
-  const card = $('cloudMapCard');
-  card.textContent = '';
-  const title = document.createElement('div');
-  title.className = 'name';
-  title.textContent = `Группа: ${entry.name || 'Без названия'} · ${unit.length}`;
-  const period = document.createElement('div');
-  period.className = 'period';
-  period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
-  const author = document.createElement('div');
-  author.className = 'line';
-  author.textContent = entry.organizer ? `Автор: ${entry.organizer}` : '';
-  const downloaded = unit.every((item) => state.history.some((saved) => saved.id === item.id));
-  const action = document.createElement(downloaded ? 'span' : 'button');
-  action.className = downloaded ? 'cloud-card-icon checked' : 'cloud-card-icon';
-  action.innerHTML = `<svg class="icon"><use href="icons.svg#${downloaded ? 'check' : 'download'}"></use></svg>`;
-  if (!downloaded) {
-    action.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      await downloadEvent(entry);
-      if (cloudMapCardEntry && cloudMapCardEntry[0] && cloudMapCardEntry[0].id === entry.id) {
-        selectCloudMapUnit(cloudMapCardEntry);
-      }
-    });
-  }
-  card.append(title, period, author, action);
-  addCloudCardClose(card);
-  card.classList.remove('hidden');
+  renderCloudCard([unit]);
 }
 
 function selectCloudMapEntry(entry, unit = [entry]) {
-  cloudMapCardEntry = unit;
-  const card = $('cloudMapCard');
-  card.textContent = '';
-  const title = document.createElement('div');
-  title.className = 'name';
-  title.textContent = (entry.number ? `№ ${entry.number}  ` : '') + (entry.name || 'Без названия');
-  const period = document.createElement('div');
-  period.className = 'period';
-  period.textContent = formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime);
-  const author = document.createElement('div');
-  author.className = 'line';
-  author.textContent = entry.organizer ? `Автор: ${entry.organizer}` : '';
-  const downloaded = state.history.some((saved) => saved.id === entry.id);
-  const action = document.createElement(downloaded ? 'span' : 'button');
-  action.className = downloaded ? 'cloud-card-icon checked' : 'cloud-card-icon';
-  action.innerHTML = `<svg class="icon"><use href="icons.svg#${downloaded ? 'check' : 'download'}"></use></svg>`;
-  if (!downloaded) {
-    action.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      await downloadEvent(entry);
-      if (cloudMapCardEntry && cloudMapCardEntry[0] && cloudMapCardEntry[0].id === entry.id) {
-        selectCloudMapUnit(cloudMapCardEntry);
-      }
-    });
-  }
-  card.append(title, period, author, action);
-  addCloudCardClose(card);
-  card.classList.remove('hidden');
+  renderCloudCard([unit]);
 }
 
 function addCloudCardClose(card) {
