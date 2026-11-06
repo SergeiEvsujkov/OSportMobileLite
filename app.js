@@ -58,6 +58,10 @@ const state = {
   emergencyAt: 0,
   emergencyDismissed: false,
   emergencyPoint: null,
+  // Возврат с отметки на полноэкранную карту
+  returnToMap: false,
+  autoReturnUsed: false,
+  mapReturnTimer: null,
 };
 
 /* ─────────────────────────── хранилище ─────────────────────────── */
@@ -2456,6 +2460,28 @@ function addMapChrome(box) {
       : '<button class="icon-button" id="mapFull" title="На весь экран"><svg class="icon"><use href="icons.svg#fullscreen"></use></svg></button>');
   box.append(controls);
 
+  // С полноэкранной карты можно сразу перейти к GPS-отметке, если событие
+  // активно и автор разрешил показ пунктов
+  const distance = (state.event && state.event.distance) || {};
+  const canMarkFromMap = mapState.fullscreen && state.event &&
+    box.id === 'detailMap' && state.activeId === state.event.id &&
+    String(distance.markMode || '').toUpperCase() !== 'QR' &&
+    distance.routeVisible !== false;
+  if (canMarkFromMap) {
+    const mark = document.createElement('button');
+    mark.className = 'map-mark-button';
+    mark.textContent = 'Отметить';
+    mark.addEventListener('click', (event) => {
+      event.stopPropagation();
+      state.returnToMap = true;
+      state.autoReturnUsed = false;
+      clearMapReturnTimer();
+      $('markReturn').classList.add('hidden');
+      showTab('mark');
+    });
+    box.append(mark);
+  }
+
   controls.querySelector('#mapLayers').addEventListener('click', (event) => {
     event.stopPropagation();
     mapState.kind = (mapState.kind + 1) % MAP_KINDS.length;
@@ -4236,6 +4262,49 @@ function sanitizeMarks() {
 }
 
 /** Запись отметки: одно правило и одни слова для кнопки, автоматики и QR. */
+function clearMapReturnTimer() {
+  if (state.mapReturnTimer) {
+    clearTimeout(state.mapReturnTimer);
+    state.mapReturnTimer = null;
+  }
+}
+
+/** Возврат с отметки на ту же полноэкранную карту. */
+function returnToFullMap() {
+  clearMapReturnTimer();
+  state.returnToMap = false;
+  $('markReturn').classList.add('hidden');
+  showTab('detail');
+  const box = $('detailMap');
+  mapState.box = box;
+  mapState.fullscreen = true;
+  box.classList.remove('hidden');
+  box.classList.add('fullscreen');
+  redrawMap();
+}
+
+/** Отсчёт 3, 2, 1 после успешной GPS-отметки. */
+function scheduleMapReturn(auto) {
+  if (!state.returnToMap) return;
+  if (auto && state.autoReturnUsed) return;
+  if (auto) state.autoReturnUsed = true;
+  clearMapReturnTimer();
+  let seconds = 3;
+  const label = $('markReturn');
+  const tick = () => {
+    if (!state.returnToMap) return;
+    if (seconds > 0) {
+      label.textContent = `Возврат к карте через ${seconds}`;
+      label.classList.remove('hidden');
+      seconds -= 1;
+      state.mapReturnTimer = setTimeout(tick, 1000);
+    } else {
+      returnToFullMap();
+    }
+  };
+  tick();
+}
+
 function markByCode(code, options = {}) {
   // Время — только момент отметки. Буфер GPS даёт координаты, но не время
   const time = Date.now();
@@ -4259,6 +4328,7 @@ function markByCode(code, options = {}) {
   renderMark();
   showOutcome('recorded', label);
   showMarkConfirmation(label, time);
+  scheduleMapReturn(Boolean(options.auto));
 
   if (finish && settings().autoSend && identity().nick && identity().code.length >= 6) {
     sendResult();
