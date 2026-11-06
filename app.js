@@ -926,6 +926,7 @@ function updateSetting(key, value) {
 let cloudEntries = [];
 
 async function openCloud() {
+  closeCloudMapCard();
   showTab('cloud');
   $('cloudHint').textContent = 'Загружаю список…';
   $('cloudList').textContent = '';
