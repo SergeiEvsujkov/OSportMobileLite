@@ -2363,6 +2363,9 @@ function resetMapView() {
 
 /** Показывает карту группы в её контейнере: подписи заданы, линия не рисуется. */
 function showMapOn(box, points, options = {}) {
+  // Встроенная карта всегда севером вверх: компас — только на полноэкранной.
+  mapState.fullscreen = false;
+  stopCompass();
   mapState.points = (points || []).filter(
     (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
   );
@@ -2385,6 +2388,9 @@ function showMapOn(box, points, options = {}) {
 }
 
 function showMap(points) {
+  // Обычная карта события — без поворота; компас только в полноэкранном режиме.
+  mapState.fullscreen = false;
+  stopCompass();
   const current = state.event;
   const distance = (current && current.distance) || {};
   const routeVisible = distance.routeVisible !== false;
@@ -2867,6 +2873,7 @@ function mapLabelOf(point, order) {
 
 function drawMap(box) {
   mapState.box = box;
+  if (!mapState.fullscreen) mapState.rotation = 0;
   const points = mapState.points;
   const kind = currentMapKind();
 
