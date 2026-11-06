@@ -2333,6 +2333,16 @@ const mapState = {
   routeCodes: null, // порядок линии на сплите участника; null — order дистанции
   box: null,       // контейнер карты, которую сейчас показываем
   coords: null,    // подпись координат внутри карты (у группы её нет)
+  // Компас: поворот карты по курсу телефона
+  compass: false,
+  compassLoaded: false,
+  compassHeading: 0,
+  compassTimer: null,
+  compassListening: false,
+  rotation: 0,
+  layerScale: 1,
+  layerTx: 0,
+  layerTy: 0,
 };
 
 function currentMapKind() {
@@ -2433,8 +2443,108 @@ function bearingDegrees(fromLat, fromLon, toLat, toLon) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
+const MAP_COMPASS_KEY = 'osport.lite.mapcompass';
+
+function loadCompassPreference() {
+  if (mapState.compassLoaded) return;
+  try {
+    mapState.compass = localStorage.getItem(MAP_COMPASS_KEY) === '1';
+  } catch (error) {
+    mapState.compass = false;
+  }
+  mapState.compassLoaded = true;
+}
+
+function saveCompassPreference() {
+  try {
+    localStorage.setItem(MAP_COMPASS_KEY, mapState.compass ? '1' : '0');
+  } catch (error) {
+    // Приватный режим может запретить запись
+  }
+}
+
+function applyMapLayerTransform() {
+  const layer = mapState.box && mapState.box.querySelector('.map-layer');
+  if (!layer) return;
+  layer.style.transform =
+    `translate(${mapState.layerTx}px, ${mapState.layerTy}px) ` +
+    `scale(${mapState.layerScale}) rotate(${mapState.rotation}deg)`;
+}
+
+function onDeviceOrientation(event) {
+  let heading = null;
+  if (typeof event.webkitCompassHeading === 'number') {
+    heading = event.webkitCompassHeading;
+  } else if (typeof event.alpha === 'number') {
+    heading = 360 - event.alpha;
+  }
+  if (Number.isFinite(heading)) {
+    mapState.compassHeading = (heading + 360) % 360;
+  }
+}
+
+function compassFrame() {
+  if (!mapState.compass) return;
+  const target = (360 - mapState.compassHeading) % 360;
+  const current = mapState.rotation;
+  const delta = ((target - current + 540) % 360) - 180;
+  if (Math.abs(delta) > 0.05) {
+    mapState.rotation = (current + delta * 0.14 + 360) % 360;
+    applyMapLayerTransform();
+  }
+  mapState.compassTimer = requestAnimationFrame(compassFrame);
+}
+
+function startCompass() {
+  if (mapState.compassListening) return;
+  mapState.compassListening = true;
+  window.addEventListener('deviceorientationabsolute', onDeviceOrientation, true);
+  window.addEventListener('deviceorientation', onDeviceOrientation, true);
+  if (mapState.compassTimer) cancelAnimationFrame(mapState.compassTimer);
+  mapState.compassTimer = requestAnimationFrame(compassFrame);
+}
+
+function stopCompass() {
+  mapState.compassListening = false;
+  window.removeEventListener('deviceorientationabsolute', onDeviceOrientation, true);
+  window.removeEventListener('deviceorientation', onDeviceOrientation, true);
+  if (mapState.compassTimer) {
+    cancelAnimationFrame(mapState.compassTimer);
+    mapState.compassTimer = null;
+  }
+  mapState.rotation = 0;
+  applyMapLayerTransform();
+}
+
+async function toggleCompass() {
+  if (!mapState.compass) {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission !== 'granted') {
+          setStatus('Нет доступа к компасу', 'error');
+          return;
+        }
+      } catch (error) {
+        setStatus('Нет доступа к компасу', 'error');
+        return;
+      }
+    }
+    mapState.compass = true;
+    saveCompassPreference();
+    startCompass();
+  } else {
+    mapState.compass = false;
+    saveCompassPreference();
+    stopCompass();
+  }
+  redrawMap();
+}
+
 /** Значки карты: название подложки и кнопки «слои» и «на весь экран». */
 function addMapChrome(box) {
+  loadCompassPreference();
   const kind = currentMapKind();
   const attribution = document.createElement('span');
   attribution.className = 'map-attr';
@@ -2443,12 +2553,29 @@ function addMapChrome(box) {
 
   const controls = document.createElement('div');
   controls.className = 'map-controls';
+  const compassButton = mapState.fullscreen &&
+    typeof DeviceOrientationEvent !== 'undefined'
+    ? '<button class="icon-button' + (mapState.compass ? ' active' : '') +
+      '" id="mapCompass" title="' +
+      (mapState.compass ? 'Вернуть север вверх' : 'Поворачивать карту по компасу') +
+      '"><svg class="icon"><use href="icons.svg#compass"></use></svg></button>'
+    : '';
   controls.innerHTML =
     '<button class="icon-button" id="mapLayers" title="Слои"><svg class="icon"><use href="icons.svg#layers"></use></svg></button>' +
+    compassButton +
     (mapState.fullscreen
       ? '<button class="icon-button" id="mapFull" title="Свернуть"><svg class="icon"><use href="icons.svg#fullscreen_exit"></use></svg></button>'
       : '<button class="icon-button" id="mapFull" title="На весь экран"><svg class="icon"><use href="icons.svg#fullscreen"></use></svg></button>');
   box.append(controls);
+
+  const compass = controls.querySelector('#mapCompass');
+  if (compass) {
+    compass.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleCompass();
+    });
+  }
+  if (mapState.fullscreen && mapState.compass) startCompass();
 
   // С полноэкранной карты можно сразу перейти к GPS-отметке, если событие
   // активно и автор разрешил показ пунктов
@@ -2490,6 +2617,7 @@ function addMapChrome(box) {
     // Разворачиваем карту средствами страницы: системный полноэкранный режим
     // браузера не используем, иначе Chrome показывает свою подсказку о выходе
     mapState.fullscreen = !mapState.fullscreen;
+    if (!mapState.fullscreen) stopCompass();
     redrawMap();
 
     if (mapState.fullscreen) {
@@ -2577,7 +2705,11 @@ function bindMapGestures(box) {
   const applyTransform = (scale, tx, ty) => {
     const node = layer();
     if (!node) return;
-    node.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    mapState.layerScale = scale;
+    mapState.layerTx = tx;
+    mapState.layerTy = ty;
+    node.style.transform =
+      `translate(${tx}px, ${ty}px) scale(${scale}) rotate(${mapState.rotation}deg)`;
   };
 
   box.addEventListener('pointerdown', (event) => {
@@ -2705,6 +2837,7 @@ function mapLabelOf(point, order) {
 }
 
 function drawMap(box) {
+  mapState.box = box;
   const points = mapState.points;
   const kind = currentMapKind();
 
@@ -2762,6 +2895,10 @@ function drawMap(box) {
   const layer = document.createElement('div');
   layer.className = 'map-layer';
   box.append(layer);
+  mapState.layerScale = 1;
+  mapState.layerTx = 0;
+  mapState.layerTy = 0;
+  applyMapLayerTransform();
 
   const firstX = Math.floor(left / 256);
   const lastX = Math.floor((left + width) / 256);

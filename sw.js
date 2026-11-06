@@ -6,7 +6,7 @@
  * запрашиваются из сети и обновляют кэш; без сети работает последняя копия.
  */
 
-const CACHE = 'osport-lite-v223';
+const CACHE = 'osport-lite-v224';
 
 const SHELL = [
   './',

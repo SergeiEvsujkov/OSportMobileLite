@@ -425,6 +425,7 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   flex-direction: column;
   gap: 2px;
 }
+.map .map-controls .icon-button.active { color: var(--primary); }
 .map .map-controls .icon-button {
   margin: 0;
   width: 40px;
