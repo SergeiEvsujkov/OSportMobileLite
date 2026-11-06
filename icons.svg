@@ -33,6 +33,9 @@
   <symbol id="qrcode" viewBox="0 0 24 24">
     <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zM13 3v8h8V3h-8zm6 6h-4V5h4v4zM13 13h2v2h-2zM15 15h2v2h-2zM13 17h2v2h-2zM17 17h2v2h-2zM19 19h2v2h-2zM17 13h2v2h-2zM19 15h2v2h-2z"/>
   </symbol>
+  <symbol id="map" viewBox="0 0 24 24">
+    <path d="M20.5 3l-.16.03L15 5.1 9 3 3.64 4.9c-.37.14-.64.49-.64.9v15c0 .55.45 1 1 1l.16-.03L9 18.9l6 2.1 5.36-1.9c.37-.14.64-.49.64-.9V3c0-.55-.45-1-1-1zM15 19l-6-2.11V5l6 2.11V19z"/>
+  </symbol>
   <symbol id="layers" viewBox="0 0 24 24">
     <path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>
   </symbol>
