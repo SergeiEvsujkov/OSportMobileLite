@@ -1005,17 +1005,21 @@ function cloudCard(items) {
 }
 
 function renderCloudCard(units) {
-  cloudMapCardEntry = units;
+  const safeUnits = (units || [])
+    .map((unit) => Array.isArray(unit) ? unit : [unit])
+    .filter((unit) => unit.length > 0 && unit[0]);
+  if (!safeUnits.length) return;
+  cloudMapCardEntry = safeUnits;
   const card = $('cloudMapCard');
   if (!card) return;
   card.textContent = '';
-  if (units.length > 1) {
+  if (safeUnits.length > 1) {
     const title = document.createElement('div');
     title.className = 'name';
-    title.textContent = `Событий: ${units.length}`;
+    title.textContent = `Событий: ${safeUnits.length}`;
     card.append(title);
   }
-  units.forEach((unit) => card.append(cloudCard(unit)));
+  safeUnits.forEach((unit) => card.append(cloudCard(unit)));
   addCloudCardClose(card);
   card.classList.remove('hidden');
 }
@@ -1125,6 +1129,8 @@ function renderCloud() {
   });
 
   list.classList.toggle('hidden', cloudMapMode);
+  const searchBox = $('cloudSearchBox');
+  if (searchBox) searchBox.style.display = cloudMapMode ? 'none' : '';
   $('cloudMap').classList.toggle('hidden', !cloudMapMode);
   $('cloudMapCard').classList.toggle('hidden', !cloudMapMode || !cloudMapCardEntry);
   if (cloudMapMode) renderCloudMap(matched);
@@ -5534,13 +5540,6 @@ function bind() {
       : '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#map"></use></svg>';
     cloudMapToggle.title = cloudMapMode ? 'Показать списком' : 'Показать карту';
     renderCloud();
-  });
-  document.addEventListener('click', (event) => {
-    if (!cloudMapMode) return;
-    const card = $('cloudMapCard');
-    if (!card || card.classList.contains('hidden')) return;
-    if (card.contains(event.target) || (event.target.closest && event.target.closest('.cloud-map-pin'))) return;
-    closeCloudMapCard();
   });
   $('cloudBack').addEventListener('click', () => showTab('events'));
   $('cloudSearch')?.addEventListener('input', renderCloud);
