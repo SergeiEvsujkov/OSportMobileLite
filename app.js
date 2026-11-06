@@ -5421,14 +5421,14 @@ function bindPullToRefresh() {
     };
 
     screen.addEventListener('touchstart', (event) => {
-      if (event.target && event.target.closest && event.target.closest('#cloudMap')) return;
+      if (event.target && event.target.closest && event.target.closest('#cloudMap, #cloudMapCard')) return;
       if (event.touches.length !== 1 || !atTop()) return;
       startY = event.touches[0].clientY;
       pulled = 0;
     }, { passive: true });
 
     screen.addEventListener('touchmove', (event) => {
-      if (event.target && event.target.closest && event.target.closest('#cloudMap')) return;
+      if (event.target && event.target.closest && event.target.closest('#cloudMap, #cloudMapCard')) return;
       if (startY === null) return;
       pulled = Math.max(0, event.touches[0].clientY - startY);
       if (pulled <= 4) return;

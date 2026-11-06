@@ -231,6 +231,8 @@ html[data-theme="dark"] .event-icon-img { filter: invert(1); }
   padding: 12px 44px 12px 12px;
   max-height: 46dvh;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   z-index: 5;
 }
 .cloud-map-pin {
