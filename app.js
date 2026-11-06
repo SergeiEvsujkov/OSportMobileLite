@@ -284,6 +284,7 @@ function showTab(name, options = {}) {
       startQrScanner();
     } else {
       stopQrScanner();
+      checkLocationAccess();
       startWatch();
     }
     renderMark();
@@ -4580,6 +4581,49 @@ function stopWatch() {
   }
 }
 
+function locationHintForBrowser() {
+  const ua = navigator.userAgent || '';
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    return 'Настройки → Safari → Геолокация → Разрешить. Также включите «Службы геолокации» в настройках iPhone.';
+  }
+  if (/Chrome/i.test(ua) && /Android/i.test(ua)) {
+    return 'Настройки телефона → Геолокация → Включить. Затем разрешите геолокацию для этого сайта в Chrome.';
+  }
+  return 'Включите службы геолокации в настройках устройства и разрешите геолокацию для этого сайта в браузере.';
+}
+
+function showLocationWarning(reason) {
+  const box = $('locationWarning');
+  if (!box) return;
+  const denied = reason === 'denied';
+  $('locationWarningTitle').textContent = denied
+    ? 'Доступ к геолокации запрещён'
+    : 'Геолокация выключена';
+  $('locationWarningText').textContent = locationHintForBrowser();
+  $('locationEnable').textContent = 'Включить';
+  box.classList.remove('hidden');
+}
+
+function hideLocationWarning() {
+  const box = $('locationWarning');
+  if (box) box.classList.add('hidden');
+}
+
+async function checkLocationAccess() {
+  if (!navigator.geolocation) {
+    showLocationWarning('unavailable');
+    return;
+  }
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      if (permission.state === 'denied') showLocationWarning('denied');
+    }
+  } catch (error) {
+    // Safari может не поддерживать запрос разрешения — ждём ошибку GPS
+  }
+}
+
 function startWatch() {
   if (state.watchId !== null || !navigator.geolocation) return;
   state.watchId = navigator.geolocation.watchPosition(
@@ -4603,11 +4647,15 @@ function startWatch() {
           })
           .slice(-MAX_RECENT_FIXES);
       }
+      hideLocationWarning();
       renderMark();
     },
     (error) => {
       // Снимаем зависший watch: иначе кнопка повторного запроса не сработает
       stopWatch();
+      if (error && (error.code === 1 || error.code === 2)) {
+        showLocationWarning(error.code === 1 ? 'denied' : 'unavailable');
+      }
       if (error && error.code === 1) {
         $('markAccuracy').textContent =
           'Геолокация запрещена. Настройки → Конфиденциальность → '
@@ -5105,6 +5153,12 @@ function bind() {
     $('gpsRetry').classList.add('hidden');
     startWatch();
   });
+  $('locationEnable').addEventListener('click', () => {
+    hideLocationWarning();
+    stopWatch();
+    startWatch();
+  });
+  $('locationLater').addEventListener('click', hideLocationWarning);
 
   $('bigMark').addEventListener('click', markCandidate);
 

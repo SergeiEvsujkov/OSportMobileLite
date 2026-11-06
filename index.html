@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=218">
+  <link rel="stylesheet" href="styles.css?v=219">
 </head>
 <body>
   <main id="app">
@@ -189,6 +189,16 @@
         </span>
       </div>
       <div class="mark-flash" id="markFlash" aria-hidden="true"></div>
+      <div class="location-warning hidden" id="locationWarning" role="alert">
+        <div class="location-warning-card">
+          <h2 id="locationWarningTitle">Геолокация выключена</h2>
+          <p id="locationWarningText">Включите геолокацию, чтобы отмечаться по GPS.</p>
+          <div class="location-warning-actions">
+            <button id="locationEnable" class="button">Включить</button>
+            <button id="locationLater" class="button tonal">Позже</button>
+          </div>
+        </div>
+      </div>
       <div class="mark-top">
         <h2 class="mark-title" id="markTitle">Событие</h2>
         <p class="mark-sub" id="markAccuracy">Координаты пока не получены</p>
@@ -307,8 +317,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=218"></script>
-  <script src="marking.js?v=218"></script>
-  <script src="app.js?v=218"></script>
+  <script src="jsQR.js?v=219"></script>
+  <script src="marking.js?v=219"></script>
+  <script src="app.js?v=219"></script>
 </body>
 </html>

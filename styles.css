@@ -960,6 +960,43 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 }
 
 /* Подтверждение отметки: баннер и зелёная вспышка рамки. */
+.location-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.location-warning-card {
+  width: min(420px, 100%);
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--on-surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+.location-warning-card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.location-warning-card p {
+  margin: 0;
+  color: var(--on-surface-variant);
+  line-height: 1.4;
+}
+.location-warning-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.location-warning-actions .button {
+  flex: 1;
+  margin: 0;
+}
+
 .mark-banner {
   position: fixed;
   top: calc(12px + env(safe-area-inset-top));
