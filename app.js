@@ -3459,7 +3459,9 @@ function buildProtocol(distance) {
     const status = rogaine
       ? (!row.startTime ? 'DNS' : row.finishTime ? 'OK' : 'DNF')
       : resultStatusOf({ ...row, marks }, distance);
-    const elapsed = row.startTime && row.finishTime ? row.finishTime - row.startTime : 0;
+    const elapsed = row.startTime && row.finishTime
+      ? Math.max(0, Math.ceil(row.finishTime / 1000) * 1000 - Math.ceil(row.startTime / 1000) * 1000)
+      : 0;
     const score = rogaine ? rogainePoints(counted) : 0;
     const penalty = rogaine && row.finishTime && row.startTime
       ? rogainePenaltyOf(row.finishTime, row.startTime, distance.controlTimeMinutes, distance.penaltyPerMinute)
@@ -3785,7 +3787,11 @@ function orienteeringLegLeaders(distance) {
       }
     });
     for (let index = 1; index < accepted.length; index += 1) {
-      const leg = (accepted[index].time || 0) - (accepted[index - 1].time || 0);
+      const leg = Math.max(
+        0,
+        Math.ceil((accepted[index].time || 0) / 1000) * 1000
+          - Math.ceil((accepted[index - 1].time || 0) / 1000) * 1000
+      );
       if (leg <= 0) continue;
       const key = `${accepted[index - 1].code}>${accepted[index].code}`;
       const known = leaders.get(key);
@@ -3849,7 +3855,9 @@ function renderAnalysis(distance) {
         const key = `${previous.code}>${current.code}`;
         // РЎРµРєСѓРЅРґС‹ РѕРєСЂСѓРіР»СЏРµРј С‚Р°Рє Р¶Рµ, РєР°Рє РїСЂРё РїРѕРєР°Р·Рµ: РёРЅР°С‡Рµ В«0:04 в€’ 0:02В»
         // РјРѕР¶РµС‚ РґР°С‚СЊ В«+0:01В» РёР·-Р·Р° РјРёР»Р»РёСЃРµРєСѓРЅРґ.
-        times.set(key, Math.ceil(Math.max(0, current.time - previous.time) / 1000) * 1000);
+        const previousTick = Math.ceil(previous.time / 1000) * 1000;
+        const currentTick = Math.ceil(current.time / 1000) * 1000;
+        times.set(key, Math.max(0, currentTick - previousTick));
       }
       return { row, times };
     })
@@ -4096,18 +4104,20 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const elapsed = validRow && row.startTime && mark.time
       ? Math.max(0, mark.time - row.startTime)
       : null;
-    const elapsedRounded = elapsed === null ? null : Math.ceil(elapsed / 1000) * 1000;
+    const elapsedRounded = elapsed === null
+      ? null
+      : Math.max(0, Math.ceil(mark.time / 1000) * 1000 - Math.ceil(row.startTime / 1000) * 1000);
     // Р­С‚Р°Рї вЂ” СЂР°Р·РЅРёС†Р° РјРµР¶РґСѓ СЃРѕСЃРµРґРЅРёРјРё РёР·РІРµСЃС‚РЅС‹РјРё РѕС‚РјРµС‚РєР°РјРё. РЎС‚Р°СЂС‚ РґР»СЏ РЅРµРіРѕ
     // РЅРµ РЅСѓР¶РµРЅ; РґСѓР±Р»Рё Рё РЅРµРІРµСЂРЅС‹Рµ РѕС‚РјРµС‚РєРё РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ
     const leg = !validRow || startPoint || previousValidTime === null
       ? null
-      : Math.ceil(Math.max(0, mark.time - previousValidTime) / 1000) * 1000;
+      : Math.max(0, Math.ceil(mark.time / 1000) * 1000 - Math.ceil(previousValidTime / 1000) * 1000);
     const point = pointByCode.get(code);
     const acceptedLeg = acceptedCheckpoint && previousAcceptedTime !== null && mark.time
-      ? Math.ceil(Math.max(0, mark.time - previousAcceptedTime) / 1000) * 1000
+      ? Math.max(0, Math.ceil(mark.time / 1000) * 1000 - Math.ceil(previousAcceptedTime / 1000) * 1000)
       : null;
     const rogaineLeg = rogainePoint && !repeatMark && previousRogaineTime !== null && mark.time
-      ? Math.ceil(Math.max(0, mark.time - previousRogaineTime) / 1000) * 1000
+      ? Math.max(0, Math.ceil(mark.time / 1000) * 1000 - Math.ceil(previousRogaineTime / 1000) * 1000)
       : null;
     const showSpeed = rogaine ? (rogainePoint && !repeatMark) : acceptedCheckpoint;
     const speedLeg = rogaine ? rogaineLeg : acceptedLeg;
