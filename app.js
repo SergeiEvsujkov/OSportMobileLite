@@ -3463,9 +3463,11 @@ function buildProtocol(distance) {
     const status = rogaine
       ? (!row.startTime ? 'DNS' : row.finishTime ? 'OK' : 'DNF')
       : resultStatusOf({ ...row, marks }, distance);
-    const elapsed = row.startTime && row.finishTime
-      ? Math.max(0, Math.ceil(row.finishTime / 1000) * 1000 - Math.ceil(row.startTime / 1000) * 1000)
-      : 0;
+    const startMark = marks.find((mark) => isStart(String(mark.code), rogaine));
+    const finishMark = marks.find((mark) => isFinish(String(mark.code), rogaine));
+    const startValue = startMark ? startMark.time : Math.ceil((row.startTime || 0) / 1000) * 1000;
+    const finishValue = finishMark ? finishMark.time : Math.ceil((row.finishTime || 0) / 1000) * 1000;
+    const elapsed = startValue && finishValue ? Math.max(0, finishValue - startValue) : 0;
     const score = rogaine ? rogainePoints(counted) : 0;
     const penalty = rogaine && row.finishTime && row.startTime
       ? rogainePenaltyOf(row.finishTime, row.startTime, distance.controlTimeMinutes, distance.penaltyPerMinute)
@@ -3476,8 +3478,8 @@ function buildProtocol(distance) {
       nick: row.nick || row.userId || 'РЈС‡Р°СЃС‚РЅРёРє',
       // Р–С‘Р»С‚С‹Рј РІС‹РґРµР»СЏСЋС‚СЃСЏ РІСЃРµ СЃС‚СЂРѕРєРё СѓС‡Р°СЃС‚РЅРёРєР° СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё СЂРµР·СѓР»СЊС‚Р°С‚Р°РјРё
       duplicate: (countByUser.get(String(row.userId)) || 0) > 1,
-      startTime: Math.ceil((row.startTime || 0) / 1000) * 1000,
-      finishTime: Math.ceil((row.finishTime || 0) / 1000) * 1000,
+      startTime: startValue,
+      finishTime: finishValue,
       elapsed: status === 'OK' ? elapsed : 0,
       score,
       penalty: penalty.points,
