@@ -1273,3 +1273,73 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 }
 .mark-bottom .mark-outcome { margin: 0; }
 .mark-bottom .mark-labels { margin: 0; }
+
+/* Анализ отрезков */
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+.analysis-hint {
+  margin: 4px 0 10px;
+  color: var(--on-surface-variant);
+  font-size: 13px;
+}
+.analysis-scroll {
+  overflow: auto;
+  max-height: calc(100dvh - 190px);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.analysis-table {
+  border-collapse: collapse;
+  min-width: max-content;
+  width: 100%;
+}
+.analysis-table th,
+.analysis-table td {
+  border-bottom: 1px solid var(--outline-variant, #e0e0e0);
+  padding: 7px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+.analysis-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-variant, #eee);
+  font-size: 12px;
+}
+.analysis-name {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  min-width: 132px;
+  max-width: 132px;
+  text-align: left !important;
+  background: var(--surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.analysis-status {
+  color: var(--error, #b3261e);
+  display: block;
+}
+.analysis-cell { min-width: 76px; }
+.analysis-time { font-weight: 600; }
+.analysis-gap { color: var(--on-surface-variant); display: block; font-size: 10px; }
+.analysis-c0 { background: #cdebc8; }
+.analysis-c1 { background: #d6ecc5; }
+.analysis-c2 { background: #e0eec2; }
+.analysis-c3 { background: #eaf0be; }
+.analysis-c4 { background: #f3edb6; }
+.analysis-c5 { background: #f7e4b0; }
+.analysis-c6 { background: #f6d7ad; }
+.analysis-c7 { background: #f4cbb0; }
+.analysis-c8 { background: #f2c0b5; }
+.analysis-c9 { background: #f0b4b4; }
+.analysis-empty { padding: 16px; color: var(--on-surface-variant); }

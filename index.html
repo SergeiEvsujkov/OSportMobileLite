@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=256">
+  <link rel="stylesheet" href="styles.css?v=257">
 </head>
 <body>
   <main id="app">
@@ -111,6 +111,7 @@
         <div class="head-text">
           <h1>Сплит участника</h1>
         </div>
+        <button id="participantAnalysis" class="text-button">Анализ</button>
       </header>
       <div class="split-summary" id="participantSummary"></div>
 
@@ -118,6 +119,19 @@
 
       <h2 class="proto-title hidden" id="participantMapTitle">Порядок прохождения на карте</h2>
       <div class="map hidden" id="participantMap"></div>
+    </section>
+
+    <section class="screen hidden" id="analysisScreen">
+      <header class="page-head">
+        <button id="analysisBack" class="icon-button left" title="Назад">←</button>
+        <div class="head-text">
+          <h1>Анализ отрезков</h1>
+        </div>
+      </header>
+      <p class="analysis-hint">Время на отрезке и отставание от лучшего. Худший на каждом отрезке — красный.</p>
+      <div class="analysis-scroll">
+        <table class="analysis-table" id="analysisTable"></table>
+      </div>
     </section>
 
     <!-- Экран дистанции -->
@@ -341,8 +355,8 @@
     <button class="tab" id="tabProfile"><span class="tab-icon"><svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#person"></use></svg></span><span class="tab-label">Профиль</span></button>
   </nav>
 
-  <script src="jsQR.js?v=256"></script>
-  <script src="marking.js?v=256"></script>
-  <script src="app.js?v=256"></script>
+  <script src="jsQR.js?v=257"></script>
+  <script src="marking.js?v=257"></script>
+  <script src="app.js?v=257"></script>
 </body>
 </html>

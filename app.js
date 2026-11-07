@@ -249,6 +249,7 @@ function showTab(name, options = {}) {
   $('homeScreen').classList.toggle('hidden', name !== 'events');
   $('groupScreen').classList.toggle('hidden', name !== 'group');
   $('participantScreen').classList.toggle('hidden', name !== 'participant');
+  $('analysisScreen').classList.toggle('hidden', name !== 'analysis');
   $('settingsScreen').classList.toggle('hidden', name !== 'settings');
   $('detailScreen').classList.toggle('hidden', name !== 'detail');
   $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
@@ -257,7 +258,7 @@ function showTab(name, options = {}) {
 
   $('tabEvents').classList.toggle('active',
     name === 'events' || name === 'cloud' || name === 'detail' || name === 'group'
-    || name === 'participant');
+    || name === 'participant' || name === 'analysis');
   $('tabMark').classList.toggle('active', name === 'mark');
   $('tabProfile').classList.toggle('active', name === 'profile');
 
@@ -3857,8 +3858,158 @@ function orienteeringLegLeaders(distance) {
   return leaders;
 }
 
+/** Принятые отметки участника в порядке маршрута. */
+function analysisAcceptedMarks(distance, row) {
+  const route = (distance.order || []).map((code) => String(code));
+  const starts = startAliasCodes(distance);
+  const marks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
+  const accepted = [];
+  let position = -1;
+  marks.forEach((mark) => {
+    const code = String(mark.code);
+    if (starts.has(code)) {
+      const index = route.indexOf(code);
+      position = index >= 0 ? index : 0;
+      accepted.push(mark);
+      return;
+    }
+    if (route[position + 1] === code) {
+      position += 1;
+      accepted.push(mark);
+    }
+  });
+  return accepted;
+}
+
+function analysisLegLabel(code, distance) {
+  if (isStart(String(code), false)) return 'С';
+  if (isFinish(String(code), false)) return 'Ф';
+  return String(code);
+}
+
+function analysisCellClass(ratio) {
+  if (ratio <= 0) return 'analysis-c0';
+  return `analysis-c${Math.min(9, Math.ceil(ratio * 9))}`;
+}
+
+function renderAnalysis(distance) {
+  const table = $('analysisTable');
+  if (!table) return;
+  table.textContent = '';
+  const route = (distance.order || []).map((code) => String(code));
+  const legs = route.slice(0, -1).map((code, index) => [code, route[index + 1]]);
+  const protocol = buildProtocol(distance);
+  const rows = protocol
+    .map((row) => {
+      const accepted = analysisAcceptedMarks(distance, row);
+      const times = new Map();
+      for (let index = 1; index < accepted.length; index += 1) {
+        const previous = accepted[index - 1];
+        const current = accepted[index];
+        if (!previous.time || !current.time) continue;
+        const key = `${previous.code}>${current.code}`;
+        times.set(key, Math.max(0, current.time - previous.time));
+      }
+      return { row, times };
+    })
+    .filter((item) => item.times.size > 0);
+  if (!rows.length) {
+    const empty = document.createElement('p');
+    empty.className = 'analysis-empty';
+    empty.textContent = 'Нет данных для анализа';
+    table.append(empty);
+    return;
+  }
+  const best = new Map();
+  legs.forEach(([from, to]) => {
+    const key = `${from}>${to}`;
+    rows.forEach(({ times }) => {
+      const value = times.get(key);
+      if (value === undefined) return;
+      const known = best.get(key);
+      if (known === undefined || value < known) best.set(key, value);
+    });
+  });
+  const maxGaps = new Map();
+  legs.forEach(([from, to]) => {
+    const key = `${from}>${to}`;
+    let max = 0;
+    rows.forEach(({ times }) => {
+      const value = times.get(key);
+      if (value === undefined) return;
+      max = Math.max(max, value - (best.get(key) || value));
+    });
+    maxGaps.set(key, max);
+  });
+
+  const head = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  const nameHead = document.createElement('th');
+  nameHead.textContent = 'Участник';
+  nameHead.className = 'analysis-name';
+  headRow.append(nameHead);
+  legs.forEach(([from, to]) => {
+    const th = document.createElement('th');
+    th.textContent = `${analysisLegLabel(from, distance)} → ${analysisLegLabel(to, distance)}`;
+    headRow.append(th);
+  });
+  head.append(headRow);
+  table.append(head);
+
+  const body = document.createElement('tbody');
+  rows.forEach(({ row, times }) => {
+    const tr = document.createElement('tr');
+    const name = document.createElement('td');
+    name.className = 'analysis-name';
+    const nick = document.createElement('div');
+    nick.textContent = row.nick || 'Участник';
+    name.append(nick);
+    if (row.status && row.status !== 'OK') {
+      const status = document.createElement('small');
+      status.textContent = row.status;
+      status.className = 'analysis-status';
+      name.append(status);
+    }
+    tr.append(name);
+    legs.forEach(([from, to]) => {
+      const key = `${from}>${to}`;
+      const value = times.get(key);
+      const cell = document.createElement('td');
+      cell.className = 'analysis-cell';
+      if (value !== undefined) {
+        const bestValue = best.get(key) || value;
+        const gap = Math.max(0, value - bestValue);
+        const maxGap = maxGaps.get(key) || 0;
+        const ratio = maxGap > 0 ? gap / maxGap : 0;
+        cell.classList.add(analysisCellClass(ratio));
+        const time = document.createElement('div');
+        time.textContent = formatSplitTime(value);
+        time.className = 'analysis-time';
+        const diff = document.createElement('small');
+        diff.textContent = gap === 0 ? 'лучший' : `+${formatSplitTime(gap)}`;
+        diff.className = 'analysis-gap';
+        cell.append(time, diff);
+      }
+      tr.append(cell);
+    });
+    body.append(tr);
+  });
+  table.append(body);
+}
+
+function openAnalysis() {
+  const distance = (state.event && (state.event.distance || state.event.entry)) || null;
+  if (!distance || rogaineMode()) {
+    setStatus('Анализ доступен только для ориентирования', 'error');
+    return;
+  }
+  renderAnalysis(distance);
+  showTab('analysis');
+}
+
 function openParticipant(row, rogaine, fromProtocol = true) {
   const distance = (state.event && state.event.distance) || {};
+  $('participantAnalysis').classList.toggle('hidden', Boolean(rogaine) || !fromProtocol);
 
   const summary = $('participantSummary');
   summary.textContent = '';
@@ -5614,6 +5765,8 @@ function bind() {
 
   $('groupBack').addEventListener('click', () => showTab('events'));
   $('participantBack').addEventListener('click', () => openDetail());
+  $('participantAnalysis').addEventListener('click', openAnalysis);
+  $('analysisBack').addEventListener('click', () => showTab('participant', { push: false }));
   $('protoMore').addEventListener('click', () => {
     protocolExpanded = !protocolExpanded;
     renderProtocol(state.event.distance || {});
