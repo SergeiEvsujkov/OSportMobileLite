@@ -66,6 +66,57 @@ const state = {
 
 /* ─────────────────────────── хранилище ─────────────────────────── */
 
+/* Screen Wake Lock: не даём экрану гаснуть на карте и отметке. */
+let wakeLock = null;
+let wakeLockPending = false;
+
+function wakeLockNeeded() {
+  const markVisible = $('markScreen') && !$('markScreen').classList.contains('hidden');
+  const mapVisible = typeof mapState !== 'undefined' && mapState.fullscreen
+    && $('detailScreen') && !$('detailScreen').classList.contains('hidden');
+  return Boolean(markVisible || mapVisible);
+}
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator) || wakeLockPending || wakeLock) return;
+  if (document.visibilityState !== 'visible') return;
+  wakeLockPending = true;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => {
+      wakeLock = null;
+    });
+  } catch (error) {
+    wakeLock = null;
+  } finally {
+    wakeLockPending = false;
+  }
+}
+
+function releaseWakeLock() {
+  if (!wakeLock) return;
+  const lock = wakeLock;
+  wakeLock = null;
+  try {
+    lock.release();
+  } catch (error) {
+    // Браузер мог уже снять блокировку сам
+  }
+}
+
+function syncWakeLock() {
+  if (wakeLockNeeded()) {
+    requestWakeLock();
+  } else {
+    releaseWakeLock();
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') syncWakeLock();
+  else releaseWakeLock();
+});
+
 function readJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -255,6 +306,7 @@ function showTab(name, options = {}) {
   $('cloudScreen').classList.toggle('hidden', name !== 'cloud');
   $('markScreen').classList.toggle('hidden', name !== 'mark');
   $('profileScreen').classList.toggle('hidden', name !== 'profile');
+  syncWakeLock();
 
   $('tabEvents').classList.toggle('active',
     name === 'events' || name === 'cloud' || name === 'detail' || name === 'group'
@@ -2844,6 +2896,7 @@ function addMapChrome(box) {
     mapState.fullscreen = !mapState.fullscreen;
     if (!mapState.fullscreen) stopCompass();
     redrawMap();
+    syncWakeLock();
 
     if (mapState.fullscreen) {
       // Своя запись в истории: системная «назад» сначала свернёт карту
@@ -4850,6 +4903,7 @@ function returnToFullMap() {
   box.classList.remove('hidden');
   box.classList.add('fullscreen');
   redrawMap();
+  syncWakeLock();
 }
 
 /** Отсчёт 3, 2, 1 после успешной GPS-отметки. */
