@@ -1,4 +1,4 @@
-﻿/**
+/**
  * OSportMobile Lite вЂ” СѓС‡Р°СЃС‚РЅРёРє: РІС‹Р±СЂР°Р» СЃРѕР±С‹С‚РёРµ РІ РѕР±Р»Р°РєРµ, СЃРєР°С‡Р°Р», РѕС‚РјРµС‚РёР»СЃСЏ, РѕС‚РїСЂР°РІРёР».
  *
  * Р“Р»Р°РІРЅС‹Р№ СЌРєСЂР°РЅ РїРѕРІС‚РѕСЂСЏРµС‚ РїСЂРёР»РѕР¶РµРЅРёРµ: РєР°СЂС‚РѕС‡РєРё СЃРѕР±С‹С‚РёР№ СЃРѕ РІР»РѕР¶РµРЅРЅС‹РјРё РґРёСЃС‚Р°РЅС†РёСЏРјРё.
@@ -3352,7 +3352,7 @@ function formatSplitTime(millis) {
 
 function formatClock(millis) {
   if (!Number.isFinite(millis) || millis <= 0) return 'вЂ”';
-  return new Date(millis).toLocaleTimeString('ru-RU');
+  return new Date(Math.ceil(millis / 1000) * 1000).toLocaleTimeString('ru-RU');
 }
 
 /** РЎРєРѕР»СЊРєРѕ СЃС‚СЂРѕРє РїСЂРѕС‚РѕРєРѕР»Р° РІРёРґРЅРѕ Р±РµР· В«РџРѕРєР°Р·Р°С‚СЊ РІСЃРµС…В». */
