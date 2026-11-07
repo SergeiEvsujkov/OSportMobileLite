@@ -3451,7 +3451,11 @@ function buildProtocol(distance) {
   });
 
   const rows = results.map((row) => {
-    const allMarks = Array.isArray(row.marks) ? row.marks : [];
+    // Округляем каждую отметку один раз; все дальнейшие времена — разности.
+    const allMarks = (Array.isArray(row.marks) ? row.marks : []).map((mark) => ({
+      ...mark,
+      time: Math.ceil((mark.time || 0) / 1000) * 1000,
+    }));
     // Р’ РїСЂРѕС‚РѕРєРѕР» РёРґСѓС‚ С‚РѕР»СЊРєРѕ РѕС‚РјРµС‚РєРё РјРµР¶РґСѓ РїРѕСЃР»РµРґРЅРёРј СЃС‚Р°СЂС‚РѕРј Рё РїРµСЂРІС‹Рј С„РёРЅРёС€РµРј
     const counted = attemptMarks(allMarks, rogaine);
     // Р’ СЂРѕРіРµР№РЅРµ СЃРїР»РёС‚ РїРѕРєР°Р·С‹РІР°РµС‚ РІСЃРµ РѕС‚РјРµС‚РєРё, Р° РѕС‡РєРё СЃС‡РёС‚Р°СЋС‚СЃСЏ РїРѕ Р·Р°С‡С‘С‚РЅС‹Рј
@@ -3472,8 +3476,8 @@ function buildProtocol(distance) {
       nick: row.nick || row.userId || 'РЈС‡Р°СЃС‚РЅРёРє',
       // Р–С‘Р»С‚С‹Рј РІС‹РґРµР»СЏСЋС‚СЃСЏ РІСЃРµ СЃС‚СЂРѕРєРё СѓС‡Р°СЃС‚РЅРёРєР° СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё СЂРµР·СѓР»СЊС‚Р°С‚Р°РјРё
       duplicate: (countByUser.get(String(row.userId)) || 0) > 1,
-      startTime: row.startTime || 0,
-      finishTime: row.finishTime || 0,
+      startTime: Math.ceil((row.startTime || 0) / 1000) * 1000,
+      finishTime: Math.ceil((row.finishTime || 0) / 1000) * 1000,
       elapsed: status === 'OK' ? elapsed : 0,
       score,
       penalty: penalty.points,
