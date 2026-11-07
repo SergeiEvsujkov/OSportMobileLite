@@ -3512,7 +3512,9 @@ function buildProtocol(distance) {
       lastKey = key;
     }
     if (best === null) best = row;
-    row.behind = rogaine ? Math.max(0, best.total - row.total) : Math.max(0, row.elapsed - best.elapsed);
+    row.behind = rogaine
+      ? Math.max(0, best.total - row.total)
+      : Math.max(0, Math.floor(row.elapsed / 1000) * 1000 - Math.floor(best.elapsed / 1000) * 1000);
   });
 
   return ordered;
