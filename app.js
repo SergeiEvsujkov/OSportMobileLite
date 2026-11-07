@@ -1,12 +1,12 @@
-/**
- * OSportMobile Lite — участник: выбрал событие в облаке, скачал, отметился, отправил.
+﻿/**
+ * OSportMobile Lite вЂ” СѓС‡Р°СЃС‚РЅРёРє: РІС‹Р±СЂР°Р» СЃРѕР±С‹С‚РёРµ РІ РѕР±Р»Р°РєРµ, СЃРєР°С‡Р°Р», РѕС‚РјРµС‚РёР»СЃСЏ, РѕС‚РїСЂР°РІРёР».
  *
- * Главный экран повторяет приложение: карточки событий со вложенными дистанциями.
- * Создания, архива и фильтров нет — lite только проходит.
+ * Р“Р»Р°РІРЅС‹Р№ СЌРєСЂР°РЅ РїРѕРІС‚РѕСЂСЏРµС‚ РїСЂРёР»РѕР¶РµРЅРёРµ: РєР°СЂС‚РѕС‡РєРё СЃРѕР±С‹С‚РёР№ СЃРѕ РІР»РѕР¶РµРЅРЅС‹РјРё РґРёСЃС‚Р°РЅС†РёСЏРјРё.
+ * РЎРѕР·РґР°РЅРёСЏ, Р°СЂС…РёРІР° Рё С„РёР»СЊС‚СЂРѕРІ РЅРµС‚ вЂ” lite С‚РѕР»СЊРєРѕ РїСЂРѕС…РѕРґРёС‚.
  */
 
 const CONFIG = {
-  // Хранилище, откуда берутся карты дистанций (как DEFAULT_BUCKET в приложении)
+  // РҐСЂР°РЅРёР»РёС‰Рµ, РѕС‚РєСѓРґР° Р±РµСЂСѓС‚СЃСЏ РєР°СЂС‚С‹ РґРёСЃС‚Р°РЅС†РёР№ (РєР°Рє DEFAULT_BUCKET РІ РїСЂРёР»РѕР¶РµРЅРёРё)
   mapBucketUrl: 'https://storage.yandexcloud.net/osport-mobile',
   functionUrl: 'https://functions.yandexcloud.net/d4eebmhdf007eak5nkbo',
 };
@@ -21,14 +21,14 @@ const STORAGE = {
   identity: 'osport.lite.identity',
   settings: 'osport.lite.settings',
   active: 'osport.lite.active',
-  screen: 'osport.lite.screen',   // какой экран был открыт
-  vkNames: 'osport.lite.vkNames', // ник по каждому профилю ВК на этом устройстве
-  pendingResults: 'osport.lite.pendingResults', // результаты, которые не удалось отправить
+  screen: 'osport.lite.screen',   // РєР°РєРѕР№ СЌРєСЂР°РЅ Р±С‹Р» РѕС‚РєСЂС‹С‚
+  vkNames: 'osport.lite.vkNames', // РЅРёРє РїРѕ РєР°Р¶РґРѕРјСѓ РїСЂРѕС„РёР»СЋ Р’Рљ РЅР° СЌС‚РѕРј СѓСЃС‚СЂРѕР№СЃС‚РІРµ
+  pendingResults: 'osport.lite.pendingResults', // СЂРµР·СѓР»СЊС‚Р°С‚С‹, РєРѕС‚РѕСЂС‹Рµ РЅРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ
 };
 
 const state = {
   event: null,
-  activeId: null,   // id активированной дистанции
+  activeId: null,   // id Р°РєС‚РёРІРёСЂРѕРІР°РЅРЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё
   marks: [],
   position: null,
   heading: 0,
@@ -38,15 +38,15 @@ const state = {
   hintBearing: null,
   watchId: null,
   candidate: null,
-  // Буфер последних GPS-точек: на бегу отмечаем ближайшую, а не последнюю
+  // Р‘СѓС„РµСЂ РїРѕСЃР»РµРґРЅРёС… GPS-С‚РѕС‡РµРє: РЅР° Р±РµРіСѓ РѕС‚РјРµС‡Р°РµРј Р±Р»РёР¶Р°Р№С€СѓСЋ, Р° РЅРµ РїРѕСЃР»РµРґРЅСЋСЋ
   recentFixes: [],
   candidateFix: null,
   history: [],
-  // Один обмен с облаком за раз: параллельные отправка/обновление теряют строки
+  // РћРґРёРЅ РѕР±РјРµРЅ СЃ РѕР±Р»Р°РєРѕРј Р·Р° СЂР°Р·: РїР°СЂР°Р»Р»РµР»СЊРЅС‹Рµ РѕС‚РїСЂР°РІРєР°/РѕР±РЅРѕРІР»РµРЅРёРµ С‚РµСЂСЏСЋС‚ СЃС‚СЂРѕРєРё
   syncing: false,
   sending: false,
   flushing: false,
-  // Экран отметки: подтверждение QR, отказы и аварийная отметка
+  // Р­РєСЂР°РЅ РѕС‚РјРµС‚РєРё: РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ QR, РѕС‚РєР°Р·С‹ Рё Р°РІР°СЂРёР№РЅР°СЏ РѕС‚РјРµС‚РєР°
   pendingQr: null,
   autoQrCode: null,
   outcomeHints: '',
@@ -58,13 +58,13 @@ const state = {
   emergencyAt: 0,
   emergencyDismissed: false,
   emergencyPoint: null,
-  // Возврат с отметки на полноэкранную карту
+  // Р’РѕР·РІСЂР°С‚ СЃ РѕС‚РјРµС‚РєРё РЅР° РїРѕР»РЅРѕСЌРєСЂР°РЅРЅСѓСЋ РєР°СЂС‚Сѓ
   returnToMap: false,
   autoReturnUsed: false,
   mapReturnTimer: null,
 };
 
-/* ─────────────────────────── хранилище ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ С…СЂР°РЅРёР»РёС‰Рµ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
 function readJson(key, fallback) {
   try {
@@ -79,7 +79,7 @@ function writeJson(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
-    // Приватный режим может запретить запись — работаем без сохранения
+    // РџСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј РјРѕР¶РµС‚ Р·Р°РїСЂРµС‚РёС‚СЊ Р·Р°РїРёСЃСЊ вЂ” СЂР°Р±РѕС‚Р°РµРј Р±РµР· СЃРѕС…СЂР°РЅРµРЅРёСЏ
   }
 }
 
@@ -96,7 +96,7 @@ function clearHintTarget(eventId) {
   try {
     localStorage.removeItem(hintTargetKey(eventId));
   } catch (error) {
-    // приватный режим — просто не сохраняем
+    // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј вЂ” РїСЂРѕСЃС‚Рѕ РЅРµ СЃРѕС…СЂР°РЅСЏРµРј
   }
 }
 
@@ -108,7 +108,7 @@ function saveMarks() {
   if (state.event) writeJson(marksKey(state.event.id), state.marks);
 }
 
-/** Скачанные события: список карточек на главном экране. */
+/** РЎРєР°С‡Р°РЅРЅС‹Рµ СЃРѕР±С‹С‚РёСЏ: СЃРїРёСЃРѕРє РєР°СЂС‚РѕС‡РµРє РЅР° РіР»Р°РІРЅРѕРј СЌРєСЂР°РЅРµ. */
 function loadHistory() {
   return readJson(STORAGE.history, []);
 }
@@ -144,9 +144,9 @@ function activateEvent(id) {
   showTab('mark');
 }
 
-/* ─────────────────────────── облако ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РѕР±Р»Р°РєРѕ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
-/** Сообщение внизу — как Snackbar: само гаснет через 4 секунды. */
+/** РЎРѕРѕР±С‰РµРЅРёРµ РІРЅРёР·Сѓ вЂ” РєР°Рє Snackbar: СЃР°РјРѕ РіР°СЃРЅРµС‚ С‡РµСЂРµР· 4 СЃРµРєСѓРЅРґС‹. */
 let statusTimer = null;
 
 function setStatus(text, kind = '') {
@@ -168,8 +168,8 @@ function setStatus(text, kind = '') {
 }
 
 async function callFunction(query, body = null) {
-  // Метка времени и no-store: иначе браузер отдаёт прошлый каталог,
-  // и изменения в облаке видны не сразу
+  // РњРµС‚РєР° РІСЂРµРјРµРЅРё Рё no-store: РёРЅР°С‡Рµ Р±СЂР°СѓР·РµСЂ РѕС‚РґР°С‘С‚ РїСЂРѕС€Р»С‹Р№ РєР°С‚Р°Р»РѕРі,
+  // Рё РёР·РјРµРЅРµРЅРёСЏ РІ РѕР±Р»Р°РєРµ РІРёРґРЅС‹ РЅРµ СЃСЂР°Р·Сѓ
   const url = `${CONFIG.functionUrl}?${query}&t=${Date.now()}`;
   let response;
   try {
@@ -180,7 +180,7 @@ async function callFunction(query, body = null) {
       body: body === null ? '{}' : JSON.stringify(body),
     });
   } catch (error) {
-    throw new Error('Сервис не разрешил запрос из браузера (CORS).');
+    throw new Error('РЎРµСЂРІРёСЃ РЅРµ СЂР°Р·СЂРµС€РёР» Р·Р°РїСЂРѕСЃ РёР· Р±СЂР°СѓР·РµСЂР° (CORS).');
   }
   const text = await response.text();
   let parsed = null;
@@ -190,7 +190,7 @@ async function callFunction(query, body = null) {
     parsed = null;
   }
   if (!response.ok) {
-    throw new Error(parsed && parsed.error ? parsed.error : `Ошибка ${response.status}`);
+    throw new Error(parsed && parsed.error ? parsed.error : `РћС€РёР±РєР° ${response.status}`);
   }
   return parsed;
 }
@@ -204,26 +204,26 @@ function formatDate(value) {
     + `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-/* ─────────────────────────── вкладки ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РІРєР»Р°РґРєРё в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
 /**
- * Навигация между экранами.
+ * РќР°РІРёРіР°С†РёСЏ РјРµР¶РґСѓ СЌРєСЂР°РЅР°РјРё.
  *
- * Каждый переход пишется в историю браузера, поэтому системная кнопка «назад»
- * возвращает на предыдущий экран, а не закрывает приложение.
+ * РљР°Р¶РґС‹Р№ РїРµСЂРµС…РѕРґ РїРёС€РµС‚СЃСЏ РІ РёСЃС‚РѕСЂРёСЋ Р±СЂР°СѓР·РµСЂР°, РїРѕСЌС‚РѕРјСѓ СЃРёСЃС‚РµРјРЅР°СЏ РєРЅРѕРїРєР° В«РЅР°Р·Р°РґВ»
+ * РІРѕР·РІСЂР°С‰Р°РµС‚ РЅР° РїСЂРµРґС‹РґСѓС‰РёР№ СЌРєСЂР°РЅ, Р° РЅРµ Р·Р°РєСЂС‹РІР°РµС‚ РїСЂРёР»РѕР¶РµРЅРёРµ.
  */
 let navStack = ['events'];
-let ignoreNextPop = false;   // выход из полного экрана кнопкой не меняет экран
+let ignoreNextPop = false;   // РІС‹С…РѕРґ РёР· РїРѕР»РЅРѕРіРѕ СЌРєСЂР°РЅР° РєРЅРѕРїРєРѕР№ РЅРµ РјРµРЅСЏРµС‚ СЌРєСЂР°РЅ
 
 function showTab(name, options = {}) {
   const push = options.push !== false;
 
-  // Экран отметки без активной дистанции не открывается: сначала активируйте
+  // Р­РєСЂР°РЅ РѕС‚РјРµС‚РєРё Р±РµР· Р°РєС‚РёРІРЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё РЅРµ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ: СЃРЅР°С‡Р°Р»Р° Р°РєС‚РёРІРёСЂСѓР№С‚Рµ
   if (name === 'mark' && (!state.event || state.activeId !== state.event.id)) {
-    setStatus('Сначала активируйте событие', 'error');
+    setStatus('РЎРЅР°С‡Р°Р»Р° Р°РєС‚РёРІРёСЂСѓР№С‚Рµ СЃРѕР±С‹С‚РёРµ', 'error');
     return;
   }
-  // Вне промежутка проведения отметка не открывается — как в приложении
+  // Р’РЅРµ РїСЂРѕРјРµР¶СѓС‚РєР° РїСЂРѕРІРµРґРµРЅРёСЏ РѕС‚РјРµС‚РєР° РЅРµ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
   if (name === 'mark') {
     const source = (state.event && (state.event.entry || state.event.distance)) || {};
     const block = markingPeriodBlock(source);
@@ -233,9 +233,9 @@ function showTab(name, options = {}) {
     }
   }
 
-  // Переход на другой экран убирает прошлое сообщение
+  // РџРµСЂРµС…РѕРґ РЅР° РґСЂСѓРіРѕР№ СЌРєСЂР°РЅ СѓР±РёСЂР°РµС‚ РїСЂРѕС€Р»РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ
   setStatus('');
-  // Открытие экрана отметки: сначала чистим отметки по правилам старта и финиша
+  // РћС‚РєСЂС‹С‚РёРµ СЌРєСЂР°РЅР° РѕС‚РјРµС‚РєРё: СЃРЅР°С‡Р°Р»Р° С‡РёСЃС‚РёРј РѕС‚РјРµС‚РєРё РїРѕ РїСЂР°РІРёР»Р°Рј СЃС‚Р°СЂС‚Р° Рё С„РёРЅРёС€Р°
   if (name === 'mark') {
     sanitizeMarks();
     state.pendingQr = null;
@@ -267,7 +267,7 @@ function showTab(name, options = {}) {
     history.pushState({ depth: navStack.length }, '');
   }
 
-  // Запоминаем экран: после обновления приложения остаёмся там же, а не на главном
+  // Р—Р°РїРѕРјРёРЅР°РµРј СЌРєСЂР°РЅ: РїРѕСЃР»Рµ РѕР±РЅРѕРІР»РµРЅРёСЏ РїСЂРёР»РѕР¶РµРЅРёСЏ РѕСЃС‚Р°С‘РјСЃСЏ С‚Р°Рј Р¶Рµ, Р° РЅРµ РЅР° РіР»Р°РІРЅРѕРј
   writeJson(STORAGE.screen, { name, eventId: state.event && state.event.id });
 
   if (name === 'profile') {
@@ -292,22 +292,22 @@ function showTab(name, options = {}) {
   if (name === 'events') renderHome();
 }
 
-/* ─────────────────────────── главный экран ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РіР»Р°РІРЅС‹Р№ СЌРєСЂР°РЅ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
-/** Карточки скачанных событий: как на главном экране приложения. */
+/** РљР°СЂС‚РѕС‡РєРё СЃРєР°С‡Р°РЅРЅС‹С… СЃРѕР±С‹С‚РёР№: РєР°Рє РЅР° РіР»Р°РІРЅРѕРј СЌРєСЂР°РЅРµ РїСЂРёР»РѕР¶РµРЅРёСЏ. */
 /**
- * Главный экран — карточка как в приложении.
+ * Р“Р»Р°РІРЅС‹Р№ СЌРєСЂР°РЅ вЂ” РєР°СЂС‚РѕС‡РєР° РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё.
  *
- * Одиночная запись (без groupId или одна в группе): сведения прямо в карточке,
- * ниже значки способа отметки и автор с именем. Несколько дистанций одной
- * группы: автор под сроками, а дистанции — вложенными рамками.
+ * РћРґРёРЅРѕС‡РЅР°СЏ Р·Р°РїРёСЃСЊ (Р±РµР· groupId РёР»Рё РѕРґРЅР° РІ РіСЂСѓРїРїРµ): СЃРІРµРґРµРЅРёСЏ РїСЂСЏРјРѕ РІ РєР°СЂС‚РѕС‡РєРµ,
+ * РЅРёР¶Рµ Р·РЅР°С‡РєРё СЃРїРѕСЃРѕР±Р° РѕС‚РјРµС‚РєРё Рё Р°РІС‚РѕСЂ СЃ РёРјРµРЅРµРј. РќРµСЃРєРѕР»СЊРєРѕ РґРёСЃС‚Р°РЅС†РёР№ РѕРґРЅРѕР№
+ * РіСЂСѓРїРїС‹: Р°РІС‚РѕСЂ РїРѕРґ СЃСЂРѕРєР°РјРё, Р° РґРёСЃС‚Р°РЅС†РёРё вЂ” РІР»РѕР¶РµРЅРЅС‹РјРё СЂР°РјРєР°РјРё.
  */
 function renderHome() {
   const list = $('eventsList');
   list.textContent = '';
 
-  // Скачанное — это записи в истории. Сохранённая копия события, которой там
-  // нет, считается сиротой (осталась от удалённой группы) и не показывается
+  // РЎРєР°С‡Р°РЅРЅРѕРµ вЂ” СЌС‚Рѕ Р·Р°РїРёСЃРё РІ РёСЃС‚РѕСЂРёРё. РЎРѕС…СЂР°РЅС‘РЅРЅР°СЏ РєРѕРїРёСЏ СЃРѕР±С‹С‚РёСЏ, РєРѕС‚РѕСЂРѕР№ С‚Р°Рј
+  // РЅРµС‚, СЃС‡РёС‚Р°РµС‚СЃСЏ СЃРёСЂРѕС‚РѕР№ (РѕСЃС‚Р°Р»Р°СЃСЊ РѕС‚ СѓРґР°Р»С‘РЅРЅРѕР№ РіСЂСѓРїРїС‹) Рё РЅРµ РїРѕРєР°Р·С‹РІР°РµС‚СЃСЏ
   const downloadedIds = new Set((state.history || []).map((item) => item.id));
 
   const group = readJson(STORAGE.group, null);
@@ -331,7 +331,7 @@ function renderHome() {
   const head = document.createElement('div');
   head.className = 'event-head';
 
-  // Значок есть только у группы: у одиночной дистанции логотипа нет
+  // Р—РЅР°С‡РѕРє РµСЃС‚СЊ С‚РѕР»СЊРєРѕ Сѓ РіСЂСѓРїРїС‹: Сѓ РѕРґРёРЅРѕС‡РЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё Р»РѕРіРѕС‚РёРїР° РЅРµС‚
   if (items.length > 1) {
     const icon = document.createElement('span');
     icon.className = 'event-icon';
@@ -348,19 +348,19 @@ function renderHome() {
   const number = items.length > 1
     ? (group && group.number)
     : (items[0].entry && items[0].entry.number);
-  title.textContent = (number ? `№ ${number} ` : '') + (first.name || 'Без названия');
+  title.textContent = (number ? `в„– ${number} ` : '') + (first.name || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ');
   head.append(title);
   card.append(head);
   const activeId = state.activeId;
 
   if (items.length > 1) {
-    // Вся карточка группы открывает группу, как в приложении
+    // Р’СЃСЏ РєР°СЂС‚РѕС‡РєР° РіСЂСѓРїРїС‹ РѕС‚РєСЂС‹РІР°РµС‚ РіСЂСѓРїРїСѓ, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
     card.style.cursor = 'pointer';
     card.addEventListener('click', () => {
     try {
       openGroup();
     } catch (error) {
-      setStatus('Ошибка экрана группы: ' + error.message, 'error');
+      setStatus('РћС€РёР±РєР° СЌРєСЂР°РЅР° РіСЂСѓРїРїС‹: ' + error.message, 'error');
     }
   });
   }
@@ -373,21 +373,21 @@ function renderHome() {
   }
 
   if (items.length > 1) {
-    // Группа: автор один на всю карточку, дистанции — во вложенных рамках
+    // Р“СЂСѓРїРїР°: Р°РІС‚РѕСЂ РѕРґРёРЅ РЅР° РІСЃСЋ РєР°СЂС‚РѕС‡РєСѓ, РґРёСЃС‚Р°РЅС†РёРё вЂ” РІРѕ РІР»РѕР¶РµРЅРЅС‹С… СЂР°РјРєР°С…
     card.append(authorRow(first, true, false, items[0].distance));
     items.forEach((item) => {
       const inner = document.createElement('div');
       inner.className = 'distance-card';
       if (event && event.id === item.id) inner.classList.add('active');
 
-      // Начатая дистанция внутри группы подсвечивается сама, а не вся карточка
+      // РќР°С‡Р°С‚Р°СЏ РґРёСЃС‚Р°РЅС†РёСЏ РІРЅСѓС‚СЂРё РіСЂСѓРїРїС‹ РїРѕРґСЃРІРµС‡РёРІР°РµС‚СЃСЏ СЃР°РјР°, Р° РЅРµ РІСЃСЏ РєР°СЂС‚РѕС‡РєР°
       if (item.id === activeId) inner.classList.add('active-event');
       inner.append(detailsLine(item), iconsRow(false, item.entry, item.distance));
       if (pendingResultFor(item.id)) inner.append(pendingRow());
       if (item.entry && item.entry.mapExt) inner.append(mapLine());
       if (hintsAvailable(item)) inner.append(hintsLine());
       inner.addEventListener('click', (event) => {
-        // Дистанция внутри карточки: не даём событию дойти до группы
+        // Р”РёСЃС‚Р°РЅС†РёСЏ РІРЅСѓС‚СЂРё РєР°СЂС‚РѕС‡РєРё: РЅРµ РґР°С‘Рј СЃРѕР±С‹С‚РёСЋ РґРѕР№С‚Рё РґРѕ РіСЂСѓРїРїС‹
         event.stopPropagation();
         activateItem(item);
       });
@@ -397,31 +397,31 @@ function renderHome() {
     return;
   }
 
-  // Одиночная запись: сведения прямо в карточке
+  // РћРґРёРЅРѕС‡РЅР°СЏ Р·Р°РїРёСЃСЊ: СЃРІРµРґРµРЅРёСЏ РїСЂСЏРјРѕ РІ РєР°СЂС‚РѕС‡РєРµ
   const item = items[0];
   const distance = item.distance || {};
   const entry = item.entry || {};
 
   if (item.id === activeId) card.classList.add('active-event');
 
-  // Вся карточка открывает событие: в приложении карточка кликабельна целиком
+  // Р’СЃСЏ РєР°СЂС‚РѕС‡РєР° РѕС‚РєСЂС‹РІР°РµС‚ СЃРѕР±С‹С‚РёРµ: РІ РїСЂРёР»РѕР¶РµРЅРёРё РєР°СЂС‚РѕС‡РєР° РєР»РёРєР°Р±РµР»СЊРЅР° С†РµР»РёРєРѕРј
   card.style.cursor = 'pointer';
   card.addEventListener('click', () => activateItem(item));
 
   if (item.kind === 'rogaine') {
     const counts = [];
-    if (distance.points) counts.push(`Количество КП: ${distance.points.length}`);
-    if (entry.maxScore) counts.push(`Макс. балл: ${entry.maxScore}`);
-    if (counts.length) card.append(plainRow(counts.join(' · ')));
+    if (distance.points) counts.push(`РљРѕР»РёС‡РµСЃС‚РІРѕ РљРџ: ${distance.points.length}`);
+    if (entry.maxScore) counts.push(`РњР°РєСЃ. Р±Р°Р»Р»: ${entry.maxScore}`);
+    if (counts.length) card.append(plainRow(counts.join(' В· ')));
 
     const control = [];
-    if (distance.controlTimeMinutes) control.push(`Контр.время: ${distance.controlTimeMinutes} мин`);
+    if (distance.controlTimeMinutes) control.push(`РљРѕРЅС‚СЂ.РІСЂРµРјСЏ: ${distance.controlTimeMinutes} РјРёРЅ`);
     if (distance.penaltyPerMinute || entry.penaltyPerMinute) {
-      control.push(`Штраф: ${distance.penaltyPerMinute || entry.penaltyPerMinute} балл/мин`);
+      control.push(`РЁС‚СЂР°С„: ${distance.penaltyPerMinute || entry.penaltyPerMinute} Р±Р°Р»Р»/РјРёРЅ`);
     }
-    if (control.length) card.append(plainRow(control.join(' · ')));
+    if (control.length) card.append(plainRow(control.join(' В· ')));
 
-    card.append(plainRow(`Участников: ${participantCount(distance.results)}`));
+    card.append(plainRow(`РЈС‡Р°СЃС‚РЅРёРєРѕРІ: ${participantCount(distance.results)}`));
   } else {
     card.append(detailsLine(item));
   }
@@ -429,20 +429,20 @@ function renderHome() {
   if (entry.mapExt) card.append(mapLine());
   if (hintsAvailable(item)) card.append(hintsLine());
 
-  // Свой результат на карточке — как events_my_result в приложении
+  // РЎРІРѕР№ СЂРµР·СѓР»СЊС‚Р°С‚ РЅР° РєР°СЂС‚РѕС‡РєРµ вЂ” РєР°Рє events_my_result РІ РїСЂРёР»РѕР¶РµРЅРёРё
   const meCode = readJson(STORAGE.identity, { nick: '', code: '' }).code;
   if (meCode) {
     const mine = bestOwnProtocolRow(buildProtocol(distance), meCode, distance);
     if (mine) {
       const parts = [];
       if (mine.status === 'OK') parts.push(formatDuration(mine.elapsed));
-      if (item.kind === 'rogaine') parts.push(`Баллы: ${mine.total}`);
+      if (item.kind === 'rogaine') parts.push(`Р‘Р°Р»Р»С‹: ${mine.total}`);
       if (mine.status !== 'OK') {
         parts.push(mine.status);
       } else if (mine.place) {
-        parts.push(`место ${mine.place}`);
+        parts.push(`РјРµСЃС‚Рѕ ${mine.place}`);
       }
-      card.append(plainRow(`Мой результат: ${parts.join(' · ')}`));
+      card.append(plainRow(`РњРѕР№ СЂРµР·СѓР»СЊС‚Р°С‚: ${parts.join(' В· ')}`));
     }
   }
   if (pendingResultFor(item.id)) card.append(pendingRow());
@@ -450,7 +450,7 @@ function renderHome() {
   const authorLine = authorRow(entry, true, true, distance);
   const kindTag = document.createElement('span');
   kindTag.className = 'kind-tag';
-  kindTag.textContent = item.kind === 'rogaine' ? 'РОГЕЙН' : '';
+  kindTag.textContent = item.kind === 'rogaine' ? 'Р РћР“Р•Р™Рќ' : '';
   if (kindTag.textContent) authorLine.append(kindTag);
   card.append(authorLine);
 
@@ -458,9 +458,9 @@ function renderHome() {
 }
 
 /**
- * Есть ли по записи неотправленный результат.
+ * Р•СЃС‚СЊ Р»Рё РїРѕ Р·Р°РїРёСЃРё РЅРµРѕС‚РїСЂР°РІР»РµРЅРЅС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚.
  *
- * Очередь хранит ключи вида `distances/<id>.osport`, поэтому сверяем по id.
+ * РћС‡РµСЂРµРґСЊ С…СЂР°РЅРёС‚ РєР»СЋС‡Рё РІРёРґР° `distances/<id>.osport`, РїРѕСЌС‚РѕРјСѓ СЃРІРµСЂСЏРµРј РїРѕ id.
  */
 function pendingResultFor(id) {
   const list = readJson(STORAGE.pendingResults, []);
@@ -468,10 +468,10 @@ function pendingResultFor(id) {
 }
 
 /**
- * Одинаковый результат: тот же участник, время и отметки.
+ * РћРґРёРЅР°РєРѕРІС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚: С‚РѕС‚ Р¶Рµ СѓС‡Р°СЃС‚РЅРёРє, РІСЂРµРјСЏ Рё РѕС‚РјРµС‚РєРё.
  *
- * Ник и время записи не сравниваются — это подпись и служебное поле.
- * Порядок отметок важен: он и есть прохождение.
+ * РќРёРє Рё РІСЂРµРјСЏ Р·Р°РїРёСЃРё РЅРµ СЃСЂР°РІРЅРёРІР°СЋС‚СЃСЏ вЂ” СЌС‚Рѕ РїРѕРґРїРёСЃСЊ Рё СЃР»СѓР¶РµР±РЅРѕРµ РїРѕР»Рµ.
+ * РџРѕСЂСЏРґРѕРє РѕС‚РјРµС‚РѕРє РІР°Р¶РµРЅ: РѕРЅ Рё РµСЃС‚СЊ РїСЂРѕС…РѕР¶РґРµРЅРёРµ.
  */
 function sameResult(a, b) {
   if (!a || !b) return false;
@@ -486,7 +486,7 @@ function sameResult(a, b) {
     Number(mark && mark.time) === Number(right[index] && right[index].time));
 }
 
-/** Сколько участников: несколько результатов одного userId — один участник. */
+/** РЎРєРѕР»СЊРєРѕ СѓС‡Р°СЃС‚РЅРёРєРѕРІ: РЅРµСЃРєРѕР»СЊРєРѕ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РѕРґРЅРѕРіРѕ userId вЂ” РѕРґРёРЅ СѓС‡Р°СЃС‚РЅРёРє. */
 function participantCount(results) {
   return new Set(
     (Array.isArray(results) ? results : [])
@@ -496,17 +496,17 @@ function participantCount(results) {
 }
 
 /**
- * Сливает результаты облака с локальными.
+ * РЎР»РёРІР°РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚С‹ РѕР±Р»Р°РєР° СЃ Р»РѕРєР°Р»СЊРЅС‹РјРё.
  *
- * Свои результаты, которых в облаке ещё нет (очередь не отправилась), должны
- * оставаться видимыми: иначе обновление из облака «съедало» бы только что
- * записанный результат.
+ * РЎРІРѕРё СЂРµР·СѓР»СЊС‚Р°С‚С‹, РєРѕС‚РѕСЂС‹С… РІ РѕР±Р»Р°РєРµ РµС‰С‘ РЅРµС‚ (РѕС‡РµСЂРµРґСЊ РЅРµ РѕС‚РїСЂР°РІРёР»Р°СЃСЊ), РґРѕР»Р¶РЅС‹
+ * РѕСЃС‚Р°РІР°С‚СЊСЃСЏ РІРёРґРёРјС‹РјРё: РёРЅР°С‡Рµ РѕР±РЅРѕРІР»РµРЅРёРµ РёР· РѕР±Р»Р°РєР° В«СЃСЉРµРґР°Р»РѕВ» Р±С‹ С‚РѕР»СЊРєРѕ С‡С‚Рѕ
+ * Р·Р°РїРёСЃР°РЅРЅС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚.
  */
 function mergeResults(cloudResults, localResults) {
   const pending = readJson(STORAGE.pendingResults, []);
   const pendingUsers = new Set(pending.map((item) => String((item.result || {}).userId)));
 
-  // Версия результата: время финиша, у незавершённого — последняя отметка
+  // Р’РµСЂСЃРёСЏ СЂРµР·СѓР»СЊС‚Р°С‚Р°: РІСЂРµРјСЏ С„РёРЅРёС€Р°, Сѓ РЅРµР·Р°РІРµСЂС€С‘РЅРЅРѕРіРѕ вЂ” РїРѕСЃР»РµРґРЅСЏСЏ РѕС‚РјРµС‚РєР°
   const lastMarkTime = (row) => {
     const marks = (row && Array.isArray(row.marks)) ? row.marks : [];
     return marks.reduce((max, mark) => Math.max(max, Number(mark && mark.time) || 0), 0);
@@ -514,11 +514,11 @@ function mergeResults(cloudResults, localResults) {
   const version = (row) =>
     Number(row && row.finishTime) || lastMarkTime(row) || Number(row && row.updatedAt) || 0;
 
-  // Храним ВСЕ разные результаты, а не по одному на участника: настройка
-  // события решает только показ в протоколе
+  // РҐСЂР°РЅРёРј Р’РЎР• СЂР°Р·РЅС‹Рµ СЂРµР·СѓР»СЊС‚Р°С‚С‹, Р° РЅРµ РїРѕ РѕРґРЅРѕРјСѓ РЅР° СѓС‡Р°СЃС‚РЅРёРєР°: РЅР°СЃС‚СЂРѕР№РєР°
+  // СЃРѕР±С‹С‚РёСЏ СЂРµС€Р°РµС‚ С‚РѕР»СЊРєРѕ РїРѕРєР°Р· РІ РїСЂРѕС‚РѕРєРѕР»Рµ
   const merged = [];
-  // Старых полей попыток больше нет: сервер их не присылает, и хранить их
-  // на устройстве незачем
+  // РЎС‚Р°СЂС‹С… РїРѕР»РµР№ РїРѕРїС‹С‚РѕРє Р±РѕР»СЊС€Рµ РЅРµС‚: СЃРµСЂРІРµСЂ РёС… РЅРµ РїСЂРёСЃС‹Р»Р°РµС‚, Рё С…СЂР°РЅРёС‚СЊ РёС…
+  // РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµ РЅРµР·Р°С‡РµРј
   const clean = (row) => {
     const copy = Object.assign({}, row);
     delete copy.attempt;
@@ -534,11 +534,11 @@ function mergeResults(cloudResults, localResults) {
       merged.push(cleanRow);
       return;
     }
-    // Одинаковый результат не дублируем; из двух копий оставляем новее
+    // РћРґРёРЅР°РєРѕРІС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚ РЅРµ РґСѓР±Р»РёСЂСѓРµРј; РёР· РґРІСѓС… РєРѕРїРёР№ РѕСЃС‚Р°РІР»СЏРµРј РЅРѕРІРµРµ
     if (preferNew && version(cleanRow) >= version(merged[index])) merged[index] = cleanRow;
   };
-  // Облако — источник правды: чего в нём нет, того нет и на устройстве.
-  // Исключение — свой результат, ещё не ушедший в облако (очередь)
+  // РћР±Р»Р°РєРѕ вЂ” РёСЃС‚РѕС‡РЅРёРє РїСЂР°РІРґС‹: С‡РµРіРѕ РІ РЅС‘Рј РЅРµС‚, С‚РѕРіРѕ РЅРµС‚ Рё РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµ.
+  // РСЃРєР»СЋС‡РµРЅРёРµ вЂ” СЃРІРѕР№ СЂРµР·СѓР»СЊС‚Р°С‚, РµС‰С‘ РЅРµ СѓС€РµРґС€РёР№ РІ РѕР±Р»Р°РєРѕ (РѕС‡РµСЂРµРґСЊ)
   (cloudResults || []).forEach((row) => add(row, true));
   (localResults || []).forEach((row) => {
     if (!row || !row.userId) return;
@@ -549,14 +549,14 @@ function mergeResults(cloudResults, localResults) {
 }
 
 /**
- * Обновляет скачанное из облака: карточки, результаты и протоколы.
+ * РћР±РЅРѕРІР»СЏРµС‚ СЃРєР°С‡Р°РЅРЅРѕРµ РёР· РѕР±Р»Р°РєР°: РєР°СЂС‚РѕС‡РєРё, СЂРµР·СѓР»СЊС‚Р°С‚С‹ Рё РїСЂРѕС‚РѕРєРѕР»С‹.
  *
- * Правило одно для ориентирования и рогейна: у обоих запись обновляется
- * целиком из облака, а отметки и активность остаются на устройстве.
+ * РџСЂР°РІРёР»Рѕ РѕРґРЅРѕ РґР»СЏ РѕСЂРёРµРЅС‚РёСЂРѕРІР°РЅРёСЏ Рё СЂРѕРіРµР№РЅР°: Сѓ РѕР±РѕРёС… Р·Р°РїРёСЃСЊ РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ
+ * С†РµР»РёРєРѕРј РёР· РѕР±Р»Р°РєР°, Р° РѕС‚РјРµС‚РєРё Рё Р°РєС‚РёРІРЅРѕСЃС‚СЊ РѕСЃС‚Р°СЋС‚СЃСЏ РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµ.
  */
 /**
- * Собирает entry из свежей дистанции, сохраняя только локальные поля.
- * Облако — источник истины для автора, названия, группы, номера и сроков.
+ * РЎРѕР±РёСЂР°РµС‚ entry РёР· СЃРІРµР¶РµР№ РґРёСЃС‚Р°РЅС†РёРё, СЃРѕС…СЂР°РЅСЏСЏ С‚РѕР»СЊРєРѕ Р»РѕРєР°Р»СЊРЅС‹Рµ РїРѕР»СЏ.
+ * РћР±Р»Р°РєРѕ вЂ” РёСЃС‚РѕС‡РЅРёРє РёСЃС‚РёРЅС‹ РґР»СЏ Р°РІС‚РѕСЂР°, РЅР°Р·РІР°РЅРёСЏ, РіСЂСѓРїРїС‹, РЅРѕРјРµСЂР° Рё СЃСЂРѕРєРѕРІ.
  */
 function entryFromCloud(previous, distance, id, kind) {
   const source = distance || {};
@@ -588,18 +588,18 @@ async function syncFromCloud() {
   if (state.activeId) ids.add(state.activeId);
 
   if (!ids.size) {
-    setStatus('Скачанных событий нет: обновлять нечего', 'error');
+    setStatus('РЎРєР°С‡Р°РЅРЅС‹С… СЃРѕР±С‹С‚РёР№ РЅРµС‚: РѕР±РЅРѕРІР»СЏС‚СЊ РЅРµС‡РµРіРѕ', 'error');
     return;
   }
 
   state.syncing = true;
-  setStatus(`Обновляю из облака… (записей: ${ids.size})`);
+  setStatus(`РћР±РЅРѕРІР»СЏСЋ РёР· РѕР±Р»Р°РєР°вЂ¦ (Р·Р°РїРёСЃРµР№: ${ids.size})`);
   let updated = 0;
   let missing = 0;
   try {
-    // Обновляем только уже скачанные записи и тянем их параллельно:
-    // полный каталог (list&full=1) для этого не нужен, а последовательные
-    // запросы давали задержку в несколько секунд
+    // РћР±РЅРѕРІР»СЏРµРј С‚РѕР»СЊРєРѕ СѓР¶Рµ СЃРєР°С‡Р°РЅРЅС‹Рµ Р·Р°РїРёСЃРё Рё С‚СЏРЅРµРј РёС… РїР°СЂР°Р»Р»РµР»СЊРЅРѕ:
+    // РїРѕР»РЅС‹Р№ РєР°С‚Р°Р»РѕРі (list&full=1) РґР»СЏ СЌС‚РѕРіРѕ РЅРµ РЅСѓР¶РµРЅ, Р° РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅС‹Рµ
+    // Р·Р°РїСЂРѕСЃС‹ РґР°РІР°Р»Рё Р·Р°РґРµСЂР¶РєСѓ РІ РЅРµСЃРєРѕР»СЊРєРѕ СЃРµРєСѓРЅРґ
     const queue = Array.from(ids);
     let cursor = 0;
     const worker = async () => {
@@ -645,7 +645,7 @@ async function syncFromCloud() {
             writeJson(STORAGE.event, item);
           }
         } catch (error) {
-          // 404 — запись удалена в облаке; прочие сбои не ломают остальные
+          // 404 вЂ” Р·Р°РїРёСЃСЊ СѓРґР°Р»РµРЅР° РІ РѕР±Р»Р°РєРµ; РїСЂРѕС‡РёРµ СЃР±РѕРё РЅРµ Р»РѕРјР°СЋС‚ РѕСЃС‚Р°Р»СЊРЅС‹Рµ
           if (/not found|404/i.test(String(error && error.message))) missing += 1;
         }
       }
@@ -657,9 +657,9 @@ async function syncFromCloud() {
     if (savedGroup) writeJson(STORAGE.group, savedGroup);
     renderHome();
     if (state.event) renderDetail();
-    if (updated) setStatus(`Обновлено из облака: ${updated} из ${ids.size}`, 'good');
-    else if (missing) setStatus(`В облаке не найдено записей: ${missing}`, 'error');
-    else setStatus('В облаке нет изменений');
+    if (updated) setStatus(`РћР±РЅРѕРІР»РµРЅРѕ РёР· РѕР±Р»Р°РєР°: ${updated} РёР· ${ids.size}`, 'good');
+    else if (missing) setStatus(`Р’ РѕР±Р»Р°РєРµ РЅРµ РЅР°Р№РґРµРЅРѕ Р·Р°РїРёСЃРµР№: ${missing}`, 'error');
+    else setStatus('Р’ РѕР±Р»Р°РєРµ РЅРµС‚ РёР·РјРµРЅРµРЅРёР№');
   } catch (error) {
     setStatus(error.message, 'error');
   } finally {
@@ -667,9 +667,9 @@ async function syncFromCloud() {
   }
 }
 
-/** Строка «результат не отправлен» — красноватая, как очередь в приложении. */
+/** РЎС‚СЂРѕРєР° В«СЂРµР·СѓР»СЊС‚Р°С‚ РЅРµ РѕС‚РїСЂР°РІР»РµРЅВ» вЂ” РєСЂР°СЃРЅРѕРІР°С‚Р°СЏ, РєР°Рє РѕС‡РµСЂРµРґСЊ РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function pendingRow() {
-  const row = plainRow('Результат не отправлен: отправится, когда появится связь');
+  const row = plainRow('Р РµР·СѓР»СЊС‚Р°С‚ РЅРµ РѕС‚РїСЂР°РІР»РµРЅ: РѕС‚РїСЂР°РІРёС‚СЃСЏ, РєРѕРіРґР° РїРѕСЏРІРёС‚СЃСЏ СЃРІСЏР·СЊ');
   row.classList.add('pending');
   return row;
 }
@@ -681,7 +681,7 @@ function plainRow(text) {
   return row;
 }
 
-/** Строка сведений: «Дистанция: 640 м · КП: 3 · Участников: 1». */
+/** РЎС‚СЂРѕРєР° СЃРІРµРґРµРЅРёР№: В«Р”РёСЃС‚Р°РЅС†РёСЏ: 640 Рј В· РљРџ: 3 В· РЈС‡Р°СЃС‚РЅРёРєРѕРІ: 1В». */
 function detailsLine(item) {
   const entry = item.entry || {};
   const distance = item.distance || {};
@@ -692,18 +692,18 @@ function detailsLine(item) {
 
   const parts = [];
   if (item.kind === 'rogaine') {
-    if (checkpoints) parts.push(`Количество КП: ${checkpoints}`);
-    if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
+    if (checkpoints) parts.push(`РљРѕР»РёС‡РµСЃС‚РІРѕ РљРџ: ${checkpoints}`);
+    if (entry.maxScore) parts.push(`РњР°РєСЃ. Р±Р°Р»Р»: ${entry.maxScore}`);
   } else {
-    if (distance.longInMeters) parts.push(`Дистанция: ${distance.longInMeters} м`);
-    if (checkpoints) parts.push(`КП: ${checkpoints}`);
+    if (distance.longInMeters) parts.push(`Р”РёСЃС‚Р°РЅС†РёСЏ: ${distance.longInMeters} Рј`);
+    if (checkpoints) parts.push(`РљРџ: ${checkpoints}`);
   }
-  parts.push(`Участников: ${participantCount(distance.results)}`);
-  return plainRow(parts.join(' · '));
+  parts.push(`РЈС‡Р°СЃС‚РЅРёРєРѕРІ: ${participantCount(distance.results)}`);
+  return plainRow(parts.join(' В· '));
 }
 
 function mapLine() {
-  return plainRow('Карта: есть');
+  return plainRow('РљР°СЂС‚Р°: РµСЃС‚СЊ');
 }
 
 function hintsAvailable(item) {
@@ -712,10 +712,10 @@ function hintsAvailable(item) {
 }
 
 function hintsLine() {
-  return plainRow('Подсказки: есть');
+  return plainRow('РџРѕРґСЃРєР°Р·РєРё: РµСЃС‚СЊ');
 }
 
-/** Значок способа отметки: QR или GPS — как MarkModeIcon в Android. */
+/** Р—РЅР°С‡РѕРє СЃРїРѕСЃРѕР±Р° РѕС‚РјРµС‚РєРё: QR РёР»Рё GPS вЂ” РєР°Рє MarkModeIcon РІ Android. */
 function modeIconMarkup(entry) {
   const qr = String((entry && entry.markMode) || '').toUpperCase() === 'QR';
   return `<svg class="icon small"><use href="icons.svg#${qr ? 'qrcode' : 'mylocation'}"></use></svg>`;
@@ -729,47 +729,47 @@ function modeIconElement(entry) {
 }
 
 /**
- * Подсказки при отправке результата — те же слова, что в Android
+ * РџРѕРґСЃРєР°Р·РєРё РїСЂРё РѕС‚РїСЂР°РІРєРµ СЂРµР·СѓР»СЊС‚Р°С‚Р° вЂ” С‚Рµ Р¶Рµ СЃР»РѕРІР°, С‡С‚Рѕ РІ Android
  * (`send_hint_*`, `send_confirm_*`, `send_done_*`, `send_queued_*`).
  *
- * Правило записи: 'update' — прежний результат заменяется новым,
- * 'first' — в протоколе остаётся первый, 'both' — обе строки с местами.
+ * РџСЂР°РІРёР»Рѕ Р·Р°РїРёСЃРё: 'update' вЂ” РїСЂРµР¶РЅРёР№ СЂРµР·СѓР»СЊС‚Р°С‚ Р·Р°РјРµРЅСЏРµС‚СЃСЏ РЅРѕРІС‹Рј,
+ * 'first' вЂ” РІ РїСЂРѕС‚РѕРєРѕР»Рµ РѕСЃС‚Р°С‘С‚СЃСЏ РїРµСЂРІС‹Р№, 'both' вЂ” РѕР±Рµ СЃС‚СЂРѕРєРё СЃ РјРµСЃС‚Р°РјРё.
  */
 const RESUBMIT_TEXTS = {
   hint: {
-    update: 'Результат будет добавлен в протокол. При повторной отправке прежний результат заменится новым.',
-    first: 'Результат будет добавлен в протокол. Повторная отправка в протокол не попадёт.',
-    both: 'Результат будет добавлен в протокол. При повторной отправке у вас будет две строки, обе с местом.'
+    update: 'Р РµР·СѓР»СЊС‚Р°С‚ Р±СѓРґРµС‚ РґРѕР±Р°РІР»РµРЅ РІ РїСЂРѕС‚РѕРєРѕР». РџСЂРё РїРѕРІС‚РѕСЂРЅРѕР№ РѕС‚РїСЂР°РІРєРµ РїСЂРµР¶РЅРёР№ СЂРµР·СѓР»СЊС‚Р°С‚ Р·Р°РјРµРЅРёС‚СЃСЏ РЅРѕРІС‹Рј.',
+    first: 'Р РµР·СѓР»СЊС‚Р°С‚ Р±СѓРґРµС‚ РґРѕР±Р°РІР»РµРЅ РІ РїСЂРѕС‚РѕРєРѕР». РџРѕРІС‚РѕСЂРЅР°СЏ РѕС‚РїСЂР°РІРєР° РІ РїСЂРѕС‚РѕРєРѕР» РЅРµ РїРѕРїР°РґС‘С‚.',
+    both: 'Р РµР·СѓР»СЊС‚Р°С‚ Р±СѓРґРµС‚ РґРѕР±Р°РІР»РµРЅ РІ РїСЂРѕС‚РѕРєРѕР». РџСЂРё РїРѕРІС‚РѕСЂРЅРѕР№ РѕС‚РїСЂР°РІРєРµ Сѓ РІР°СЃ Р±СѓРґРµС‚ РґРІРµ СЃС‚СЂРѕРєРё, РѕР±Рµ СЃ РјРµСЃС‚РѕРј.'
   },
   confirmTitle: {
-    update: 'Отправить ещё раз?',
-    first: 'Результат уже есть',
-    both: 'Будет две строки'
+    update: 'РћС‚РїСЂР°РІРёС‚СЊ РµС‰С‘ СЂР°Р·?',
+    first: 'Р РµР·СѓР»СЊС‚Р°С‚ СѓР¶Рµ РµСЃС‚СЊ',
+    both: 'Р‘СѓРґРµС‚ РґРІРµ СЃС‚СЂРѕРєРё'
   },
   confirmBody: {
-    update: (was, now) => `Ваш результат в протоколе (${was}) будет заменён новым (${now}). Место пересчитается.`,
-    first: (was, now) => `В протоколе останется первый результат: ${was}. Новая попытка (${now}) сохранится в облаке, но в протокол не войдёт.`,
-    both: (was, now) => `В протоколе появятся обе ваши попытки: ${was} и ${now} — вторая с пометкой «дубль». Каждая получит своё место.`
+    update: (was, now) => `Р’Р°С€ СЂРµР·СѓР»СЊС‚Р°С‚ РІ РїСЂРѕС‚РѕРєРѕР»Рµ (${was}) Р±СѓРґРµС‚ Р·Р°РјРµРЅС‘РЅ РЅРѕРІС‹Рј (${now}). РњРµСЃС‚Рѕ РїРµСЂРµСЃС‡РёС‚Р°РµС‚СЃСЏ.`,
+    first: (was, now) => `Р’ РїСЂРѕС‚РѕРєРѕР»Рµ РѕСЃС‚Р°РЅРµС‚СЃСЏ РїРµСЂРІС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚: ${was}. РќРѕРІР°СЏ РїРѕРїС‹С‚РєР° (${now}) СЃРѕС…СЂР°РЅРёС‚СЃСЏ РІ РѕР±Р»Р°РєРµ, РЅРѕ РІ РїСЂРѕС‚РѕРєРѕР» РЅРµ РІРѕР№РґС‘С‚.`,
+    both: (was, now) => `Р’ РїСЂРѕС‚РѕРєРѕР»Рµ РїРѕСЏРІСЏС‚СЃСЏ РѕР±Рµ РІР°С€Рё РїРѕРїС‹С‚РєРё: ${was} Рё ${now} вЂ” РІС‚РѕСЂР°СЏ СЃ РїРѕРјРµС‚РєРѕР№ В«РґСѓР±Р»СЊВ». РљР°Р¶РґР°СЏ РїРѕР»СѓС‡РёС‚ СЃРІРѕС‘ РјРµСЃС‚Рѕ.`
   },
   done: {
-    update: (now) => `Результат отправлен. В протоколе ваш результат: ${now}.`,
-    first: (was) => `Результат уже есть: в протоколе прежний — ${was}. Новая попытка сохранена, в таблицу не вошла.`,
-    both: (now) => `Добавлена вторая строка: ${now}, помечена «дубль». Теперь у вас две строки в протоколе.`
+    update: (now) => `Р РµР·СѓР»СЊС‚Р°С‚ РѕС‚РїСЂР°РІР»РµРЅ. Р’ РїСЂРѕС‚РѕРєРѕР»Рµ РІР°С€ СЂРµР·СѓР»СЊС‚Р°С‚: ${now}.`,
+    first: (was) => `Р РµР·СѓР»СЊС‚Р°С‚ СѓР¶Рµ РµСЃС‚СЊ: РІ РїСЂРѕС‚РѕРєРѕР»Рµ РїСЂРµР¶РЅРёР№ вЂ” ${was}. РќРѕРІР°СЏ РїРѕРїС‹С‚РєР° СЃРѕС…СЂР°РЅРµРЅР°, РІ С‚Р°Р±Р»РёС†Сѓ РЅРµ РІРѕС€Р»Р°.`,
+    both: (now) => `Р”РѕР±Р°РІР»РµРЅР° РІС‚РѕСЂР°СЏ СЃС‚СЂРѕРєР°: ${now}, РїРѕРјРµС‡РµРЅР° В«РґСѓР±Р»СЊВ». РўРµРїРµСЂСЊ Сѓ РІР°СЃ РґРІРµ СЃС‚СЂРѕРєРё РІ РїСЂРѕС‚РѕРєРѕР»Рµ.`
   },
   queued: {
-    update: (now) => `Результат сохранён и уйдёт, когда появится связь. Тогда прежний результат в протоколе заменится новым (${now}).`,
-    first: (was) => `Результат сохранён и уйдёт, когда появится связь. В протоколе останется первый результат — ${was}; новая попытка сохранена, но в таблицу не войдёт.`,
-    both: (was, now) => `Результат сохранён и уйдёт, когда появится связь. Тогда в протоколе будет две ваши строки: ${was} и ${now} («дубль»).`
+    update: (now) => `Р РµР·СѓР»СЊС‚Р°С‚ СЃРѕС…СЂР°РЅС‘РЅ Рё СѓР№РґС‘С‚, РєРѕРіРґР° РїРѕСЏРІРёС‚СЃСЏ СЃРІСЏР·СЊ. РўРѕРіРґР° РїСЂРµР¶РЅРёР№ СЂРµР·СѓР»СЊС‚Р°С‚ РІ РїСЂРѕС‚РѕРєРѕР»Рµ Р·Р°РјРµРЅРёС‚СЃСЏ РЅРѕРІС‹Рј (${now}).`,
+    first: (was) => `Р РµР·СѓР»СЊС‚Р°С‚ СЃРѕС…СЂР°РЅС‘РЅ Рё СѓР№РґС‘С‚, РєРѕРіРґР° РїРѕСЏРІРёС‚СЃСЏ СЃРІСЏР·СЊ. Р’ РїСЂРѕС‚РѕРєРѕР»Рµ РѕСЃС‚Р°РЅРµС‚СЃСЏ РїРµСЂРІС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚ вЂ” ${was}; РЅРѕРІР°СЏ РїРѕРїС‹С‚РєР° СЃРѕС…СЂР°РЅРµРЅР°, РЅРѕ РІ С‚Р°Р±Р»РёС†Сѓ РЅРµ РІРѕР№РґС‘С‚.`,
+    both: (was, now) => `Р РµР·СѓР»СЊС‚Р°С‚ СЃРѕС…СЂР°РЅС‘РЅ Рё СѓР№РґС‘С‚, РєРѕРіРґР° РїРѕСЏРІРёС‚СЃСЏ СЃРІСЏР·СЊ. РўРѕРіРґР° РІ РїСЂРѕС‚РѕРєРѕР»Рµ Р±СѓРґРµС‚ РґРІРµ РІР°С€Рё СЃС‚СЂРѕРєРё: ${was} Рё ${now} (В«РґСѓР±Р»СЊВ»).`
   },
-  link: 'Что будет при отправке?',
-  authorNote: 'Правило задаёт автор записи: «обновлять», «не обновлять» или «оставлять оба». Если автор его изменит, протокол пересоберётся по новому правилу.',
-  dnf: 'Прежний результат — DNF (не финишировал)',
-  nothing: 'Отправлять нечего: отметьте старт и финиш'
+  link: 'Р§С‚Рѕ Р±СѓРґРµС‚ РїСЂРё РѕС‚РїСЂР°РІРєРµ?',
+  authorNote: 'РџСЂР°РІРёР»Рѕ Р·Р°РґР°С‘С‚ Р°РІС‚РѕСЂ Р·Р°РїРёСЃРё: В«РѕР±РЅРѕРІР»СЏС‚СЊВ», В«РЅРµ РѕР±РЅРѕРІР»СЏС‚СЊВ» РёР»Рё В«РѕСЃС‚Р°РІР»СЏС‚СЊ РѕР±Р°В». Р•СЃР»Рё Р°РІС‚РѕСЂ РµРіРѕ РёР·РјРµРЅРёС‚, РїСЂРѕС‚РѕРєРѕР» РїРµСЂРµСЃРѕР±РµСЂС‘С‚СЃСЏ РїРѕ РЅРѕРІРѕРјСѓ РїСЂР°РІРёР»Сѓ.',
+  dnf: 'РџСЂРµР¶РЅРёР№ СЂРµР·СѓР»СЊС‚Р°С‚ вЂ” DNF (РЅРµ С„РёРЅРёС€РёСЂРѕРІР°Р»)',
+  nothing: 'РћС‚РїСЂР°РІР»СЏС‚СЊ РЅРµС‡РµРіРѕ: РѕС‚РјРµС‚СЊС‚Рµ СЃС‚Р°СЂС‚ Рё С„РёРЅРёС€'
 };
 
 /**
- * Цвет человечка — как tint в EventsScreen: без профиля чёрный, свой синий,
- * с моим результатом зелёный, чужой красный.
+ * Р¦РІРµС‚ С‡РµР»РѕРІРµС‡РєР° вЂ” РєР°Рє tint РІ EventsScreen: Р±РµР· РїСЂРѕС„РёР»СЏ С‡С‘СЂРЅС‹Р№, СЃРІРѕР№ СЃРёРЅРёР№,
+ * СЃ РјРѕРёРј СЂРµР·СѓР»СЊС‚Р°С‚РѕРј Р·РµР»С‘РЅС‹Р№, С‡СѓР¶РѕР№ РєСЂР°СЃРЅС‹Р№.
  */
 function personColor(entry, distance) {
   const me = readJson(STORAGE.identity, { nick: '', code: '' });
@@ -781,7 +781,7 @@ function personColor(entry, distance) {
   return mine ? 'var(--author-mine)' : 'var(--author-other)';
 }
 
-/** Значки: способ отметки и автор; цвет человечка — как в приложении. */
+/** Р—РЅР°С‡РєРё: СЃРїРѕСЃРѕР± РѕС‚РјРµС‚РєРё Рё Р°РІС‚РѕСЂ; С†РІРµС‚ С‡РµР»РѕРІРµС‡РєР° вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function iconsRow(withName, entry = {}, distance = {}) {
   const row = document.createElement('div');
   row.className = 'distance-icons';
@@ -790,14 +790,14 @@ function iconsRow(withName, entry = {}, distance = {}) {
     `<svg class="icon small"><use href="icons.svg#${qr ? 'qrcode' : 'mylocation'}"></use></svg>` +
     '<svg class="icon small author-icon"><use href="icons.svg#person"></use></svg>';
 
-  // Цвет как в приложении: чёрный без профиля, синий свой, зелёный с моим
-  // результатом, красный чужой
+  // Р¦РІРµС‚ РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё: С‡С‘СЂРЅС‹Р№ Р±РµР· РїСЂРѕС„РёР»СЏ, СЃРёРЅРёР№ СЃРІРѕР№, Р·РµР»С‘РЅС‹Р№ СЃ РјРѕРёРј
+  // СЂРµР·СѓР»СЊС‚Р°С‚РѕРј, РєСЂР°СЃРЅС‹Р№ С‡СѓР¶РѕР№
   const person = row.querySelector('.author-icon');
   if (person) person.style.color = personColor(entry, distance);
   return row;
 }
 
-/** Автор: человечек нужного цвета и имя; у своих — «— Это Вы». */
+/** РђРІС‚РѕСЂ: С‡РµР»РѕРІРµС‡РµРє РЅСѓР¶РЅРѕРіРѕ С†РІРµС‚Р° Рё РёРјСЏ; Сѓ СЃРІРѕРёС… вЂ” В«вЂ” Р­С‚Рѕ Р’С‹В». */
 function authorRow(entry, withName, withIcon = true, distance = {}) {
   const row = document.createElement('div');
   row.className = 'author-row';
@@ -814,7 +814,7 @@ function authorRow(entry, withName, withIcon = true, distance = {}) {
   person.style.color = personColor(Object.assign({}, entry, { ownerId }), distance);
 
   if (withIcon) {
-    // Способ отметки — слева от автора, как в приложении
+    // РЎРїРѕСЃРѕР± РѕС‚РјРµС‚РєРё вЂ” СЃР»РµРІР° РѕС‚ Р°РІС‚РѕСЂР°, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
     const mode = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     mode.setAttribute('class', 'icon small');
     const modeUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
@@ -829,14 +829,14 @@ function authorRow(entry, withName, withIcon = true, distance = {}) {
   if (withName) {
     const name = document.createElement('span');
     name.className = 'author-name';
-    const organizer = entry.organizer || (distance && distance.organizer) || 'Автор не указан';
-    name.textContent = organizer + (own ? ' — Это Вы' : '');
+    const organizer = entry.organizer || (distance && distance.organizer) || 'РђРІС‚РѕСЂ РЅРµ СѓРєР°Р·Р°РЅ';
+    name.textContent = organizer + (own ? ' вЂ” Р­С‚Рѕ Р’С‹' : '');
     row.append(name);
   }
   return row;
 }
 
-/** Делает активной выбранную дистанцию группы и открывает её экран. */
+/** Р”РµР»Р°РµС‚ Р°РєС‚РёРІРЅРѕР№ РІС‹Р±СЂР°РЅРЅСѓСЋ РґРёСЃС‚Р°РЅС†РёСЋ РіСЂСѓРїРїС‹ Рё РѕС‚РєСЂС‹РІР°РµС‚ РµС‘ СЌРєСЂР°РЅ. */
 function activateItem(item) {
   const saved = readJson(STORAGE.event + '.' + item.id, null);
   const event = saved || {
@@ -853,11 +853,11 @@ function activateItem(item) {
   openDetail();
 }
 
-/* ─────────────────────────── облако ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РѕР±Р»Р°РєРѕ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
-/* ─────────────────────────── настройки ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РЅР°СЃС‚СЂРѕР№РєРё в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
-/** Настройки — те же ключи, что в AppSettings.kt; языка нет, он только русский. */
+/** РќР°СЃС‚СЂРѕР№РєРё вЂ” С‚Рµ Р¶Рµ РєР»СЋС‡Рё, С‡С‚Рѕ РІ AppSettings.kt; СЏР·С‹РєР° РЅРµС‚, РѕРЅ С‚РѕР»СЊРєРѕ СЂСѓСЃСЃРєРёР№. */
 const DEFAULT_SETTINGS = {
   theme: 'system',
   large: false,
@@ -929,7 +929,7 @@ let cloudEntries = [];
 async function openCloud() {
   closeCloudMapCard();
   showTab('cloud');
-  $('cloudHint').textContent = 'Загружаю список…';
+  $('cloudHint').textContent = 'Р—Р°РіСЂСѓР¶Р°СЋ СЃРїРёСЃРѕРєвЂ¦';
   $('cloudList').textContent = '';
 
   try {
@@ -954,7 +954,7 @@ async function openCloud() {
       if (more) offset = next;
       pages += 1;
       const loaded = Number(data.total) || all.length;
-      $('cloudHint').textContent = `Загружаю список… ${all.length} из ${loaded}`;
+      $('cloudHint').textContent = `Р—Р°РіСЂСѓР¶Р°СЋ СЃРїРёСЃРѕРєвЂ¦ ${all.length} РёР· ${loaded}`;
     } while (more && pages < 50);
     cloudEntries = all.slice().sort((a, b) => {
       const left = a.number === undefined ? 0 : Number(a.number);
@@ -967,7 +967,7 @@ async function openCloud() {
   }
 }
 
-/** Карточка события/группы — та же, что в списке облака. */
+/** РљР°СЂС‚РѕС‡РєР° СЃРѕР±С‹С‚РёСЏ/РіСЂСѓРїРїС‹ вЂ” С‚Р° Р¶Рµ, С‡С‚Рѕ РІ СЃРїРёСЃРєРµ РѕР±Р»Р°РєР°. */
 function cloudCard(items) {
   const first = items[0];
   const item = document.createElement('button');
@@ -985,7 +985,7 @@ function cloudCard(items) {
 
   const title = document.createElement('span');
   title.className = 'name';
-  title.textContent = (first.number ? `№ ${first.number}  ` : '') + (first.name || 'Без названия');
+  title.textContent = (first.number ? `в„– ${first.number}  ` : '') + (first.name || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ');
   body.append(title);
 
   const period = document.createElement('span');
@@ -1042,7 +1042,7 @@ function renderCloudCard(units) {
   if (safeUnits.length > 1) {
     const title = document.createElement('div');
     title.className = 'cloud-card-head';
-    title.textContent = `Событий: ${safeUnits.length}`;
+    title.textContent = `РЎРѕР±С‹С‚РёР№: ${safeUnits.length}`;
     card.append(title);
   }
   const body = document.createElement('div');
@@ -1071,7 +1071,7 @@ function renderCloud() {
     return true;
   });
 
-  // Группа — только по groupId; без него запись одиночная, как в приложении
+  // Р“СЂСѓРїРїР° вЂ” С‚РѕР»СЊРєРѕ РїРѕ groupId; Р±РµР· РЅРµРіРѕ Р·Р°РїРёСЃСЊ РѕРґРёРЅРѕС‡РЅР°СЏ, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
   const groups = new Map();
   source.forEach((entry) => {
     const key = entry.groupId ? 'g:' + entry.groupId : 's:' + entry.id;
@@ -1079,15 +1079,15 @@ function renderCloud() {
     groups.get(key).push(entry);
   });
 
-  // Поиск по номеру: группа остаётся целиком, если совпал хотя бы один её
-  // член — как в CloudFilter.kt
+  // РџРѕРёСЃРє РїРѕ РЅРѕРјРµСЂСѓ: РіСЂСѓРїРїР° РѕСЃС‚Р°С‘С‚СЃСЏ С†РµР»РёРєРѕРј, РµСЃР»Рё СЃРѕРІРїР°Р» С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ РµС‘
+  // С‡Р»РµРЅ вЂ” РєР°Рє РІ CloudFilter.kt
   const matched = [...groups.values()].filter((items) => !filter
     || items.some((entry) => String(entry.number || '').startsWith(filter)));
 
   const total = matched.length;
   $('cloudHint').textContent = total === 0
-    ? 'Ничего не найдено'
-    : `Событий в облаке: ${total}`;
+    ? 'РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ'
+    : `РЎРѕР±С‹С‚РёР№ РІ РѕР±Р»Р°РєРµ: ${total}`;
 
   const list = $('cloudList');
   list.textContent = '';
@@ -1110,7 +1110,7 @@ function renderCloud() {
 let cloudMapMode = false;
 let cloudMapCardEntry = null;
 
-/** Принудительно вписывает все старты в реальный размер карты. */
+/** РџСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РІРїРёСЃС‹РІР°РµС‚ РІСЃРµ СЃС‚Р°СЂС‚С‹ РІ СЂРµР°Р»СЊРЅС‹Р№ СЂР°Р·РјРµСЂ РєР°СЂС‚С‹. */
 function fitCloudMap(map, points) {
   const width = map.clientWidth || 360;
   const height = map.clientHeight || 300;
@@ -1134,7 +1134,7 @@ function fitCloudMap(map, points) {
       break;
     }
   }
-  // Один уровень запаса: кластеры у границ не должны обрезаться
+  // РћРґРёРЅ СѓСЂРѕРІРµРЅСЊ Р·Р°РїР°СЃР°: РєР»Р°СЃС‚РµСЂС‹ Сѓ РіСЂР°РЅРёС† РЅРµ РґРѕР»Р¶РЅС‹ РѕР±СЂРµР·Р°С‚СЊСЃСЏ
   mapState.zoom = Math.max(2, zoom - 1);
   mapState.center = {
     latitude: (minLat + maxLat) / 2,
@@ -1150,7 +1150,7 @@ function renderCloudMap(units) {
   const map = $('cloudMap');
   if (!located.length) {
     map.classList.add('hidden');
-    $('cloudHint').textContent = 'В каталоге нет координат старта';
+    $('cloudHint').textContent = 'Р’ РєР°С‚Р°Р»РѕРіРµ РЅРµС‚ РєРѕРѕСЂРґРёРЅР°С‚ СЃС‚Р°СЂС‚Р°';
     return;
   }
   const byCode = new Map();
@@ -1171,7 +1171,7 @@ function renderCloudMap(units) {
     labels: new Map(points.map((point, index) => [point.code, String(located[index][0].number || index + 1)])),
   });
   map.classList.remove('hidden');
-  // После раскладки у карты появляется настоящая высота: подгоняем все точки ещё раз
+  // РџРѕСЃР»Рµ СЂР°СЃРєР»Р°РґРєРё Сѓ РєР°СЂС‚С‹ РїРѕСЏРІР»СЏРµС‚СЃСЏ РЅР°СЃС‚РѕСЏС‰Р°СЏ РІС‹СЃРѕС‚Р°: РїРѕРґРіРѕРЅСЏРµРј РІСЃРµ С‚РѕС‡РєРё РµС‰С‘ СЂР°Р·
   requestAnimationFrame(() => {
     if (mapState.box !== map || !mapState.cloudEntries) return;
     fitCloudMap(map, points);
@@ -1195,8 +1195,8 @@ function addCloudCardClose(card) {
   const close = document.createElement('button');
   close.className = 'cloud-card-close';
   close.type = 'button';
-  close.setAttribute('aria-label', 'Закрыть');
-  close.textContent = '×';
+  close.setAttribute('aria-label', 'Р—Р°РєСЂС‹С‚СЊ');
+  close.textContent = 'Г—';
   close.addEventListener('click', (event) => {
     event.stopPropagation();
     closeCloudMapCard();
@@ -1212,24 +1212,24 @@ function closeCloudMapCard() {
   card.textContent = '';
 }
 
-/** Сведения о дистанции в строке группы. */
+/** РЎРІРµРґРµРЅРёСЏ Рѕ РґРёСЃС‚Р°РЅС†РёРё РІ СЃС‚СЂРѕРєРµ РіСЂСѓРїРїС‹. */
 function groupDetails(entry) {
   const parts = [];
   if (entry.kind === 'rogaine') {
-    if (entry.checkPointCount) parts.push(`Количество КП: ${entry.checkPointCount}`);
-    if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
-    if (entry.penaltyPerMinute) parts.push(`Штраф: ${entry.penaltyPerMinute} балл/мин`);
+    if (entry.checkPointCount) parts.push(`РљРѕР»РёС‡РµСЃС‚РІРѕ РљРџ: ${entry.checkPointCount}`);
+    if (entry.maxScore) parts.push(`РњР°РєСЃ. Р±Р°Р»Р»: ${entry.maxScore}`);
+    if (entry.penaltyPerMinute) parts.push(`РЁС‚СЂР°С„: ${entry.penaltyPerMinute} Р±Р°Р»Р»/РјРёРЅ`);
   } else {
-    if (entry.lengthMeters) parts.push(`Длина: ${entry.lengthMeters} м`);
-    parts.push(`Карта: ${entry.mapExt ? 'есть' : 'нет'}`);
-    if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
+    if (entry.lengthMeters) parts.push(`Р”Р»РёРЅР°: ${entry.lengthMeters} Рј`);
+    parts.push(`РљР°СЂС‚Р°: ${entry.mapExt ? 'РµСЃС‚СЊ' : 'РЅРµС‚'}`);
+    if (entry.checkPointCount) parts.push(`РљРџ: ${entry.checkPointCount}`);
   }
-  if (hintsAvailable({ distance: entry })) parts.push('Подсказки: есть');
-  parts.push(`Участников: ${entry.participants || 0}`);
-  return parts.join(' · ');
+  if (hintsAvailable({ distance: entry })) parts.push('РџРѕРґСЃРєР°Р·РєРё: РµСЃС‚СЊ');
+  parts.push(`РЈС‡Р°СЃС‚РЅРёРєРѕРІ: ${entry.participants || 0}`);
+  return parts.join(' В· ');
 }
 
-/** Сведения об одиночной записи: как на карточке облака в приложении. */
+/** РЎРІРµРґРµРЅРёСЏ РѕР± РѕРґРёРЅРѕС‡РЅРѕР№ Р·Р°РїРёСЃРё: РєР°Рє РЅР° РєР°СЂС‚РѕС‡РєРµ РѕР±Р»Р°РєР° РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function detailsBlock(entry) {
   const wrap = document.createElement('div');
   wrap.className = 'cloud-details';
@@ -1238,47 +1238,47 @@ function detailsBlock(entry) {
     const line = document.createElement('span');
     line.className = 'line';
     const parts = [];
-    if (entry.checkPointCount) parts.push(`Количество КП: ${entry.checkPointCount}`);
-    if (entry.maxScore) parts.push(`Макс. балл: ${entry.maxScore}`);
-    if (entry.penaltyPerMinute) parts.push(`Штраф: ${entry.penaltyPerMinute} балл/мин`);
-    line.textContent = parts.join(' · ');
+    if (entry.checkPointCount) parts.push(`РљРѕР»РёС‡РµСЃС‚РІРѕ РљРџ: ${entry.checkPointCount}`);
+    if (entry.maxScore) parts.push(`РњР°РєСЃ. Р±Р°Р»Р»: ${entry.maxScore}`);
+    if (entry.penaltyPerMinute) parts.push(`РЁС‚СЂР°С„: ${entry.penaltyPerMinute} Р±Р°Р»Р»/РјРёРЅ`);
+    line.textContent = parts.join(' В· ');
     wrap.append(line);
 
     const row = document.createElement('span');
     row.className = 'line row-line';
     const people = document.createElement('span');
-    people.textContent = `Участников: ${entry.participants || 0}`;
+    people.textContent = `РЈС‡Р°СЃС‚РЅРёРєРѕРІ: ${entry.participants || 0}`;
     const tag = document.createElement('span');
     tag.className = 'kind-tag';
-    tag.textContent = 'Рогейн';
+    tag.textContent = 'Р РѕРіРµР№РЅ';
     row.append(people, tag);
     wrap.append(row);
   } else {
     const line = document.createElement('span');
     line.className = 'line';
     const parts = [];
-    if (entry.lengthMeters) parts.push(`Длина: ${entry.lengthMeters} м`);
-    if (entry.checkPointCount) parts.push(`КП: ${entry.checkPointCount}`);
-    parts.push(`Участников: ${entry.participants || 0}`);
-    line.textContent = parts.join(' · ');
+    if (entry.lengthMeters) parts.push(`Р”Р»РёРЅР°: ${entry.lengthMeters} Рј`);
+    if (entry.checkPointCount) parts.push(`РљРџ: ${entry.checkPointCount}`);
+    parts.push(`РЈС‡Р°СЃС‚РЅРёРєРѕРІ: ${entry.participants || 0}`);
+    line.textContent = parts.join(' В· ');
     wrap.append(line);
   }
   return wrap;
 }
 
-/** «Карта: есть/нет» — в облаке строка есть всегда. */
+/** В«РљР°СЂС‚Р°: РµСЃС‚СЊ/РЅРµС‚В» вЂ” РІ РѕР±Р»Р°РєРµ СЃС‚СЂРѕРєР° РµСЃС‚СЊ РІСЃРµРіРґР°. */
 function mapLineCloud(entry) {
   const line = document.createElement('span');
   line.className = 'line';
-  line.textContent = `Карта: ${entry.mapExt ? 'есть' : 'нет'}`;
+  line.textContent = `РљР°СЂС‚Р°: ${entry.mapExt ? 'РµСЃС‚СЊ' : 'РЅРµС‚'}`;
   return line;
 }
 
 function hintLineCloud() {
-  return plainRow('Подсказки: есть');
+  return plainRow('РџРѕРґСЃРєР°Р·РєРё: РµСЃС‚СЊ');
 }
 
-/** Автор: значок нужного цвета и имя, у своих — «— Это Вы». */
+/** РђРІС‚РѕСЂ: Р·РЅР°С‡РѕРє РЅСѓР¶РЅРѕРіРѕ С†РІРµС‚Р° Рё РёРјСЏ, Сѓ СЃРІРѕРёС… вЂ” В«вЂ” Р­С‚Рѕ Р’С‹В». */
 function authorRowCloud(entry, showMode = true) {
   const row = document.createElement('div');
   row.className = 'author-row';
@@ -1296,30 +1296,30 @@ function authorRowCloud(entry, showMode = true) {
 
   const name = document.createElement('span');
   name.className = 'author-name';
-  name.textContent = (entry.organizer || 'Автор не указан') + (own ? ' — Это Вы' : '');
+  name.textContent = (entry.organizer || 'РђРІС‚РѕСЂ РЅРµ СѓРєР°Р·Р°РЅ') + (own ? ' вЂ” Р­С‚Рѕ Р’С‹' : '');
 
   row.append(person, name);
   return row;
 }
 
-/** Скачивает одно событие: оно становится активным, но отметку не открывает. */
+/** РЎРєР°С‡РёРІР°РµС‚ РѕРґРЅРѕ СЃРѕР±С‹С‚РёРµ: РѕРЅРѕ СЃС‚Р°РЅРѕРІРёС‚СЃСЏ Р°РєС‚РёРІРЅС‹Рј, РЅРѕ РѕС‚РјРµС‚РєСѓ РЅРµ РѕС‚РєСЂС‹РІР°РµС‚. */
 async function downloadEvent(entry) {
   if (!entry) return;
 
-  // На главном помещается одно событие: пока скачанное не удалено корзиной,
-  // новое не скачиваем
+  // РќР° РіР»Р°РІРЅРѕРј РїРѕРјРµС‰Р°РµС‚СЃСЏ РѕРґРЅРѕ СЃРѕР±С‹С‚РёРµ: РїРѕРєР° СЃРєР°С‡Р°РЅРЅРѕРµ РЅРµ СѓРґР°Р»РµРЅРѕ РєРѕСЂР·РёРЅРѕР№,
+  // РЅРѕРІРѕРµ РЅРµ СЃРєР°С‡РёРІР°РµРј
   const downloaded = (state.history || []).filter((item) => item.id !== entry.id);
   if (downloaded.length) {
-    const message = 'Сначала удалите скачанное событие корзиной';
+    const message = 'РЎРЅР°С‡Р°Р»Р° СѓРґР°Р»РёС‚Рµ СЃРєР°С‡Р°РЅРЅРѕРµ СЃРѕР±С‹С‚РёРµ РєРѕСЂР·РёРЅРѕР№';
     setStatus(message, 'error');
     window.alert(message);
     return;
   }
 
-  setStatus('Скачиваю событие…');
+  setStatus('РЎРєР°С‡РёРІР°СЋ СЃРѕР±С‹С‚РёРµвЂ¦');
   try {
     const data = await callFunction('action=get&id=' + encodeURIComponent(entry.id));
-    if (!data.distance) throw new Error('Сервис не отдал событие');
+    if (!data.distance) throw new Error('РЎРµСЂРІРёСЃ РЅРµ РѕС‚РґР°Р» СЃРѕР±С‹С‚РёРµ');
 
     const kind = data.kind || entry.kind || 'distance';
     const freshEntry = entryFromCloud(entry, data.distance, entry.id, kind);
@@ -1330,9 +1330,9 @@ async function downloadEvent(entry) {
     writeJson(STORAGE.event + '.' + entry.id, event);
     rememberEvent(event);
 
-    // Группа — карточка с несколькими дистанциями: в приложении они лежат
-    // вместе по groupId (или по общему номеру), и на главном видны все.
-    // Поэтому скачиваем не только выбранную запись, но и её соседей
+    // Р“СЂСѓРїРїР° вЂ” РєР°СЂС‚РѕС‡РєР° СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё РґРёСЃС‚Р°РЅС†РёСЏРјРё: РІ РїСЂРёР»РѕР¶РµРЅРёРё РѕРЅРё Р»РµР¶Р°С‚
+    // РІРјРµСЃС‚Рµ РїРѕ groupId (РёР»Рё РїРѕ РѕР±С‰РµРјСѓ РЅРѕРјРµСЂСѓ), Рё РЅР° РіР»Р°РІРЅРѕРј РІРёРґРЅС‹ РІСЃРµ.
+    // РџРѕСЌС‚РѕРјСѓ СЃРєР°С‡РёРІР°РµРј РЅРµ С‚РѕР»СЊРєРѕ РІС‹Р±СЂР°РЅРЅСѓСЋ Р·Р°РїРёСЃСЊ, РЅРѕ Рё РµС‘ СЃРѕСЃРµРґРµР№
     await downloadGroup(freshEntry, event);
 
     state.event = event;
@@ -1346,10 +1346,10 @@ async function downloadEvent(entry) {
 }
 
 /**
- * Скачивает все дистанции одной группы.
+ * РЎРєР°С‡РёРІР°РµС‚ РІСЃРµ РґРёСЃС‚Р°РЅС†РёРё РѕРґРЅРѕР№ РіСЂСѓРїРїС‹.
  *
- * Правило взято из приложения: записи считаются одной группой, если у них
- * совпадает непустой groupId, а если его нет — общий номер события.
+ * РџСЂР°РІРёР»Рѕ РІР·СЏС‚Рѕ РёР· РїСЂРёР»РѕР¶РµРЅРёСЏ: Р·Р°РїРёСЃРё СЃС‡РёС‚Р°СЋС‚СЃСЏ РѕРґРЅРѕР№ РіСЂСѓРїРїРѕР№, РµСЃР»Рё Сѓ РЅРёС…
+ * СЃРѕРІРїР°РґР°РµС‚ РЅРµРїСѓСЃС‚РѕР№ groupId, Р° РµСЃР»Рё РµРіРѕ РЅРµС‚ вЂ” РѕР±С‰РёР№ РЅРѕРјРµСЂ СЃРѕР±С‹С‚РёСЏ.
  */
 async function downloadGroup(entry, downloaded) {
   let entries = cloudEntries;
@@ -1359,8 +1359,8 @@ async function downloadGroup(entry, downloaded) {
     cloudEntries = entries;
   }
 
-  // Группа определяется ТОЛЬКО groupId. Пустой groupId — запись одиночная,
-  // совпадение номеров группой не делает.
+  // Р“СЂСѓРїРїР° РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РўРћР›Р¬РљРћ groupId. РџСѓСЃС‚РѕР№ groupId вЂ” Р·Р°РїРёСЃСЊ РѕРґРёРЅРѕС‡РЅР°СЏ,
+  // СЃРѕРІРїР°РґРµРЅРёРµ РЅРѕРјРµСЂРѕРІ РіСЂСѓРїРїРѕР№ РЅРµ РґРµР»Р°РµС‚.
   const sameGroup = (candidate) =>
     Boolean(entry.groupId) && candidate.groupId === entry.groupId && candidate.id !== entry.id;
 
@@ -1391,19 +1391,19 @@ async function downloadGroup(entry, downloaded) {
       rememberEvent(item);
       items.push({ id: sibling.id, kind: siblingKind, entry: siblingEntry, distance: data.distance });
     } catch (error) {
-      // Одна недоступная дистанция не должна ломать всю группу
+      // РћРґРЅР° РЅРµРґРѕСЃС‚СѓРїРЅР°СЏ РґРёСЃС‚Р°РЅС†РёСЏ РЅРµ РґРѕР»Р¶РЅР° Р»РѕРјР°С‚СЊ РІСЃСЋ РіСЂСѓРїРїСѓ
     }
   }
 
   writeJson(STORAGE.group, { number: entry.number, items });
 }
 
-/** Экран группы — как в приложении: сроки, количество дистанций, автор, карта и дистанции. */
+/** Р­РєСЂР°РЅ РіСЂСѓРїРїС‹ вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё: СЃСЂРѕРєРё, РєРѕР»РёС‡РµСЃС‚РІРѕ РґРёСЃС‚Р°РЅС†РёР№, Р°РІС‚РѕСЂ, РєР°СЂС‚Р° Рё РґРёСЃС‚Р°РЅС†РёРё. */
 function openGroup() {
   try {
     renderGroup();
   } catch (error) {
-    setStatus('Ошибка экрана группы: ' + error.message, 'error');
+    setStatus('РћС€РёР±РєР° СЌРєСЂР°РЅР° РіСЂСѓРїРїС‹: ' + error.message, 'error');
     return;
   }
   showTab('group');
@@ -1413,13 +1413,13 @@ function renderGroup() {
   const group = readJson(STORAGE.group, null);
   const items = (group && group.items) || [];
   if (!items.length) {
-    setStatus('Группа не найдена: скачайте событие заново', 'error');
+    setStatus('Р“СЂСѓРїРїР° РЅРµ РЅР°Р№РґРµРЅР°: СЃРєР°С‡Р°Р№С‚Рµ СЃРѕР±С‹С‚РёРµ Р·Р°РЅРѕРІРѕ', 'error');
     return;
   }
 
   const first = items[0].entry || {};
   const firstDistance = items[0].distance || {};
-  $('groupTitle').textContent = first.name || 'Группа дистанций';
+  $('groupTitle').textContent = first.name || 'Р“СЂСѓРїРїР° РґРёСЃС‚Р°РЅС†РёР№';
   $('groupSub').textContent = '';
 
   const rows = $('groupRows');
@@ -1427,11 +1427,11 @@ function renderGroup() {
   if (first.startTime) {
     rows.append(detailRow(formatDate(first.startTime) + ' - ' + formatDate(first.finishTime)));
   }
-  rows.append(detailRow(`Количество дистанций: ${items.length}`));
+  rows.append(detailRow(`РљРѕР»РёС‡РµСЃС‚РІРѕ РґРёСЃС‚Р°РЅС†РёР№: ${items.length}`));
   const organizer = first.organizer || firstDistance.organizer || '';
-  if (organizer) rows.append(detailRow(`Организатор: ${organizer}`));
+  if (organizer) rows.append(detailRow(`РћСЂРіР°РЅРёР·Р°С‚РѕСЂ: ${organizer}`));
 
-  // Общая карта группы: пункты всех дистанций, нумерация по порядку появления
+  // РћР±С‰Р°СЏ РєР°СЂС‚Р° РіСЂСѓРїРїС‹: РїСѓРЅРєС‚С‹ РІСЃРµС… РґРёСЃС‚Р°РЅС†РёР№, РЅСѓРјРµСЂР°С†РёСЏ РїРѕ РїРѕСЂСЏРґРєСѓ РїРѕСЏРІР»РµРЅРёСЏ
   const labels = new Map();
   let position = 0;
   items.forEach((item) => {
@@ -1497,7 +1497,7 @@ function renderGroup() {
     head.className = 'head';
     const title = document.createElement('span');
     title.className = 'title';
-    title.textContent = `Дистанция ${index + 1}`;
+    title.textContent = `Р”РёСЃС‚Р°РЅС†РёСЏ ${index + 1}`;
     const mode = document.createElement('span');
     mode.className = 'mode';
     mode.textContent = String(distance.markMode || entry.markMode || '').toUpperCase() === 'QR' ? 'QR' : 'GPS';
@@ -1505,15 +1505,15 @@ function renderGroup() {
 
     const length = document.createElement('p');
     length.className = 'line';
-    length.textContent = `Длина : ${distance.longInMeters || entry.lengthMeters || 0} м`;
+    length.textContent = `Р”Р»РёРЅР° : ${distance.longInMeters || entry.lengthMeters || 0} Рј`;
 
     const points = document.createElement('p');
     points.className = 'line';
-    points.textContent = `КП: ${checkpoints}`;
+    points.textContent = `РљРџ: ${checkpoints}`;
 
     const participants = document.createElement('p');
     participants.className = 'line';
-    participants.textContent = `Участников: ${participantCount(distance.results)}`;
+    participants.textContent = `РЈС‡Р°СЃС‚РЅРёРєРѕРІ: ${participantCount(distance.results)}`;
 
     card.append(head, length, points, participants);
     card.addEventListener('click', () => activateItem(item));
@@ -1521,7 +1521,7 @@ function renderGroup() {
   });
 }
 
-/* ─────────────────────────── экран дистанции ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ СЌРєСЂР°РЅ РґРёСЃС‚Р°РЅС†РёРё в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
 function openDetail() {
   resetMapView();
@@ -1545,19 +1545,19 @@ function renderDetail() {
 
   const entry = event.entry || {};
   const distance = event.distance || {};
-  $('detailTitle').textContent = distance.name || 'Событие';
+  $('detailTitle').textContent = distance.name || 'РЎРѕР±С‹С‚РёРµ';
 
-  // Подпись «Дистанция N» — номер дистанции внутри группы, как в приложении
+  // РџРѕРґРїРёСЃСЊ В«Р”РёСЃС‚Р°РЅС†РёСЏ NВ» вЂ” РЅРѕРјРµСЂ РґРёСЃС‚Р°РЅС†РёРё РІРЅСѓС‚СЂРё РіСЂСѓРїРїС‹, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
   const group = readJson(STORAGE.group, null);
   const groupItems = (group && group.items) || [];
   const indexInGroup = groupItems.findIndex((item) => item.id === event.id);
 
-  // Принадлежность к группе — по полю groupId самого события, как в приложении
+  // РџСЂРёРЅР°РґР»РµР¶РЅРѕСЃС‚СЊ Рє РіСЂСѓРїРїРµ вЂ” РїРѕ РїРѕР»СЋ groupId СЃР°РјРѕРіРѕ СЃРѕР±С‹С‚РёСЏ, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
   const groupId = String((event.entry && event.entry.groupId) || '');
   const inGroup = groupId !== '';
   $('detailDelete').classList.toggle('hidden', inGroup);
 
-  // Номер дистанции внутри группы: соседи с тем же groupId по номеру из облака
+  // РќРѕРјРµСЂ РґРёСЃС‚Р°РЅС†РёРё РІРЅСѓС‚СЂРё РіСЂСѓРїРїС‹: СЃРѕСЃРµРґРё СЃ С‚РµРј Р¶Рµ groupId РїРѕ РЅРѕРјРµСЂСѓ РёР· РѕР±Р»Р°РєР°
   const number = (item) => Number(item.entry && item.entry.number) || 0;
   const ordinal = inGroup
     ? groupItems
@@ -1566,36 +1566,36 @@ function renderDetail() {
       .findIndex((item) => item.id === event.id) + 1
     : 0;
 
-  // Карта из облака: кнопка есть только когда карта у дистанции есть
+  // РљР°СЂС‚Р° РёР· РѕР±Р»Р°РєР°: РєРЅРѕРїРєР° РµСЃС‚СЊ С‚РѕР»СЊРєРѕ РєРѕРіРґР° РєР°СЂС‚Р° Сѓ РґРёСЃС‚Р°РЅС†РёРё РµСЃС‚СЊ
   $('detailMapDownload').classList.toggle('hidden', !entry.mapExt);
-  // Как в приложении: у одиночной дистанции и у рогейна подписи нет,
-  // «Дистанция N» — только у дистанции в группе
-  $('detailSub').textContent = ordinal > 0 ? `Дистанция ${ordinal}` : '';
+  // РљР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё: Сѓ РѕРґРёРЅРѕС‡РЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё Рё Сѓ СЂРѕРіРµР№РЅР° РїРѕРґРїРёСЃРё РЅРµС‚,
+  // В«Р”РёСЃС‚Р°РЅС†РёСЏ NВ» вЂ” С‚РѕР»СЊРєРѕ Сѓ РґРёСЃС‚Р°РЅС†РёРё РІ РіСЂСѓРїРїРµ
+  $('detailSub').textContent = ordinal > 0 ? `Р”РёСЃС‚Р°РЅС†РёСЏ ${ordinal}` : '';
 
   const rows = $('detailRows');
   rows.textContent = '';
   const organizer = entry.organizer || distance.organizer || '';
-  if (organizer) rows.append(detailRow(`Организатор: ${organizer}`));
+  if (organizer) rows.append(detailRow(`РћСЂРіР°РЅРёР·Р°С‚РѕСЂ: ${organizer}`));
   if (entry.startTime) {
     rows.append(detailRow(formatDate(entry.startTime) + ' - ' + formatDate(entry.finishTime)));
   }
 
   const points = distance.points || [];
   const phone = distance.phone || entry.phone;
-  if (phone) rows.append(detailRow(`Телефон: ${phone}`));
+  if (phone) rows.append(detailRow(`РўРµР»РµС„РѕРЅ: ${phone}`));
 
   if (event.kind === 'rogaine') {
     const counts = [];
     const rogainePoints = points.filter(
       (point) => String(codeOf(point)) !== '01' && String(codeOf(point)) !== '02'
     );
-    if (rogainePoints.length) counts.push(`Количество КП: ${rogainePoints.length}`);
-    if (entry.maxScore) counts.push(`Макс. балл: ${entry.maxScore}`);
-    if (counts.length) rows.append(detailRow(counts.join(' · ')));
-    rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
-    if (hintsAvailable({ distance })) rows.append(detailRow('Подсказки: есть'));
-    if (distance.controlTimeMinutes) rows.append(detailRow(`Контр.время: ${distance.controlTimeMinutes} мин`));
-    if (distance.penaltyPerMinute) rows.append(detailRow(`Штраф: ${distance.penaltyPerMinute} балл/мин`));
+    if (rogainePoints.length) counts.push(`РљРѕР»РёС‡РµСЃС‚РІРѕ РљРџ: ${rogainePoints.length}`);
+    if (entry.maxScore) counts.push(`РњР°РєСЃ. Р±Р°Р»Р»: ${entry.maxScore}`);
+    if (counts.length) rows.append(detailRow(counts.join(' В· ')));
+    rows.append(detailRow(entry.mapExt ? 'РљР°СЂС‚Р°: РµСЃС‚СЊ' : 'РљР°СЂС‚Р°: РЅРµС‚'));
+    if (hintsAvailable({ distance })) rows.append(detailRow('РџРѕРґСЃРєР°Р·РєРё: РµСЃС‚СЊ'));
+    if (distance.controlTimeMinutes) rows.append(detailRow(`РљРѕРЅС‚СЂ.РІСЂРµРјСЏ: ${distance.controlTimeMinutes} РјРёРЅ`));
+    if (distance.penaltyPerMinute) rows.append(detailRow(`РЁС‚СЂР°С„: ${distance.penaltyPerMinute} Р±Р°Р»Р»/РјРёРЅ`));
     if (distance.description) rows.append(detailRow(distance.description));
   } else {
     const orderCodes = distance.order || [];
@@ -1603,17 +1603,17 @@ function renderDetail() {
     const checkpoints = orderCodes
       .filter((code) => !starts.has(String(code)))
       .filter((code) => Number(code) >= 31 && Number(code) <= 99).length;
-    rows.append(detailRow(`Количество КП: ${checkpoints}`));
-    if (distance.longInMeters) rows.append(detailRow(`Дистанция: ${distance.longInMeters} м`));
-    rows.append(detailRow(entry.mapExt ? 'Карта: есть' : 'Карта: нет'));
-    if (hintsAvailable({ distance })) rows.append(detailRow('Подсказки: есть'));
+    rows.append(detailRow(`РљРѕР»РёС‡РµСЃС‚РІРѕ РљРџ: ${checkpoints}`));
+    if (distance.longInMeters) rows.append(detailRow(`Р”РёСЃС‚Р°РЅС†РёСЏ: ${distance.longInMeters} Рј`));
+    rows.append(detailRow(entry.mapExt ? 'РљР°СЂС‚Р°: РµСЃС‚СЊ' : 'РљР°СЂС‚Р°: РЅРµС‚'));
+    if (hintsAvailable({ distance })) rows.append(detailRow('РџРѕРґСЃРєР°Р·РєРё: РµСЃС‚СЊ'));
     if (distance.description) rows.append(detailRow(distance.description));
   }
 
-  // Отправлять можно при любых отметках: без старта будет DNS, без финиша DNF
+  // РћС‚РїСЂР°РІР»СЏС‚СЊ РјРѕР¶РЅРѕ РїСЂРё Р»СЋР±С‹С… РѕС‚РјРµС‚РєР°С…: Р±РµР· СЃС‚Р°СЂС‚Р° Р±СѓРґРµС‚ DNS, Р±РµР· С„РёРЅРёС€Р° DNF
   $('detailSend').disabled = state.marks.length === 0;
 
-  // Что будет при повторной отправке: подсказка про правило автора
+  // Р§С‚Рѕ Р±СѓРґРµС‚ РїСЂРё РїРѕРІС‚РѕСЂРЅРѕР№ РѕС‚РїСЂР°РІРєРµ: РїРѕРґСЃРєР°Р·РєР° РїСЂРѕ РїСЂР°РІРёР»Рѕ Р°РІС‚РѕСЂР°
   const sendPolicy = String(distance.resubmit || 'update');
   const sendHintText = (RESUBMIT_TEXTS.hint[sendPolicy] || RESUBMIT_TEXTS.hint.update);
   let sendHint = $('detailSendHint');
@@ -1625,16 +1625,16 @@ function renderDetail() {
   }
   sendHint.textContent = sendHintText;
 
-  // Активна ли эта дистанция: кнопка «Активировать» / «Деактивировать»
+  // РђРєС‚РёРІРЅР° Р»Рё СЌС‚Р° РґРёСЃС‚Р°РЅС†РёСЏ: РєРЅРѕРїРєР° В«РђРєС‚РёРІРёСЂРѕРІР°С‚СЊВ» / В«Р”РµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊВ»
   const active = state.activeId === event.id;
   const activateButton = $('detailActivate');
-  activateButton.textContent = active ? 'Деактивировать' : 'Активировать';
+  activateButton.textContent = active ? 'Р”РµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊ' : 'РђРєС‚РёРІРёСЂРѕРІР°С‚СЊ';
   activateButton.className = 'button' + (active ? ' outlined' : '');
 
-  // В файле дистанции старта часто нет: он лежит в координатах события.
-  // Добавляем его как точку карты, иначе треугольника не видно
-  // Точки карты — только те, что есть в маршруте, плюс старт из координат
-  // события. Точка, совпавшая со стартом, не рисуется: это тот же старт
+  // Р’ С„Р°Р№Р»Рµ РґРёСЃС‚Р°РЅС†РёРё СЃС‚Р°СЂС‚Р° С‡Р°СЃС‚Рѕ РЅРµС‚: РѕРЅ Р»РµР¶РёС‚ РІ РєРѕРѕСЂРґРёРЅР°С‚Р°С… СЃРѕР±С‹С‚РёСЏ.
+  // Р”РѕР±Р°РІР»СЏРµРј РµРіРѕ РєР°Рє С‚РѕС‡РєСѓ РєР°СЂС‚С‹, РёРЅР°С‡Рµ С‚СЂРµСѓРіРѕР»СЊРЅРёРєР° РЅРµ РІРёРґРЅРѕ
+  // РўРѕС‡РєРё РєР°СЂС‚С‹ вЂ” С‚РѕР»СЊРєРѕ С‚Рµ, С‡С‚Рѕ РµСЃС‚СЊ РІ РјР°СЂС€СЂСѓС‚Рµ, РїР»СЋСЃ СЃС‚Р°СЂС‚ РёР· РєРѕРѕСЂРґРёРЅР°С‚
+  // СЃРѕР±С‹С‚РёСЏ. РўРѕС‡РєР°, СЃРѕРІРїР°РІС€Р°СЏ СЃРѕ СЃС‚Р°СЂС‚РѕРј, РЅРµ СЂРёСЃСѓРµС‚СЃСЏ: СЌС‚Рѕ С‚РѕС‚ Р¶Рµ СЃС‚Р°СЂС‚
   const startCode = event.kind === 'rogaine' ? '01' : '1';
   const startLat = Number(distance.latitude);
   const startLon = Number(distance.longitude);
@@ -1643,7 +1643,7 @@ function renderDetail() {
 
   let mapPoints;
   if (event.kind === 'rogaine') {
-    // У рогейна порядка пунктов нет: на карте показываем ВСЕ пункты
+    // РЈ СЂРѕРіРµР№РЅР° РїРѕСЂСЏРґРєР° РїСѓРЅРєС‚РѕРІ РЅРµС‚: РЅР° РєР°СЂС‚Рµ РїРѕРєР°Р·С‹РІР°РµРј Р’РЎР• РїСѓРЅРєС‚С‹
     mapPoints = points.filter(
       (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
     );
@@ -1675,27 +1675,27 @@ function renderDetail() {
   updateSendState();
 }
 
-/** Активация дистанции — кнопка «Активировать», как в приложении. */
+/** РђРєС‚РёРІР°С†РёСЏ РґРёСЃС‚Р°РЅС†РёРё вЂ” РєРЅРѕРїРєР° В«РђРєС‚РёРІРёСЂРѕРІР°С‚СЊВ», РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function activateDistance() {
   if (!state.event) return;
   const entry = state.event.entry || {};
   const distance = state.event.distance || {};
 
-  // Одна активная дистанция на оба вида спорта: как anotherDistanceActive в приложении
+  // РћРґРЅР° Р°РєС‚РёРІРЅР°СЏ РґРёСЃС‚Р°РЅС†РёСЏ РЅР° РѕР±Р° РІРёРґР° СЃРїРѕСЂС‚Р°: РєР°Рє anotherDistanceActive РІ РїСЂРёР»РѕР¶РµРЅРёРё
   if (state.activeId && state.activeId !== state.event.id) {
-    setStatus('Сначала деактивируйте активную дистанцию', 'error');
+    setStatus('РЎРЅР°С‡Р°Р»Р° РґРµР°РєС‚РёРІРёСЂСѓР№С‚Рµ Р°РєС‚РёРІРЅСѓСЋ РґРёСЃС‚Р°РЅС†РёСЋ', 'error');
     return;
   }
 
-  // Как в приложении: без профиля участник начать не может. Только подсказка,
-  // экран не меняем — человек остаётся там, где нажимал
+  // РљР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё: Р±РµР· РїСЂРѕС„РёР»СЏ СѓС‡Р°СЃС‚РЅРёРє РЅР°С‡Р°С‚СЊ РЅРµ РјРѕР¶РµС‚. РўРѕР»СЊРєРѕ РїРѕРґСЃРєР°Р·РєР°,
+  // СЌРєСЂР°РЅ РЅРµ РјРµРЅСЏРµРј вЂ” С‡РµР»РѕРІРµРє РѕСЃС‚Р°С‘С‚СЃСЏ С‚Р°Рј, РіРґРµ РЅР°Р¶РёРјР°Р»
   const who = identity();
   if (!who.nick || who.code.length < 6) {
-    setStatus('Сначала войдите в профиль (вкладка «Профиль»)', 'error');
+    setStatus('РЎРЅР°С‡Р°Р»Р° РІРѕР№РґРёС‚Рµ РІ РїСЂРѕС„РёР»СЊ (РІРєР»Р°РґРєР° В«РџСЂРѕС„РёР»СЊВ»)', 'error');
     return;
   }
 
-  // Срок проведения общий для всех: до начала и после окончания не активируем
+  // РЎСЂРѕРє РїСЂРѕРІРµРґРµРЅРёСЏ РѕР±С‰РёР№ РґР»СЏ РІСЃРµС…: РґРѕ РЅР°С‡Р°Р»Р° Рё РїРѕСЃР»Рµ РѕРєРѕРЅС‡Р°РЅРёСЏ РЅРµ Р°РєС‚РёРІРёСЂСѓРµРј
   const periodBlock = markingPeriodBlock({
     startTime: entry.startTime || distance.startTime || 0,
     finishTime: entry.finishTime || distance.finishTime || 0,
@@ -1705,9 +1705,9 @@ function activateDistance() {
     return;
   }
 
-  // Правило как в приложении (domain/CheckpointCoverage.kt):
-  // GPS — координаты нужны ВСЕМ пунктам; QR — только старту, номера пунктов
-  // читаются с табличек, и координаты остальных для прохождения не нужны
+  // РџСЂР°РІРёР»Рѕ РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё (domain/CheckpointCoverage.kt):
+  // GPS вЂ” РєРѕРѕСЂРґРёРЅР°С‚С‹ РЅСѓР¶РЅС‹ Р’РЎР•Рњ РїСѓРЅРєС‚Р°Рј; QR вЂ” С‚РѕР»СЊРєРѕ СЃС‚Р°СЂС‚Сѓ, РЅРѕРјРµСЂР° РїСѓРЅРєС‚РѕРІ
+  // С‡РёС‚Р°СЋС‚СЃСЏ СЃ С‚Р°Р±Р»РёС‡РµРє, Рё РєРѕРѕСЂРґРёРЅР°С‚С‹ РѕСЃС‚Р°Р»СЊРЅС‹С… РґР»СЏ РїСЂРѕС…РѕР¶РґРµРЅРёСЏ РЅРµ РЅСѓР¶РЅС‹
   const points = distance.points || [];
   let missing;
   if (qrMode()) {
@@ -1716,13 +1716,13 @@ function activateDistance() {
     if (startPoint) {
       missing = !Number.isFinite(startPoint.latitude) || !Number.isFinite(startPoint.longitude);
     } else {
-      // Старта нет отдельной точкой — берём координаты самого события
+      // РЎС‚Р°СЂС‚Р° РЅРµС‚ РѕС‚РґРµР»СЊРЅРѕР№ С‚РѕС‡РєРѕР№ вЂ” Р±РµСЂС‘Рј РєРѕРѕСЂРґРёРЅР°С‚С‹ СЃР°РјРѕРіРѕ СЃРѕР±С‹С‚РёСЏ
       const lat = Number(distance.latitude);
       const lon = Number(distance.longitude);
       missing = !Number.isFinite(lat) || !Number.isFinite(lon) || (!lat && !lon);
     }
     if (missing) {
-      setStatus('Не указаны координаты старта: без них дистанцию не начать', 'error');
+      setStatus('РќРµ СѓРєР°Р·Р°РЅС‹ РєРѕРѕСЂРґРёРЅР°С‚С‹ СЃС‚Р°СЂС‚Р°: Р±РµР· РЅРёС… РґРёСЃС‚Р°РЅС†РёСЋ РЅРµ РЅР°С‡Р°С‚СЊ', 'error');
       return;
     }
   } else {
@@ -1731,7 +1731,7 @@ function activateDistance() {
     );
   }
   if (missing) {
-    setStatus('Не все координаты указаны: такую дистанцию нельзя загрузить для прохождения', 'error');
+    setStatus('РќРµ РІСЃРµ РєРѕРѕСЂРґРёРЅР°С‚С‹ СѓРєР°Р·Р°РЅС‹: С‚Р°РєСѓСЋ РґРёСЃС‚Р°РЅС†РёСЋ РЅРµР»СЊР·СЏ Р·Р°РіСЂСѓР·РёС‚СЊ РґР»СЏ РїСЂРѕС…РѕР¶РґРµРЅРёСЏ', 'error');
     return;
   }
 
@@ -1740,10 +1740,10 @@ function activateDistance() {
   state.marks = loadMarks(state.event.id);
   updateSendState();
   renderDetail();
-  setStatus('Теперь Вы можете производить отметку на этой дистанции', 'good');
+  setStatus('РўРµРїРµСЂСЊ Р’С‹ РјРѕР¶РµС‚Рµ РїСЂРѕРёР·РІРѕРґРёС‚СЊ РѕС‚РјРµС‚РєСѓ РЅР° СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё', 'good');
 }
 
-/** Деактивация: отметки стираются, дистанция перестаёт быть активной. */
+/** Р”РµР°РєС‚РёРІР°С†РёСЏ: РѕС‚РјРµС‚РєРё СЃС‚РёСЂР°СЋС‚СЃСЏ, РґРёСЃС‚Р°РЅС†РёСЏ РїРµСЂРµСЃС‚Р°С‘С‚ Р±С‹С‚СЊ Р°РєС‚РёРІРЅРѕР№. */
 function deactivateDistance() {
   resetCompass();
   stopWatch();
@@ -1753,39 +1753,39 @@ function deactivateDistance() {
   try {
     localStorage.removeItem(STORAGE.active);
   } catch (error) {
-    // приватный режим — просто не сохраняем
+    // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј вЂ” РїСЂРѕСЃС‚Рѕ РЅРµ СЃРѕС…СЂР°РЅСЏРµРј
   }
 
-  // Деактивация стирает отметки этой дистанции
+  // Р”РµР°РєС‚РёРІР°С†РёСЏ СЃС‚РёСЂР°РµС‚ РѕС‚РјРµС‚РєРё СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё
   if (eventId) {
     clearHintTarget(eventId);
     try {
       localStorage.removeItem(marksKey(eventId));
     } catch (error) {
-      // ничего страшного
+      // РЅРёС‡РµРіРѕ СЃС‚СЂР°С€РЅРѕРіРѕ
     }
   }
   state.marks = [];
 
-  // Остаёмся на этом же экране: дистанция просто перестаёт быть активной
+  // РћСЃС‚Р°С‘РјСЃСЏ РЅР° СЌС‚РѕРј Р¶Рµ СЌРєСЂР°РЅРµ: РґРёСЃС‚Р°РЅС†РёСЏ РїСЂРѕСЃС‚Рѕ РїРµСЂРµСЃС‚Р°С‘С‚ Р±С‹С‚СЊ Р°РєС‚РёРІРЅРѕР№
   renderDetail();
-  setStatus('Дистанция выгружена, отметки не производятся');
+  setStatus('Р”РёСЃС‚Р°РЅС†РёСЏ РІС‹РіСЂСѓР¶РµРЅР°, РѕС‚РјРµС‚РєРё РЅРµ РїСЂРѕРёР·РІРѕРґСЏС‚СЃСЏ');
 }
 
-/** Выход из профиля — как signOut в AppViewModel: отметки и активность снимаются. */
+/** Р’С‹С…РѕРґ РёР· РїСЂРѕС„РёР»СЏ вЂ” РєР°Рє signOut РІ AppViewModel: РѕС‚РјРµС‚РєРё Рё Р°РєС‚РёРІРЅРѕСЃС‚СЊ СЃРЅРёРјР°СЋС‚СЃСЏ. */
 function signOut() {
   const eventId = state.activeId || (state.event && state.event.id);
   stopWatch();
   stopQrScanner();
 
-  // Отметки загруженной дистанции стираются вместе с профилем
+  // РћС‚РјРµС‚РєРё Р·Р°РіСЂСѓР¶РµРЅРЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё СЃС‚РёСЂР°СЋС‚СЃСЏ РІРјРµСЃС‚Рµ СЃ РїСЂРѕС„РёР»РµРј
   if (eventId) {
     try {
       localStorage.removeItem(marksKey(eventId));
       localStorage.removeItem(STORAGE.event);
       localStorage.removeItem(STORAGE.event + '.' + eventId);
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
   }
 
@@ -1793,63 +1793,63 @@ function signOut() {
   try {
     localStorage.removeItem(STORAGE.active);
   } catch (error) {
-    // приватный режим
+    // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
   }
 
   state.event = null;
   state.marks = [];
 
-  // Профиль очищается: гость может снова задать ник и код
+  // РџСЂРѕС„РёР»СЊ РѕС‡РёС‰Р°РµС‚СЃСЏ: РіРѕСЃС‚СЊ РјРѕР¶РµС‚ СЃРЅРѕРІР° Р·Р°РґР°С‚СЊ РЅРёРє Рё РєРѕРґ
   try {
     localStorage.removeItem(STORAGE.identity);
   } catch (error) {
-    // приватный режим
+    // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
   }
 
   renderProfileState();
-  setStatus('Вы вышли из профиля');
+  setStatus('Р’С‹ РІС‹С€Р»Рё РёР· РїСЂРѕС„РёР»СЏ');
 }
 
-/** Скачивает карту дистанции из облака — как downloadMap в приложении. */
+/** РЎРєР°С‡РёРІР°РµС‚ РєР°СЂС‚Сѓ РґРёСЃС‚Р°РЅС†РёРё РёР· РѕР±Р»Р°РєР° вЂ” РєР°Рє downloadMap РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 async function downloadCloudMap() {
   if (!state.event) return;
 
   try {
-    // Расширение спрашиваем у облака: карту могли заменить на другую
+    // Р Р°СЃС€РёСЂРµРЅРёРµ СЃРїСЂР°С€РёРІР°РµРј Сѓ РѕР±Р»Р°РєР°: РєР°СЂС‚Сѓ РјРѕРіР»Рё Р·Р°РјРµРЅРёС‚СЊ РЅР° РґСЂСѓРіСѓСЋ
     const answer = await callFunction('action=mapinfo&id=' + encodeURIComponent(state.event.id));
     const ext = String((answer && answer.ext) || '');
 
     if (!ext) {
-      setStatus('Карты в облаке нет', 'error');
+      setStatus('РљР°СЂС‚С‹ РІ РѕР±Р»Р°РєРµ РЅРµС‚', 'error');
       return;
     }
 
-    // Файл лежит в хранилище: maps/<id>.<ext>. Открываем его браузером:
-    // скачать в «Загрузки» нельзя — хранилище не разрешает чтение из браузера
+    // Р¤Р°Р№Р» Р»РµР¶РёС‚ РІ С…СЂР°РЅРёР»РёС‰Рµ: maps/<id>.<ext>. РћС‚РєСЂС‹РІР°РµРј РµРіРѕ Р±СЂР°СѓР·РµСЂРѕРј:
+    // СЃРєР°С‡Р°С‚СЊ РІ В«Р—Р°РіСЂСѓР·РєРёВ» РЅРµР»СЊР·СЏ вЂ” С…СЂР°РЅРёР»РёС‰Рµ РЅРµ СЂР°Р·СЂРµС€Р°РµС‚ С‡С‚РµРЅРёРµ РёР· Р±СЂР°СѓР·РµСЂР°
     const url = `${CONFIG.mapBucketUrl}/maps/${encodeURIComponent(state.event.id)}.${ext}`;
-    setStatus('Открываю карту…');
+    setStatus('РћС‚РєСЂС‹РІР°СЋ РєР°СЂС‚СѓвЂ¦');
     window.open(url, '_blank');
   } catch (error) {
-    setStatus('Не удалось скачать карту. Попробуйте позже.', 'error');
+    setStatus('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєР°С‡Р°С‚СЊ РєР°СЂС‚Сѓ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РїРѕР·Р¶Рµ.', 'error');
   }
 }
 
-/* ─────────────────────────── вход через ВК ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РІС…РѕРґ С‡РµСЂРµР· Р’Рљ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
-/** Идентификатор Web-приложения ВК (создано в кабинете VK ID). */
+/** РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ Web-РїСЂРёР»РѕР¶РµРЅРёСЏ Р’Рљ (СЃРѕР·РґР°РЅРѕ РІ РєР°Р±РёРЅРµС‚Рµ VK ID). */
 const VK_APP_ID = 54866229;
 
 /**
- * Адрес возврата — ОДНА константа, а не location.pathname.
+ * РђРґСЂРµСЃ РІРѕР·РІСЂР°С‚Р° вЂ” РћР”РќРђ РєРѕРЅСЃС‚Р°РЅС‚Р°, Р° РЅРµ location.pathname.
  *
- * ВК сверяет redirect_uri с «Доверенным Redirect URL» в кабинете посимвольно.
- * Страница открывается то как «…/OSportMobileLite/», то как
- * «…/OSportMobileLite/index.html» — при вычислении на ходу адрес менялся,
- * и виджет отвечал ошибкой. Константа убирает эту разницу.
+ * Р’Рљ СЃРІРµСЂСЏРµС‚ redirect_uri СЃ В«Р”РѕРІРµСЂРµРЅРЅС‹Рј Redirect URLВ» РІ РєР°Р±РёРЅРµС‚Рµ РїРѕСЃРёРјРІРѕР»СЊРЅРѕ.
+ * РЎС‚СЂР°РЅРёС†Р° РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ С‚Рѕ РєР°Рє В«вЂ¦/OSportMobileLite/В», С‚Рѕ РєР°Рє
+ * В«вЂ¦/OSportMobileLite/index.htmlВ» вЂ” РїСЂРё РІС‹С‡РёСЃР»РµРЅРёРё РЅР° С…РѕРґСѓ Р°РґСЂРµСЃ РјРµРЅСЏР»СЃСЏ,
+ * Рё РІРёРґР¶РµС‚ РѕС‚РІРµС‡Р°Р» РѕС€РёР±РєРѕР№. РљРѕРЅСЃС‚Р°РЅС‚Р° СѓР±РёСЂР°РµС‚ СЌС‚Сѓ СЂР°Р·РЅРёС†Сѓ.
  */
 const VK_REDIRECT_URL = 'https://sergeievsujkov.github.io/OSportMobileLite/';
 
-/** Сборка SDK: сначала наша копия из репозитория, CDN — запасные. */
+/** РЎР±РѕСЂРєР° SDK: СЃРЅР°С‡Р°Р»Р° РЅР°С€Р° РєРѕРїРёСЏ РёР· СЂРµРїРѕР·РёС‚РѕСЂРёСЏ, CDN вЂ” Р·Р°РїР°СЃРЅС‹Рµ. */
 const VK_SDK_URLS = [
   'vkid-sdk.js',
   'https://unpkg.com/@vkid/sdk@3.0.0/dist-sdk/umd/index.js',
@@ -1857,7 +1857,7 @@ const VK_SDK_URLS = [
 
 let vkOneTapRendered = false;
 
-/** Код профиля из VK ID — правило VkProfileCode в приложении, менять нельзя. */
+/** РљРѕРґ РїСЂРѕС„РёР»СЏ РёР· VK ID вЂ” РїСЂР°РІРёР»Рѕ VkProfileCode РІ РїСЂРёР»РѕР¶РµРЅРёРё, РјРµРЅСЏС‚СЊ РЅРµР»СЊР·СЏ. */
 function vkProfileCode(vkId) {
   const digits = String(vkId);
   if (!/^\d+$/.test(digits) || digits.length > 12) return '';
@@ -1870,7 +1870,7 @@ function vkProfileCode(vkId) {
   return code;
 }
 
-/** Подгружает SDK по требованию: офлайн вход невозможен. */
+/** РџРѕРґРіСЂСѓР¶Р°РµС‚ SDK РїРѕ С‚СЂРµР±РѕРІР°РЅРёСЋ: РѕС„Р»Р°Р№РЅ РІС…РѕРґ РЅРµРІРѕР·РјРѕР¶РµРЅ. */
 function loadVkSdk() {
   const ready = () => window.VKIDSDK || window.VKID || null;
   if (ready()) return Promise.resolve(ready());
@@ -1879,18 +1879,18 @@ function loadVkSdk() {
     const script = document.createElement('script');
     script.src = url;
     script.async = true;
-    script.onload = () => (ready() ? resolve(ready()) : reject(new Error('SDK не загрузился')));
-    script.onerror = () => reject(new Error('SDK не загрузился'));
+    script.onload = () => (ready() ? resolve(ready()) : reject(new Error('SDK РЅРµ Р·Р°РіСЂСѓР·РёР»СЃСЏ')));
+    script.onerror = () => reject(new Error('SDK РЅРµ Р·Р°РіСЂСѓР·РёР»СЃСЏ'));
     document.head.append(script);
   });
 
   return VK_SDK_URLS.reduce(
     (chain, url) => chain.catch(() => trySource(url)),
-    Promise.reject(new Error('SDK не загрузился'))
+    Promise.reject(new Error('SDK РЅРµ Р·Р°РіСЂСѓР·РёР»СЃСЏ'))
   );
 }
 
-/** Запомнить ник для профиля ВК: при следующем входе он подставится снова. */
+/** Р—Р°РїРѕРјРЅРёС‚СЊ РЅРёРє РґР»СЏ РїСЂРѕС„РёР»СЏ Р’Рљ: РїСЂРё СЃР»РµРґСѓСЋС‰РµРј РІС…РѕРґРµ РѕРЅ РїРѕРґСЃС‚Р°РІРёС‚СЃСЏ СЃРЅРѕРІР°. */
 function rememberVkNick(vkId, nick) {
   if (!vkId || !nick) return;
   const names = readJson(STORAGE.vkNames, {});
@@ -1898,21 +1898,21 @@ function rememberVkNick(vkId, nick) {
   writeJson(STORAGE.vkNames, names);
 }
 
-/** Прежний ник этого профиля ВК на устройстве, если он был задан. */
+/** РџСЂРµР¶РЅРёР№ РЅРёРє СЌС‚РѕРіРѕ РїСЂРѕС„РёР»СЏ Р’Рљ РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµ, РµСЃР»Рё РѕРЅ Р±С‹Р» Р·Р°РґР°РЅ. */
 function knownVkNick(vkId) {
   const names = readJson(STORAGE.vkNames, {});
   return String(names[String(vkId)] || '').trim();
 }
 
-/** Сохраняет профиль, полученный от ВК: ник, код профиля из VK ID и фото. */
+/** РЎРѕС…СЂР°РЅСЏРµС‚ РїСЂРѕС„РёР»СЊ, РїРѕР»СѓС‡РµРЅРЅС‹Р№ РѕС‚ Р’Рљ: РЅРёРє, РєРѕРґ РїСЂРѕС„РёР»СЏ РёР· VK ID Рё С„РѕС‚Рѕ. */
 function saveVkProfile(user) {
   const vkId = Number(user.user_id || user.id || 0);
   const code = vkProfileCode(vkId);
-  if (!code) throw new Error('ВК не вернул идентификатор пользователя');
+  if (!code) throw new Error('Р’Рљ РЅРµ РІРµСЂРЅСѓР» РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ');
 
-  // Свой прежний ник важнее имени из ВК: человек уже выбрал, как подписываться
+  // РЎРІРѕР№ РїСЂРµР¶РЅРёР№ РЅРёРє РІР°Р¶РЅРµРµ РёРјРµРЅРё РёР· Р’Рљ: С‡РµР»РѕРІРµРє СѓР¶Рµ РІС‹Р±СЂР°Р», РєР°Рє РїРѕРґРїРёСЃС‹РІР°С‚СЊСЃСЏ
   const fromVk = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
-  const nick = knownVkNick(vkId) || fromVk || ('ВК ' + vkId);
+  const nick = knownVkNick(vkId) || fromVk || ('Р’Рљ ' + vkId);
   rememberVkNick(vkId, nick);
 
   writeJson(STORAGE.identity, {
@@ -1924,12 +1924,12 @@ function saveVkProfile(user) {
 
   vkOneTapRendered = false;
   renderProfileState();
-  setStatus('Вход выполнен', 'good');
+  setStatus('Р’С…РѕРґ РІС‹РїРѕР»РЅРµРЅ', 'good');
 }
 
 /**
- * Кнопка входа ВК — виджет One Tap в режиме Callback, как в примере VK:
- * страница никуда не уходит, код приходит в событии и меняется на токен.
+ * РљРЅРѕРїРєР° РІС…РѕРґР° Р’Рљ вЂ” РІРёРґР¶РµС‚ One Tap РІ СЂРµР¶РёРјРµ Callback, РєР°Рє РІ РїСЂРёРјРµСЂРµ VK:
+ * СЃС‚СЂР°РЅРёС†Р° РЅРёРєСѓРґР° РЅРµ СѓС…РѕРґРёС‚, РєРѕРґ РїСЂРёС…РѕРґРёС‚ РІ СЃРѕР±С‹С‚РёРё Рё РјРµРЅСЏРµС‚СЃСЏ РЅР° С‚РѕРєРµРЅ.
  */
 async function renderVkOneTap() {
   const me = identity();
@@ -1952,7 +1952,7 @@ async function renderVkOneTap() {
     oneTap
       .render({ container: $('vkOneTap'), showAlternativeLogin: true })
       .on(VKID.WidgetEvents.ERROR, (error) => {
-        // Показываем всё, что пришло: по коду видно, чья это ошибка — ВК или сети
+        // РџРѕРєР°Р·С‹РІР°РµРј РІСЃС‘, С‡С‚Рѕ РїСЂРёС€Р»Рѕ: РїРѕ РєРѕРґСѓ РІРёРґРЅРѕ, С‡СЊСЏ СЌС‚Рѕ РѕС€РёР±РєР° вЂ” Р’Рљ РёР»Рё СЃРµС‚Рё
         console.error('VK ID widget error', error);
         let detail = '';
         try {
@@ -1961,7 +1961,7 @@ async function renderVkOneTap() {
         } catch (ignored) {
           detail = '';
         }
-        setStatus('ВК: ' + (detail || 'ошибка виджета'), 'error');
+        setStatus('Р’Рљ: ' + (detail || 'РѕС€РёР±РєР° РІРёРґР¶РµС‚Р°'), 'error');
       })
       .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, async (payload) => {
         try {
@@ -1969,22 +1969,22 @@ async function renderVkOneTap() {
           const info = await VKID.Auth.userInfo(tokens.access_token);
           saveVkProfile((info && info.user) || {});
         } catch (error) {
-          setStatus('Не удалось войти через ВК: ' + error.message, 'error');
+          setStatus('РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕР№С‚Рё С‡РµСЂРµР· Р’Рљ: ' + error.message, 'error');
         }
       });
 
     vkOneTapRendered = true;
   } catch (error) {
-    setStatus('Не удалось загрузить ВК: ' + error.message, 'error');
+    setStatus('РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р’Рљ: ' + error.message, 'error');
   }
 }
 
 /**
- * Возврат из ВК редиректом: страница открылась с ?code=…
+ * Р’РѕР·РІСЂР°С‚ РёР· Р’Рљ СЂРµРґРёСЂРµРєС‚РѕРј: СЃС‚СЂР°РЅРёС†Р° РѕС‚РєСЂС‹Р»Р°СЃСЊ СЃ ?code=вЂ¦
  *
- * Так бывает, когда вход начали в приложении, а подтверждение прошло в браузере:
- * результат приходит параметрами адреса. Меняем код на профиль и убираем
- * параметры из адреса, чтобы повторная загрузка ничего не делала.
+ * РўР°Рє Р±С‹РІР°РµС‚, РєРѕРіРґР° РІС…РѕРґ РЅР°С‡Р°Р»Рё РІ РїСЂРёР»РѕР¶РµРЅРёРё, Р° РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РїСЂРѕС€Р»Рѕ РІ Р±СЂР°СѓР·РµСЂРµ:
+ * СЂРµР·СѓР»СЊС‚Р°С‚ РїСЂРёС…РѕРґРёС‚ РїР°СЂР°РјРµС‚СЂР°РјРё Р°РґСЂРµСЃР°. РњРµРЅСЏРµРј РєРѕРґ РЅР° РїСЂРѕС„РёР»СЊ Рё СѓР±РёСЂР°РµРј
+ * РїР°СЂР°РјРµС‚СЂС‹ РёР· Р°РґСЂРµСЃР°, С‡С‚РѕР±С‹ РїРѕРІС‚РѕСЂРЅР°СЏ Р·Р°РіСЂСѓР·РєР° РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°Р»Р°.
  */
 async function handleVkRedirectReturn() {
   const params = new URLSearchParams(location.search);
@@ -2004,18 +2004,18 @@ async function handleVkRedirectReturn() {
     const tokens = await VKID.Auth.exchangeCode(code, deviceId);
     const info = await VKID.Auth.userInfo(tokens.access_token);
     saveVkProfile((info && info.user) || {});
-    setStatus('Вход выполнен', 'good');
+    setStatus('Р’С…РѕРґ РІС‹РїРѕР»РЅРµРЅ', 'good');
     history.replaceState({}, '', location.pathname);
   } catch (error) {
-    setStatus('Не удалось войти через ВК: ' + error.message, 'error');
+    setStatus('РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕР№С‚Рё С‡РµСЂРµР· Р’Рљ: ' + error.message, 'error');
   }
 }
 
 /**
- * Возврат в приложение после входа в другой вкладке.
+ * Р’РѕР·РІСЂР°С‚ РІ РїСЂРёР»РѕР¶РµРЅРёРµ РїРѕСЃР»Рµ РІС…РѕРґР° РІ РґСЂСѓРіРѕР№ РІРєР»Р°РґРєРµ.
  *
- * Профиль хранится в общем хранилище сайта, поэтому достаточно перечитать его
- * при появлении окна: приложение сразу покажет вход, хотя он был в браузере.
+ * РџСЂРѕС„РёР»СЊ С…СЂР°РЅРёС‚СЃСЏ РІ РѕР±С‰РµРј С…СЂР°РЅРёР»РёС‰Рµ СЃР°Р№С‚Р°, РїРѕСЌС‚РѕРјСѓ РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїРµСЂРµС‡РёС‚Р°С‚СЊ РµРіРѕ
+ * РїСЂРё РїРѕСЏРІР»РµРЅРёРё РѕРєРЅР°: РїСЂРёР»РѕР¶РµРЅРёРµ СЃСЂР°Р·Сѓ РїРѕРєР°Р¶РµС‚ РІС…РѕРґ, С…РѕС‚СЏ РѕРЅ Р±С‹Р» РІ Р±СЂР°СѓР·РµСЂРµ.
  */
 function refreshIdentityFromStorage() {
   renderProfileState();
@@ -2023,7 +2023,7 @@ function refreshIdentityFromStorage() {
   if (state.event) renderDetail();
 }
 
-/** Показывает блок профиля по состоянию: гость или вошедший. */
+/** РџРѕРєР°Р·С‹РІР°РµС‚ Р±Р»РѕРє РїСЂРѕС„РёР»СЏ РїРѕ СЃРѕСЃС‚РѕСЏРЅРёСЋ: РіРѕСЃС‚СЊ РёР»Рё РІРѕС€РµРґС€РёР№. */
 function renderProfileState() {
   const me = identity();
   const signedIn = Boolean(me.nick) && me.code.length >= 6;
@@ -2042,12 +2042,12 @@ function renderProfileState() {
   if (photo) $('profilePhoto').src = photo;
 }
 
-/** Совместимость: прежнее имя функции. */
+/** РЎРѕРІРјРµСЃС‚РёРјРѕСЃС‚СЊ: РїСЂРµР¶РЅРµРµ РёРјСЏ С„СѓРЅРєС†РёРё. */
 function updateProfileButtons() {
   renderProfileState();
 }
 
-/** Окно «Изменить ник»: код профиля остаётся прежним. */
+/** РћРєРЅРѕ В«РР·РјРµРЅРёС‚СЊ РЅРёРєВ»: РєРѕРґ РїСЂРѕС„РёР»СЏ РѕСЃС‚Р°С‘С‚СЃСЏ РїСЂРµР¶РЅРёРј. */
 function openNickDialog() {
   const me = identity();
 
@@ -2058,10 +2058,10 @@ function openNickDialog() {
   modal.className = 'modal';
 
   const title = document.createElement('h2');
-  title.textContent = 'Изменить ник';
+  title.textContent = 'РР·РјРµРЅРёС‚СЊ РЅРёРє';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Ник виден в протоколе и на карточках событий. Код профиля не меняется.';
+  hint.textContent = 'РќРёРє РІРёРґРµРЅ РІ РїСЂРѕС‚РѕРєРѕР»Рµ Рё РЅР° РєР°СЂС‚РѕС‡РєР°С… СЃРѕР±С‹С‚РёР№. РљРѕРґ РїСЂРѕС„РёР»СЏ РЅРµ РјРµРЅСЏРµС‚СЃСЏ.';
 
   const input = document.createElement('input');
   input.className = 'input';
@@ -2074,11 +2074,11 @@ function openNickDialog() {
 
   const save = document.createElement('button');
   save.className = 'button';
-  save.textContent = 'Сохранить';
+  save.textContent = 'РЎРѕС…СЂР°РЅРёС‚СЊ';
   save.addEventListener('click', () => {
     const nick = input.value.trim();
     if (nick.length < 3) {
-      setStatus('Ник короче трёх знаков', 'error');
+      setStatus('РќРёРє РєРѕСЂРѕС‡Рµ С‚СЂС‘С… Р·РЅР°РєРѕРІ', 'error');
       return;
     }
     const data = readJson(STORAGE.identity, {});
@@ -2086,12 +2086,12 @@ function openNickDialog() {
     if (data.vkId) rememberVkNick(data.vkId, nick);
     overlay.remove();
     renderProfileState();
-    setStatus('Ник изменён', 'good');
+    setStatus('РќРёРє РёР·РјРµРЅС‘РЅ', 'good');
   });
 
   const cancel = document.createElement('button');
   cancel.className = 'button text';
-  cancel.textContent = 'Отмена';
+  cancel.textContent = 'РћС‚РјРµРЅР°';
   cancel.addEventListener('click', () => overlay.remove());
 
   actions.append(save, cancel);
@@ -2101,7 +2101,7 @@ function openNickDialog() {
   input.focus();
 }
 
-/** Окно «Выйти из профиля?» — как в приложении. */
+/** РћРєРЅРѕ В«Р’С‹Р№С‚Рё РёР· РїСЂРѕС„РёР»СЏ?В» вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function openSignOutDialog() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -2110,17 +2110,17 @@ function openSignOutDialog() {
   modal.className = 'modal';
 
   const title = document.createElement('h2');
-  title.textContent = 'Выйти из профиля?';
+  title.textContent = 'Р’С‹Р№С‚Рё РёР· РїСЂРѕС„РёР»СЏ?';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Вы точно хотите выйти? Отметки удалятся.';
+  hint.textContent = 'Р’С‹ С‚РѕС‡РЅРѕ С…РѕС‚РёС‚Рµ РІС‹Р№С‚Рё? РћС‚РјРµС‚РєРё СѓРґР°Р»СЏС‚СЃСЏ.';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
 
   const confirm = document.createElement('button');
   confirm.className = 'button';
-  confirm.textContent = 'Выйти';
+  confirm.textContent = 'Р’С‹Р№С‚Рё';
   confirm.addEventListener('click', () => {
     overlay.remove();
     signOut();
@@ -2128,7 +2128,7 @@ function openSignOutDialog() {
 
   const cancel = document.createElement('button');
   cancel.className = 'button text';
-  cancel.textContent = 'Отмена';
+  cancel.textContent = 'РћС‚РјРµРЅР°';
   cancel.addEventListener('click', () => overlay.remove());
 
   actions.append(confirm, cancel);
@@ -2137,9 +2137,9 @@ function openSignOutDialog() {
   document.body.append(overlay);
 }
 
-/** Окно «Удалить событие?» — как в приложении. */
+/** РћРєРЅРѕ В«РЈРґР°Р»РёС‚СЊ СЃРѕР±С‹С‚РёРµ?В» вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function openDeleteDialog(eventId) {
-  const name = ($('detailTitle') && $('detailTitle').textContent) || 'Событие';
+  const name = ($('detailTitle') && $('detailTitle').textContent) || 'РЎРѕР±С‹С‚РёРµ';
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
 
@@ -2147,18 +2147,18 @@ function openDeleteDialog(eventId) {
   modal.className = 'modal';
 
   const title = document.createElement('h2');
-  title.textContent = 'Удалить событие?';
+  title.textContent = 'РЈРґР°Р»РёС‚СЊ СЃРѕР±С‹С‚РёРµ?';
 
   const hint = document.createElement('p');
-  hint.textContent = `Дистанция «${name}» будет удалена с устройства вместе со своими отметками и результатами. `
-    + 'Вы можете снова загрузить её из облака.';
+  hint.textContent = `Р”РёСЃС‚Р°РЅС†РёСЏ В«${name}В» Р±СѓРґРµС‚ СѓРґР°Р»РµРЅР° СЃ СѓСЃС‚СЂРѕР№СЃС‚РІР° РІРјРµСЃС‚Рµ СЃРѕ СЃРІРѕРёРјРё РѕС‚РјРµС‚РєР°РјРё Рё СЂРµР·СѓР»СЊС‚Р°С‚Р°РјРё. `
+    + 'Р’С‹ РјРѕР¶РµС‚Рµ СЃРЅРѕРІР° Р·Р°РіСЂСѓР·РёС‚СЊ РµС‘ РёР· РѕР±Р»Р°РєР°.';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
 
   const confirm = document.createElement('button');
   confirm.className = 'button';
-  confirm.textContent = 'Удалить';
+  confirm.textContent = 'РЈРґР°Р»РёС‚СЊ';
   confirm.addEventListener('click', () => {
     overlay.remove();
     deleteEvent(eventId);
@@ -2166,7 +2166,7 @@ function openDeleteDialog(eventId) {
 
   const cancel = document.createElement('button');
   cancel.className = 'button text';
-  cancel.textContent = 'Отмена';
+  cancel.textContent = 'РћС‚РјРµРЅР°';
   cancel.addEventListener('click', () => overlay.remove());
 
   actions.append(confirm, cancel);
@@ -2175,7 +2175,7 @@ function openDeleteDialog(eventId) {
   document.body.append(overlay);
 }
 
-/** Окно «Удалить событие?» для группы. */
+/** РћРєРЅРѕ В«РЈРґР°Р»РёС‚СЊ СЃРѕР±С‹С‚РёРµ?В» РґР»СЏ РіСЂСѓРїРїС‹. */
 function openGroupDeleteDialog(groupId) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -2184,17 +2184,17 @@ function openGroupDeleteDialog(groupId) {
   modal.className = 'modal';
 
   const title = document.createElement('h2');
-  title.textContent = 'Удалить группу?';
+  title.textContent = 'РЈРґР°Р»РёС‚СЊ РіСЂСѓРїРїСѓ?';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Все дистанции группы, их пункты и результаты будут удалены с устройства';
+  hint.textContent = 'Р’СЃРµ РґРёСЃС‚Р°РЅС†РёРё РіСЂСѓРїРїС‹, РёС… РїСѓРЅРєС‚С‹ Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹ Р±СѓРґСѓС‚ СѓРґР°Р»РµРЅС‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
 
   const confirm = document.createElement('button');
   confirm.className = 'button';
-  confirm.textContent = 'Удалить';
+  confirm.textContent = 'РЈРґР°Р»РёС‚СЊ';
   confirm.addEventListener('click', () => {
     overlay.remove();
     deleteGroup(groupId);
@@ -2202,7 +2202,7 @@ function openGroupDeleteDialog(groupId) {
 
   const cancel = document.createElement('button');
   cancel.className = 'button text';
-  cancel.textContent = 'Отмена';
+  cancel.textContent = 'РћС‚РјРµРЅР°';
   cancel.addEventListener('click', () => overlay.remove());
 
   actions.append(confirm, cancel);
@@ -2211,14 +2211,14 @@ function openGroupDeleteDialog(groupId) {
   document.body.append(overlay);
 }
 
-/** Удаляет всю группу: каждую дистанцию и её отметки. */
+/** РЈРґР°Р»СЏРµС‚ РІСЃСЋ РіСЂСѓРїРїСѓ: РєР°Р¶РґСѓСЋ РґРёСЃС‚Р°РЅС†РёСЋ Рё РµС‘ РѕС‚РјРµС‚РєРё. */
 function deleteGroup(groupId) {
   resetCompass();
   const group = readJson(STORAGE.group, null);
   const groupItems = (group && group.items) || [];
 
-  // Признак группы мог не сохраниться — тогда удаляем всю сохранённую группу,
-  // иначе на главном остаётся одна из её дистанций
+  // РџСЂРёР·РЅР°Рє РіСЂСѓРїРїС‹ РјРѕРі РЅРµ СЃРѕС…СЂР°РЅРёС‚СЊСЃСЏ вЂ” С‚РѕРіРґР° СѓРґР°Р»СЏРµРј РІСЃСЋ СЃРѕС…СЂР°РЅС‘РЅРЅСѓСЋ РіСЂСѓРїРїСѓ,
+  // РёРЅР°С‡Рµ РЅР° РіР»Р°РІРЅРѕРј РѕСЃС‚Р°С‘С‚СЃСЏ РѕРґРЅР° РёР· РµС‘ РґРёСЃС‚Р°РЅС†РёР№
   const members = groupId
     ? groupItems.filter((item) => (item.groupId || '') === groupId)
     : groupItems;
@@ -2232,7 +2232,7 @@ function deleteGroup(groupId) {
       localStorage.removeItem(marksKey(id));
       localStorage.removeItem(STORAGE.event + '.' + id);
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
   });
 
@@ -2244,17 +2244,17 @@ function deleteGroup(groupId) {
     try {
       localStorage.removeItem(STORAGE.active);
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
   }
 
-  // Убираем сохранённое событие, даже если открыто было другое
+  // РЈР±РёСЂР°РµРј СЃРѕС…СЂР°РЅС‘РЅРЅРѕРµ СЃРѕР±С‹С‚РёРµ, РґР°Р¶Рµ РµСЃР»Рё РѕС‚РєСЂС‹С‚Рѕ Р±С‹Р»Рѕ РґСЂСѓРіРѕРµ
   const storedEvent = readJson(STORAGE.event, null);
   if (storedEvent && ids.includes(storedEvent.id)) {
     try {
       localStorage.removeItem(STORAGE.event);
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
     if (state.event && state.event.id === storedEvent.id) state.event = null;
   }
@@ -2266,17 +2266,17 @@ function deleteGroup(groupId) {
   try {
     localStorage.removeItem(STORAGE.group);
   } catch (error) {
-    // приватный режим
+    // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
   }
 
   renderHome();
   showTab('events');
-  setStatus('Событие удалено');
+  setStatus('РЎРѕР±С‹С‚РёРµ СѓРґР°Р»РµРЅРѕ');
 }
 
-/** Удаляет событие с устройства: запись, отметки, активность и группу. */
+/** РЈРґР°Р»СЏРµС‚ СЃРѕР±С‹С‚РёРµ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°: Р·Р°РїРёСЃСЊ, РѕС‚РјРµС‚РєРё, Р°РєС‚РёРІРЅРѕСЃС‚СЊ Рё РіСЂСѓРїРїСѓ. */
 function deleteEvent(eventId) {
-  // Группа удаляется только целиком: отдельную дистанцию из неё не убираем
+  // Р“СЂСѓРїРїР° СѓРґР°Р»СЏРµС‚СЃСЏ С‚РѕР»СЊРєРѕ С†РµР»РёРєРѕРј: РѕС‚РґРµР»СЊРЅСѓСЋ РґРёСЃС‚Р°РЅС†РёСЋ РёР· РЅРµС‘ РЅРµ СѓР±РёСЂР°РµРј
   const event = readJson(STORAGE.event + '.' + eventId, null)
     || (state.event && state.event.id === eventId ? state.event : null);
   const groupId = String((event && event.entry && event.entry.groupId) || '');
@@ -2294,7 +2294,7 @@ function deleteEvent(eventId) {
     try {
       localStorage.removeItem(STORAGE.event);
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
   }
 
@@ -2303,7 +2303,7 @@ function deleteEvent(eventId) {
     localStorage.removeItem(marksKey(eventId));
     localStorage.removeItem(STORAGE.event + '.' + eventId);
   } catch (error) {
-    // приватный режим
+    // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
   }
 
   state.history = (state.history || []).filter((item) => item.id !== eventId);
@@ -2314,7 +2314,7 @@ function deleteEvent(eventId) {
     try {
       localStorage.removeItem(STORAGE.active);
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
   }
 
@@ -2324,7 +2324,7 @@ function deleteEvent(eventId) {
     try {
       localStorage.removeItem(STORAGE.event);
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
   }
 
@@ -2335,10 +2335,10 @@ function deleteEvent(eventId) {
 
   renderHome();
   showTab('events');
-  setStatus('Событие удалено');
+  setStatus('РЎРѕР±С‹С‚РёРµ СѓРґР°Р»РµРЅРѕ');
 }
 
-/** Окно подтверждения деактивации — как UnloadDialog в приложении. */
+/** РћРєРЅРѕ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РґРµР°РєС‚РёРІР°С†РёРё вЂ” РєР°Рє UnloadDialog РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function openDeactivateDialog() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -2347,32 +2347,32 @@ function openDeactivateDialog() {
   modal.className = 'modal';
 
   const title = document.createElement('h2');
-  title.textContent = 'Деактивировать дистанцию?';
+  title.textContent = 'Р”РµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊ РґРёСЃС‚Р°РЅС†РёСЋ?';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Отметиться по ней больше нельзя, пока не загрузите её снова. ВАШИ ОТМЕТКИ БУДУТ ОЧИЩЕНЫ.';
+  hint.textContent = 'РћС‚РјРµС‚РёС‚СЊСЃСЏ РїРѕ РЅРµР№ Р±РѕР»СЊС€Рµ РЅРµР»СЊР·СЏ, РїРѕРєР° РЅРµ Р·Р°РіСЂСѓР·РёС‚Рµ РµС‘ СЃРЅРѕРІР°. Р’РђРЁР РћРўРњР•РўРљР Р‘РЈР”РЈРў РћР§РР©Р•РќР«.';
 
   const warning = document.createElement('p');
-  warning.textContent = 'Если Вы не отправили результат прохождения дистанции, то он будет удалён с устройства.';
+  warning.textContent = 'Р•СЃР»Рё Р’С‹ РЅРµ РѕС‚РїСЂР°РІРёР»Рё СЂРµР·СѓР»СЊС‚Р°С‚ РїСЂРѕС…РѕР¶РґРµРЅРёСЏ РґРёСЃС‚Р°РЅС†РёРё, С‚Рѕ РѕРЅ Р±СѓРґРµС‚ СѓРґР°Р»С‘РЅ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°.';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
 
-  // «Отправить отметки» — сначала отправка, потом деактивация
+  // В«РћС‚РїСЂР°РІРёС‚СЊ РѕС‚РјРµС‚РєРёВ» вЂ” СЃРЅР°С‡Р°Р»Р° РѕС‚РїСЂР°РІРєР°, РїРѕС‚РѕРј РґРµР°РєС‚РёРІР°С†РёСЏ
   const sendAndExit = document.createElement('button');
   sendAndExit.className = 'button';
-  sendAndExit.textContent = 'Отправить отметки';
+  sendAndExit.textContent = 'РћС‚РїСЂР°РІРёС‚СЊ РѕС‚РјРµС‚РєРё';
   sendAndExit.addEventListener('click', async () => {
     overlay.remove();
 
-    // Без отметок отправлять нечего: деактивируем и говорим об этом
+    // Р‘РµР· РѕС‚РјРµС‚РѕРє РѕС‚РїСЂР°РІР»СЏС‚СЊ РЅРµС‡РµРіРѕ: РґРµР°РєС‚РёРІРёСЂСѓРµРј Рё РіРѕРІРѕСЂРёРј РѕР± СЌС‚РѕРј
     if (!state.marks.length) {
       deactivateDistance();
-      setStatus('Отметок нет: по этой дистанции ничего не отмечено, отправлять нечего.', 'error');
+      setStatus('РћС‚РјРµС‚РѕРє РЅРµС‚: РїРѕ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё РЅРёС‡РµРіРѕ РЅРµ РѕС‚РјРµС‡РµРЅРѕ, РѕС‚РїСЂР°РІР»СЏС‚СЊ РЅРµС‡РµРіРѕ.', 'error');
       return;
     }
 
-    // Отметки не от этой дистанции: спрашиваем отдельно
+    // РћС‚РјРµС‚РєРё РЅРµ РѕС‚ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё: СЃРїСЂР°С€РёРІР°РµРј РѕС‚РґРµР»СЊРЅРѕ
     if (!marksMatchDistance()) {
       openMismatchDialog();
       return;
@@ -2384,7 +2384,7 @@ function openDeactivateDialog() {
 
   const exit = document.createElement('button');
   exit.className = 'button outlined';
-  exit.textContent = 'Не отправлять отметки и деактивировать';
+  exit.textContent = 'РќРµ РѕС‚РїСЂР°РІР»СЏС‚СЊ РѕС‚РјРµС‚РєРё Рё РґРµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊ';
   exit.addEventListener('click', () => {
     overlay.remove();
     deactivateDistance();
@@ -2392,7 +2392,7 @@ function openDeactivateDialog() {
 
   const cancel = document.createElement('button');
   cancel.className = 'button text';
-  cancel.textContent = 'Отмена';
+  cancel.textContent = 'РћС‚РјРµРЅР°';
   cancel.addEventListener('click', () => overlay.remove());
 
   actions.append(sendAndExit, exit, cancel);
@@ -2401,13 +2401,13 @@ function openDeactivateDialog() {
   document.body.append(overlay);
 }
 
-/** Подходят ли отметки этой дистанции: коды из маршрута, старт или финиш. */
+/** РџРѕРґС…РѕРґСЏС‚ Р»Рё РѕС‚РјРµС‚РєРё СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё: РєРѕРґС‹ РёР· РјР°СЂС€СЂСѓС‚Р°, СЃС‚Р°СЂС‚ РёР»Рё С„РёРЅРёС€. */
 function marksMatchDistance() {
   const distance = (state.event && state.event.distance) || {};
   const rogaine = rogaineMode();
   const starts = startAliasCodes(distance);
-  // Проверяем по пунктам самой дистанции, а не только по порядку: у рогейна
-  // порядка нет, а у соседней дистанции коды могут совпасть
+  // РџСЂРѕРІРµСЂСЏРµРј РїРѕ РїСѓРЅРєС‚Р°Рј СЃР°РјРѕР№ РґРёСЃС‚Р°РЅС†РёРё, Р° РЅРµ С‚РѕР»СЊРєРѕ РїРѕ РїРѕСЂСЏРґРєСѓ: Сѓ СЂРѕРіРµР№РЅР°
+  // РїРѕСЂСЏРґРєР° РЅРµС‚, Р° Сѓ СЃРѕСЃРµРґРЅРµР№ РґРёСЃС‚Р°РЅС†РёРё РєРѕРґС‹ РјРѕРіСѓС‚ СЃРѕРІРїР°СЃС‚СЊ
   const allowed = new Set((distance.points || []).map((point) => String(codeOf(point))));
   (distance.order || []).forEach((code) => allowed.add(String(code)));
   starts.forEach((code) => allowed.add(code));
@@ -2418,7 +2418,7 @@ function marksMatchDistance() {
   return state.marks.length > 0 && state.marks.every((mark) => allowed.has(String(mark.code)));
 }
 
-/** «Отметки не от этой дистанции?» — как в приложении. */
+/** В«РћС‚РјРµС‚РєРё РЅРµ РѕС‚ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё?В» вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function openMismatchDialog() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -2427,17 +2427,17 @@ function openMismatchDialog() {
   modal.className = 'modal';
 
   const title = document.createElement('h2');
-  title.textContent = 'Отметки не от этой дистанции?';
+  title.textContent = 'РћС‚РјРµС‚РєРё РЅРµ РѕС‚ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё?';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Отметки не соответствуют этой дистанции. Отправлять их нельзя. Отменить деактивацию или всё равно деактивировать?';
+  hint.textContent = 'РћС‚РјРµС‚РєРё РЅРµ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‚ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё. РћС‚РїСЂР°РІР»СЏС‚СЊ РёС… РЅРµР»СЊР·СЏ. РћС‚РјРµРЅРёС‚СЊ РґРµР°РєС‚РёРІР°С†РёСЋ РёР»Рё РІСЃС‘ СЂР°РІРЅРѕ РґРµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊ?';
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
 
   const confirm = document.createElement('button');
   confirm.className = 'button';
-  confirm.textContent = 'Всё равно деактивировать';
+  confirm.textContent = 'Р’СЃС‘ СЂР°РІРЅРѕ РґРµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊ';
   confirm.addEventListener('click', () => {
     overlay.remove();
     deactivateDistance();
@@ -2445,7 +2445,7 @@ function openMismatchDialog() {
 
   const cancel = document.createElement('button');
   cancel.className = 'button text';
-  cancel.textContent = 'Отменить деактивацию';
+  cancel.textContent = 'РћС‚РјРµРЅРёС‚СЊ РґРµР°РєС‚РёРІР°С†РёСЋ';
   cancel.addEventListener('click', () => overlay.remove());
 
   actions.append(confirm, cancel);
@@ -2454,12 +2454,12 @@ function openMismatchDialog() {
   document.body.append(overlay);
 }
 
-/** Открывает прогресс по своим отметкам с устройства. */
+/** РћС‚РєСЂС‹РІР°РµС‚ РїСЂРѕРіСЂРµСЃСЃ РїРѕ СЃРІРѕРёРј РѕС‚РјРµС‚РєР°Рј СЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°. */
 function openMyProgress() {
   sanitizeMarks();
-  // Отметок нет — открывать нечего: говорим об этом, как приложение
+  // РћС‚РјРµС‚РѕРє РЅРµС‚ вЂ” РѕС‚РєСЂС‹РІР°С‚СЊ РЅРµС‡РµРіРѕ: РіРѕРІРѕСЂРёРј РѕР± СЌС‚РѕРј, РєР°Рє РїСЂРёР»РѕР¶РµРЅРёРµ
   if (!state.marks.length) {
-    setStatus('Отметок нет: по этой дистанции ничего не отмечено', 'error');
+    setStatus('РћС‚РјРµС‚РѕРє РЅРµС‚: РїРѕ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё РЅРёС‡РµРіРѕ РЅРµ РѕС‚РјРµС‡РµРЅРѕ', 'error');
     return;
   }
 
@@ -2470,7 +2470,7 @@ function openMyProgress() {
 
   const row = {
     userId: me.code || 'me',
-    nick: me.nick || 'Мои отметки',
+    nick: me.nick || 'РњРѕРё РѕС‚РјРµС‚РєРё',
     startTime: start ? start.time : 0,
     finishTime: finish ? finish.time : 0,
     elapsed: start && finish ? finish.time - start.time : 0,
@@ -2481,30 +2481,30 @@ function openMyProgress() {
     marks: state.marks,
     place: null,
   };
-  // «Отметки на устройстве»: своё правило показа — только дистанция, ник
-  // и отметки, без времени, результата и места
+  // В«РћС‚РјРµС‚РєРё РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµВ»: СЃРІРѕС‘ РїСЂР°РІРёР»Рѕ РїРѕРєР°Р·Р° вЂ” С‚РѕР»СЊРєРѕ РґРёСЃС‚Р°РЅС†РёСЏ, РЅРёРє
+  // Рё РѕС‚РјРµС‚РєРё, Р±РµР· РІСЂРµРјРµРЅРё, СЂРµР·СѓР»СЊС‚Р°С‚Р° Рё РјРµСЃС‚Р°
   openParticipant(row, rogaineMode(), false);
 }
 
 /**
- * Карта пунктов — как в приложении.
+ * РљР°СЂС‚Р° РїСѓРЅРєС‚РѕРІ вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё.
  *
- * Тайлы OpenStreetMap или OpenTopoMap, красная линия маршрута, значки:
- * старт — треугольник, финиш — двойная окружность, контрольный пункт —
- * окружность с номером справа (номер с белой обводкой). Кнопки «слои» и
- * «на весь экран», подпись источника слева сверху, координаты под картой.
+ * РўР°Р№Р»С‹ OpenStreetMap РёР»Рё OpenTopoMap, РєСЂР°СЃРЅР°СЏ Р»РёРЅРёСЏ РјР°СЂС€СЂСѓС‚Р°, Р·РЅР°С‡РєРё:
+ * СЃС‚Р°СЂС‚ вЂ” С‚СЂРµСѓРіРѕР»СЊРЅРёРє, С„РёРЅРёС€ вЂ” РґРІРѕР№РЅР°СЏ РѕРєСЂСѓР¶РЅРѕСЃС‚СЊ, РєРѕРЅС‚СЂРѕР»СЊРЅС‹Р№ РїСѓРЅРєС‚ вЂ”
+ * РѕРєСЂСѓР¶РЅРѕСЃС‚СЊ СЃ РЅРѕРјРµСЂРѕРј СЃРїСЂР°РІР° (РЅРѕРјРµСЂ СЃ Р±РµР»РѕР№ РѕР±РІРѕРґРєРѕР№). РљРЅРѕРїРєРё В«СЃР»РѕРёВ» Рё
+ * В«РЅР° РІРµСЃСЊ СЌРєСЂР°РЅВ», РїРѕРґРїРёСЃСЊ РёСЃС‚РѕС‡РЅРёРєР° СЃР»РµРІР° СЃРІРµСЂС…Сѓ, РєРѕРѕСЂРґРёРЅР°С‚С‹ РїРѕРґ РєР°СЂС‚РѕР№.
  */
 const MAP_KINDS = [
   {
     id: 'osm',
     urls: ['https://tile.openstreetmap.org/'],
-    attribution: '© OpenStreetMap contributors',
+    attribution: 'В© OpenStreetMap contributors',
     maxZoom: 19,
   },
   {
     id: 'topo',
     urls: ['https://a.tile.opentopomap.org/', 'https://b.tile.opentopomap.org/', 'https://c.tile.opentopomap.org/'],
-    attribution: 'Kartendaten: © OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung: © OpenTopoMap (CC-BY-SA)',
+    attribution: 'Kartendaten: В© OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung: В© OpenTopoMap (CC-BY-SA)',
     maxZoom: 17,
   },
 ];
@@ -2513,14 +2513,14 @@ const mapState = {
   kind: 0,
   fullscreen: false,
   points: [],
-  zoom: null,      // null — подобрать по границам при первом показе
+  zoom: null,      // null вЂ” РїРѕРґРѕР±СЂР°С‚СЊ РїРѕ РіСЂР°РЅРёС†Р°Рј РїСЂРё РїРµСЂРІРѕРј РїРѕРєР°Р·Рµ
   center: null,    // { latitude, longitude }
-  labels: null,    // подписи пунктов для группы: код → «1 - 31»
-  showRoute: true, // у группы линия маршрута не рисуется
-  routeCodes: null, // порядок линии на сплите участника; null — order дистанции
-  box: null,       // контейнер карты, которую сейчас показываем
-  coords: null,    // подпись координат внутри карты (у группы её нет)
-  // Компас: поворот карты по курсу телефона
+  labels: null,    // РїРѕРґРїРёСЃРё РїСѓРЅРєС‚РѕРІ РґР»СЏ РіСЂСѓРїРїС‹: РєРѕРґ в†’ В«1 - 31В»
+  showRoute: true, // Сѓ РіСЂСѓРїРїС‹ Р»РёРЅРёСЏ РјР°СЂС€СЂСѓС‚Р° РЅРµ СЂРёСЃСѓРµС‚СЃСЏ
+  routeCodes: null, // РїРѕСЂСЏРґРѕРє Р»РёРЅРёРё РЅР° СЃРїР»РёС‚Рµ СѓС‡Р°СЃС‚РЅРёРєР°; null вЂ” order РґРёСЃС‚Р°РЅС†РёРё
+  box: null,       // РєРѕРЅС‚РµР№РЅРµСЂ РєР°СЂС‚С‹, РєРѕС‚РѕСЂСѓСЋ СЃРµР№С‡Р°СЃ РїРѕРєР°Р·С‹РІР°РµРј
+  coords: null,    // РїРѕРґРїРёСЃСЊ РєРѕРѕСЂРґРёРЅР°С‚ РІРЅСѓС‚СЂРё РєР°СЂС‚С‹ (Сѓ РіСЂСѓРїРїС‹ РµС‘ РЅРµС‚)
+  // РљРѕРјРїР°СЃ: РїРѕРІРѕСЂРѕС‚ РєР°СЂС‚С‹ РїРѕ РєСѓСЂСЃСѓ С‚РµР»РµС„РѕРЅР°
   compass: false,
   compassLoaded: false,
   compassHeading: 0,
@@ -2546,9 +2546,9 @@ function resetMapView() {
   mapState.showRoute = true;
 }
 
-/** Показывает карту группы в её контейнере: подписи заданы, линия не рисуется. */
+/** РџРѕРєР°Р·С‹РІР°РµС‚ РєР°СЂС‚Сѓ РіСЂСѓРїРїС‹ РІ РµС‘ РєРѕРЅС‚РµР№РЅРµСЂРµ: РїРѕРґРїРёСЃРё Р·Р°РґР°РЅС‹, Р»РёРЅРёСЏ РЅРµ СЂРёСЃСѓРµС‚СЃСЏ. */
 function showMapOn(box, points, options = {}) {
-  // Встроенная карта всегда севером вверх: компас — только на полноэкранной.
+  // Р’СЃС‚СЂРѕРµРЅРЅР°СЏ РєР°СЂС‚Р° РІСЃРµРіРґР° СЃРµРІРµСЂРѕРј РІРІРµСЂС…: РєРѕРјРїР°СЃ вЂ” С‚РѕР»СЊРєРѕ РЅР° РїРѕР»РЅРѕСЌРєСЂР°РЅРЅРѕР№.
   mapState.fullscreen = false;
   stopCompass();
   mapState.points = (points || []).filter(
@@ -2574,7 +2574,7 @@ function showMapOn(box, points, options = {}) {
 }
 
 function showMap(points) {
-  // Обычная карта события — без поворота; компас только в полноэкранном режиме.
+  // РћР±С‹С‡РЅР°СЏ РєР°СЂС‚Р° СЃРѕР±С‹С‚РёСЏ вЂ” Р±РµР· РїРѕРІРѕСЂРѕС‚Р°; РєРѕРјРїР°СЃ С‚РѕР»СЊРєРѕ РІ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅРѕРј СЂРµР¶РёРјРµ.
   mapState.fullscreen = false;
   mapState.cloudEntries = null;
   stopCompass();
@@ -2586,7 +2586,7 @@ function showMap(points) {
     (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
   );
 
-  // Как в приложении: при скрытом маршруте на карте остаётся только старт
+  // РљР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё: РїСЂРё СЃРєСЂС‹С‚РѕРј РјР°СЂС€СЂСѓС‚Рµ РЅР° РєР°СЂС‚Рµ РѕСЃС‚Р°С‘С‚СЃСЏ С‚РѕР»СЊРєРѕ СЃС‚Р°СЂС‚
   let visible = all;
   if (!routeVisible) {
     const start = all.find((point) => isStart(String(codeOf(point)), rogaineMode()));
@@ -2617,19 +2617,19 @@ function showMap(points) {
   const coords = document.createElement('span');
   coords.className = 'map-coords';
   coords.textContent =
-    `Широта ${lat.toFixed(5).replace('.', ',')} · Долгота ${lon.toFixed(5).replace('.', ',')}`;
+    `РЁРёСЂРѕС‚Р° ${lat.toFixed(5).replace('.', ',')} В· Р”РѕР»РіРѕС‚Р° ${lon.toFixed(5).replace('.', ',')}`;
   box.append(coords);
 
-  // Карта запоминает контейнер и координаты: по ним перерисовывается при жестах
+  // РљР°СЂС‚Р° Р·Р°РїРѕРјРёРЅР°РµС‚ РєРѕРЅС‚РµР№РЅРµСЂ Рё РєРѕРѕСЂРґРёРЅР°С‚С‹: РїРѕ РЅРёРј РїРµСЂРµСЂРёСЃРѕРІС‹РІР°РµС‚СЃСЏ РїСЂРё Р¶РµСЃС‚Р°С…
   mapState.box = box;
   mapState.coords = coords.textContent;
 
-  // Жесты: щипок — масштаб, перетаскивание — сдвиг карты
+  // Р–РµСЃС‚С‹: С‰РёРїРѕРє вЂ” РјР°СЃС€С‚Р°Р±, РїРµСЂРµС‚Р°СЃРєРёРІР°РЅРёРµ вЂ” СЃРґРІРёРі РєР°СЂС‚С‹
   bindMapGestures(box);
 }
 
-/** Рисует тайлы, линию маршрута и значки пунктов. */
-/** Азимут от точки к точке: 0 — север, дальше по часовой стрелке. */
+/** Р РёСЃСѓРµС‚ С‚Р°Р№Р»С‹, Р»РёРЅРёСЋ РјР°СЂС€СЂСѓС‚Р° Рё Р·РЅР°С‡РєРё РїСѓРЅРєС‚РѕРІ. */
+/** РђР·РёРјСѓС‚ РѕС‚ С‚РѕС‡РєРё Рє С‚РѕС‡РєРµ: 0 вЂ” СЃРµРІРµСЂ, РґР°Р»СЊС€Рµ РїРѕ С‡Р°СЃРѕРІРѕР№ СЃС‚СЂРµР»РєРµ. */
 function bearingDegrees(fromLat, fromLon, toLat, toLon) {
   const rad = (value) => (value * Math.PI) / 180;
   const fromLatRad = rad(fromLat);
@@ -2657,7 +2657,7 @@ function saveCompassPreference() {
   try {
     localStorage.setItem(MAP_COMPASS_KEY, mapState.compass ? '1' : '0');
   } catch (error) {
-    // Приватный режим может запретить запись
+    // РџСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј РјРѕР¶РµС‚ Р·Р°РїСЂРµС‚РёС‚СЊ Р·Р°РїРёСЃСЊ
   }
 }
 
@@ -2670,8 +2670,8 @@ function applyMapLayerTransform() {
 }
 
 function onDeviceOrientation(event, absolute) {
-  // Абсолютный датчик предпочтительнее: обычный на Android может отдавать
-  // относительный угол и давать рывки.
+  // РђР±СЃРѕР»СЋС‚РЅС‹Р№ РґР°С‚С‡РёРє РїСЂРµРґРїРѕС‡С‚РёС‚РµР»СЊРЅРµРµ: РѕР±С‹С‡РЅС‹Р№ РЅР° Android РјРѕР¶РµС‚ РѕС‚РґР°РІР°С‚СЊ
+  // РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅС‹Р№ СѓРіРѕР» Рё РґР°РІР°С‚СЊ СЂС‹РІРєРё.
   if (absolute) mapState.compassAbsolute = true;
   else if (mapState.compassAbsolute) return;
 
@@ -2745,11 +2745,11 @@ async function toggleCompass() {
       try {
         const permission = await DeviceOrientationEvent.requestPermission();
         if (permission !== 'granted') {
-          setStatus('Нет доступа к компасу', 'error');
+          setStatus('РќРµС‚ РґРѕСЃС‚СѓРїР° Рє РєРѕРјРїР°СЃСѓ', 'error');
           return;
         }
       } catch (error) {
-        setStatus('Нет доступа к компасу', 'error');
+        setStatus('РќРµС‚ РґРѕСЃС‚СѓРїР° Рє РєРѕРјРїР°СЃСѓ', 'error');
         return;
       }
     }
@@ -2764,7 +2764,7 @@ async function toggleCompass() {
   redrawMap();
 }
 
-/** Значки карты: название подложки и кнопки «слои» и «на весь экран». */
+/** Р—РЅР°С‡РєРё РєР°СЂС‚С‹: РЅР°Р·РІР°РЅРёРµ РїРѕРґР»РѕР¶РєРё Рё РєРЅРѕРїРєРё В«СЃР»РѕРёВ» Рё В«РЅР° РІРµСЃСЊ СЌРєСЂР°РЅВ». */
 function addMapChrome(box) {
   loadCompassPreference();
   const kind = currentMapKind();
@@ -2779,16 +2779,16 @@ function addMapChrome(box) {
     typeof DeviceOrientationEvent !== 'undefined'
     ? '<button class="icon-button' + (mapState.compass ? ' active' : '') +
       '" id="mapCompass" title="' +
-      (mapState.compass ? 'Вернуть север вверх' : 'Поворачивать карту по компасу') +
+      (mapState.compass ? 'Р’РµСЂРЅСѓС‚СЊ СЃРµРІРµСЂ РІРІРµСЂС…' : 'РџРѕРІРѕСЂР°С‡РёРІР°С‚СЊ РєР°СЂС‚Сѓ РїРѕ РєРѕРјРїР°СЃСѓ') +
       '"><svg class="icon"><use href="icons.svg#compass"></use></svg></button>'
     : '';
   const fullButton = mapState.cloudEntries
     ? ''
     : (mapState.fullscreen
-      ? '<button class="icon-button" id="mapFull" title="Свернуть"><svg class="icon"><use href="icons.svg#fullscreen_exit"></use></svg></button>'
-      : '<button class="icon-button" id="mapFull" title="На весь экран"><svg class="icon"><use href="icons.svg#fullscreen"></use></svg></button>');
+      ? '<button class="icon-button" id="mapFull" title="РЎРІРµСЂРЅСѓС‚СЊ"><svg class="icon"><use href="icons.svg#fullscreen_exit"></use></svg></button>'
+      : '<button class="icon-button" id="mapFull" title="РќР° РІРµСЃСЊ СЌРєСЂР°РЅ"><svg class="icon"><use href="icons.svg#fullscreen"></use></svg></button>');
   controls.innerHTML =
-    '<button class="icon-button" id="mapLayers" title="Слои"><svg class="icon"><use href="icons.svg#layers"></use></svg></button>' +
+    '<button class="icon-button" id="mapLayers" title="РЎР»РѕРё"><svg class="icon"><use href="icons.svg#layers"></use></svg></button>' +
     compassButton + fullButton;
   box.append(controls);
 
@@ -2801,8 +2801,8 @@ function addMapChrome(box) {
   }
   if (mapState.fullscreen && mapState.compass) startCompass();
 
-  // С полноэкранной карты можно сразу перейти к GPS-отметке, если событие
-  // активно и автор разрешил показ пунктов
+  // РЎ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅРѕР№ РєР°СЂС‚С‹ РјРѕР¶РЅРѕ СЃСЂР°Р·Сѓ РїРµСЂРµР№С‚Рё Рє GPS-РѕС‚РјРµС‚РєРµ, РµСЃР»Рё СЃРѕР±С‹С‚РёРµ
+  // Р°РєС‚РёРІРЅРѕ Рё Р°РІС‚РѕСЂ СЂР°Р·СЂРµС€РёР» РїРѕРєР°Р· РїСѓРЅРєС‚РѕРІ
   const distance = (state.event && state.event.distance) || {};
   const canMarkFromMap = mapState.fullscreen && state.event &&
     box.id === 'detailMap' && state.activeId === state.event.id &&
@@ -2811,7 +2811,7 @@ function addMapChrome(box) {
   if (canMarkFromMap) {
     const mark = document.createElement('button');
     mark.className = 'map-mark-button';
-    mark.textContent = 'Отметить';
+    mark.textContent = 'РћС‚РјРµС‚РёС‚СЊ';
     mark.addEventListener('click', (event) => {
       event.stopPropagation();
       const source = (state.event.entry || state.event.distance) || {};
@@ -2839,24 +2839,24 @@ function addMapChrome(box) {
   const fullScreenButton = controls.querySelector('#mapFull');
   if (fullScreenButton) fullScreenButton.addEventListener('click', (event) => {
     event.stopPropagation();
-    // Разворачиваем карту средствами страницы: системный полноэкранный режим
-    // браузера не используем, иначе Chrome показывает свою подсказку о выходе
+    // Р Р°Р·РІРѕСЂР°С‡РёРІР°РµРј РєР°СЂС‚Сѓ СЃСЂРµРґСЃС‚РІР°РјРё СЃС‚СЂР°РЅРёС†С‹: СЃРёСЃС‚РµРјРЅС‹Р№ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅС‹Р№ СЂРµР¶РёРј
+    // Р±СЂР°СѓР·РµСЂР° РЅРµ РёСЃРїРѕР»СЊР·СѓРµРј, РёРЅР°С‡Рµ Chrome РїРѕРєР°Р·С‹РІР°РµС‚ СЃРІРѕСЋ РїРѕРґСЃРєР°Р·РєСѓ Рѕ РІС‹С…РѕРґРµ
     mapState.fullscreen = !mapState.fullscreen;
     if (!mapState.fullscreen) stopCompass();
     redrawMap();
 
     if (mapState.fullscreen) {
-      // Своя запись в истории: системная «назад» сначала свернёт карту
+      // РЎРІРѕСЏ Р·Р°РїРёСЃСЊ РІ РёСЃС‚РѕСЂРёРё: СЃРёСЃС‚РµРјРЅР°СЏ В«РЅР°Р·Р°РґВ» СЃРЅР°С‡Р°Р»Р° СЃРІРµСЂРЅС‘С‚ РєР°СЂС‚Сѓ
       history.pushState({ fullscreen: true }, '');
     } else if (history.state && history.state.fullscreen) {
-      // Вышли кнопкой: убираем лишнюю запись, не меняя экран
+      // Р’С‹С€Р»Рё РєРЅРѕРїРєРѕР№: СѓР±РёСЂР°РµРј Р»РёС€РЅСЋСЋ Р·Р°РїРёСЃСЊ, РЅРµ РјРµРЅСЏСЏ СЌРєСЂР°РЅ
       ignoreNextPop = true;
       history.back();
     }
   });
 }
 
-/** Перерисовывает ту карту, что сейчас на экране: дистанции или группы. */
+/** РџРµСЂРµСЂРёСЃРѕРІС‹РІР°РµС‚ С‚Сѓ РєР°СЂС‚Сѓ, С‡С‚Рѕ СЃРµР№С‡Р°СЃ РЅР° СЌРєСЂР°РЅРµ: РґРёСЃС‚Р°РЅС†РёРё РёР»Рё РіСЂСѓРїРїС‹. */
 function redrawMap() {
   const box = mapState.box;
   if (!box) return;
@@ -2875,7 +2875,7 @@ function redrawMap() {
   addMapChrome(box);
 }
 
-/** Мировые пиксели Меркатора для широты и долготы на заданном масштабе. */
+/** РњРёСЂРѕРІС‹Рµ РїРёРєСЃРµР»Рё РњРµСЂРєР°С‚РѕСЂР° РґР»СЏ С€РёСЂРѕС‚С‹ Рё РґРѕР»РіРѕС‚С‹ РЅР° Р·Р°РґР°РЅРЅРѕРј РјР°СЃС€С‚Р°Р±Рµ. */
 function mercatorPx(latitude, longitude, zoom) {
   const size = 256 * Math.pow(2, zoom);
   const latRad = (latitude * Math.PI) / 180;
@@ -2885,7 +2885,7 @@ function mercatorPx(latitude, longitude, zoom) {
   };
 }
 
-/** Обратный перевод: мировые пиксели → широта и долгота. */
+/** РћР±СЂР°С‚РЅС‹Р№ РїРµСЂРµРІРѕРґ: РјРёСЂРѕРІС‹Рµ РїРёРєСЃРµР»Рё в†’ С€РёСЂРѕС‚Р° Рё РґРѕР»РіРѕС‚Р°. */
 function mercatorLatLon(x, y, zoom) {
   const size = 256 * Math.pow(2, zoom);
   const longitude = (x / size) * 360 - 180;
@@ -2895,9 +2895,9 @@ function mercatorLatLon(x, y, zoom) {
 }
 
 /**
- * Жесты карты: во время касания слой карты двигается transform-ом — плавно,
- * без перерисовки; на отпускании масштаб и центр пересчитываются и карта
- * перерисовывается чётко.
+ * Р–РµСЃС‚С‹ РєР°СЂС‚С‹: РІРѕ РІСЂРµРјСЏ РєР°СЃР°РЅРёСЏ СЃР»РѕР№ РєР°СЂС‚С‹ РґРІРёРіР°РµС‚СЃСЏ transform-РѕРј вЂ” РїР»Р°РІРЅРѕ,
+ * Р±РµР· РїРµСЂРµСЂРёСЃРѕРІРєРё; РЅР° РѕС‚РїСѓСЃРєР°РЅРёРё РјР°СЃС€С‚Р°Р± Рё С†РµРЅС‚СЂ РїРµСЂРµСЃС‡РёС‚С‹РІР°СЋС‚СЃСЏ Рё РєР°СЂС‚Р°
+ * РїРµСЂРµСЂРёСЃРѕРІС‹РІР°РµС‚СЃСЏ С‡С‘С‚РєРѕ.
  */
 function bindMapGestures(box) {
   if (box.dataset.gestures === 'on') return;
@@ -2990,8 +2990,8 @@ function bindMapGestures(box) {
       return;
     }
 
-    // Значения берём из последнего движения: после отпускания пальцев
-    // расстояние между ними уже не измерить
+    // Р—РЅР°С‡РµРЅРёСЏ Р±РµСЂС‘Рј РёР· РїРѕСЃР»РµРґРЅРµРіРѕ РґРІРёР¶РµРЅРёСЏ: РїРѕСЃР»Рµ РѕС‚РїСѓСЃРєР°РЅРёСЏ РїР°Р»СЊС†РµРІ
+    // СЂР°СЃСЃС‚РѕСЏРЅРёРµ РјРµР¶РґСѓ РЅРёРјРё СѓР¶Рµ РЅРµ РёР·РјРµСЂРёС‚СЊ
     const scale = lastScale;
     const tx = startDistance > 0
       ? (lastMiddle ? lastMiddle.x - startMiddle.x : 0)
@@ -3001,7 +3001,7 @@ function bindMapGestures(box) {
       : (lastPoint ? lastPoint.y - startPoint.y : 0);
 
     if (startDistance > 0) {
-      // Щипок: масштаб меняется на целые уровни, центр держим под пальцами
+      // Р©РёРїРѕРє: РјР°СЃС€С‚Р°Р± РјРµРЅСЏРµС‚СЃСЏ РЅР° С†РµР»С‹Рµ СѓСЂРѕРІРЅРё, С†РµРЅС‚СЂ РґРµСЂР¶РёРј РїРѕРґ РїР°Р»СЊС†Р°РјРё
       const nextZoom = Math.min(19, Math.max(3, Math.round(startZoom + Math.log2(scale))));
       const ratio = Math.pow(2, nextZoom - startZoom);
       mapState.zoom = nextZoom;
@@ -3011,7 +3011,7 @@ function bindMapGestures(box) {
         nextZoom
       );
     } else if (tx || ty) {
-      // Перетаскивание: сдвиг в пикселях переводим в координаты
+      // РџРµСЂРµС‚Р°СЃРєРёРІР°РЅРёРµ: СЃРґРІРёРі РІ РїРёРєСЃРµР»СЏС… РїРµСЂРµРІРѕРґРёРј РІ РєРѕРѕСЂРґРёРЅР°С‚С‹
       mapState.center = mercatorLatLon(startCenterPx.x - tx, startCenterPx.y - ty, startZoom);
     }
 
@@ -3034,14 +3034,14 @@ function bindMapGestures(box) {
 }
 
 /**
- * Подпись пункта на карте, как checkPointOrderLabel в приложении:
- * «1 - 31» — номер по порядку, дефис, код двумя знаками; у рогейна — код.
+ * РџРѕРґРїРёСЃСЊ РїСѓРЅРєС‚Р° РЅР° РєР°СЂС‚Рµ, РєР°Рє checkPointOrderLabel РІ РїСЂРёР»РѕР¶РµРЅРёРё:
+ * В«1 - 31В» вЂ” РЅРѕРјРµСЂ РїРѕ РїРѕСЂСЏРґРєСѓ, РґРµС„РёСЃ, РєРѕРґ РґРІСѓРјСЏ Р·РЅР°РєР°РјРё; Сѓ СЂРѕРіРµР№РЅР° вЂ” РєРѕРґ.
  */
 function mapLabelOf(point, order) {
   const code = String(codeOf(point));
 
-  // Номер по порядку получают только контрольные пункты (31…99), как
-  // routeOrderNumbers: у старта, финиша и служебных кодов подписи нет
+  // РќРѕРјРµСЂ РїРѕ РїРѕСЂСЏРґРєСѓ РїРѕР»СѓС‡Р°СЋС‚ С‚РѕР»СЊРєРѕ РєРѕРЅС‚СЂРѕР»СЊРЅС‹Рµ РїСѓРЅРєС‚С‹ (31вЂ¦99), РєР°Рє
+  // routeOrderNumbers: Сѓ СЃС‚Р°СЂС‚Р°, С„РёРЅРёС€Р° Рё СЃР»СѓР¶РµР±РЅС‹С… РєРѕРґРѕРІ РїРѕРґРїРёСЃРё РЅРµС‚
   if (!rogaineMode()) {
     let position = 0;
     const numbers = [];
@@ -3057,7 +3057,7 @@ function mapLabelOf(point, order) {
     return numbers.join('/') + ' - ' + code.padStart(2, '0');
   }
 
-  // Рогейн: подпись — сам код, старт и финиш без подписи
+  // Р РѕРіРµР№РЅ: РїРѕРґРїРёСЃСЊ вЂ” СЃР°Рј РєРѕРґ, СЃС‚Р°СЂС‚ Рё С„РёРЅРёС€ Р±РµР· РїРѕРґРїРёСЃРё
   const start = isStart(code, true);
   const finish = isFinish(code, true);
   return start || finish ? null : code;
@@ -3072,7 +3072,7 @@ function drawMap(box) {
   const width = box.clientWidth || 360;
   const height = box.clientHeight || 260;
 
-  // Подбор масштаба по границам: карта показывает весь маршрут целиком
+  // РџРѕРґР±РѕСЂ РјР°СЃС€С‚Р°Р±Р° РїРѕ РіСЂР°РЅРёС†Р°Рј: РєР°СЂС‚Р° РїРѕРєР°Р·С‹РІР°РµС‚ РІРµСЃСЊ РјР°СЂС€СЂСѓС‚ С†РµР»РёРєРѕРј
   const lats = points.map((point) => point.latitude);
   const lons = points.map((point) => point.longitude);
   const minLat = Math.min(...lats);
@@ -3100,8 +3100,8 @@ function drawMap(box) {
     if (fits) break;
   }
 
-  // Масштаб и центр: если пользователь уже двигал карту — берём его значения,
-  // иначе подбираем по границам и запоминаем
+  // РњР°СЃС€С‚Р°Р± Рё С†РµРЅС‚СЂ: РµСЃР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓР¶Рµ РґРІРёРіР°Р» РєР°СЂС‚Сѓ вЂ” Р±РµСЂС‘Рј РµРіРѕ Р·РЅР°С‡РµРЅРёСЏ,
+  // РёРЅР°С‡Рµ РїРѕРґР±РёСЂР°РµРј РїРѕ РіСЂР°РЅРёС†Р°Рј Рё Р·Р°РїРѕРјРёРЅР°РµРј
   let finalZoom = zoom;
   let finalCenter = { latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2 };
   if (mapState.zoom && mapState.center) {
@@ -3119,8 +3119,8 @@ function drawMap(box) {
   const left = center.px - width / 2;
   const top = center.py - height / 2;
 
-  // Всё содержимое карты живёт в одном слое: во время жеста его двигаем
-  // transform-ом (плавно), а после жеста перерисовываем чётко
+  // Р’СЃС‘ СЃРѕРґРµСЂР¶РёРјРѕРµ РєР°СЂС‚С‹ Р¶РёРІС‘С‚ РІ РѕРґРЅРѕРј СЃР»РѕРµ: РІРѕ РІСЂРµРјСЏ Р¶РµСЃС‚Р° РµРіРѕ РґРІРёРіР°РµРј
+  // transform-РѕРј (РїР»Р°РІРЅРѕ), Р° РїРѕСЃР»Рµ Р¶РµСЃС‚Р° РїРµСЂРµСЂРёСЃРѕРІС‹РІР°РµРј С‡С‘С‚РєРѕ
   const layer = document.createElement('div');
   layer.className = 'map-layer';
   box.append(layer);
@@ -3158,13 +3158,13 @@ function drawMap(box) {
     return { x: p.px - left, y: p.py - top };
   };
 
-  // Линия маршрута: как в приложении — красная, по порядку пунктов
+  // Р›РёРЅРёСЏ РјР°СЂС€СЂСѓС‚Р°: РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё вЂ” РєСЂР°СЃРЅР°СЏ, РїРѕ РїРѕСЂСЏРґРєСѓ РїСѓРЅРєС‚РѕРІ
   const current = state.event || {};
   const order = mapState.routeCodes || (current.distance && current.distance.order) || [];
   const routeVisible = mapState.showRoute
     && !(current.distance && current.distance.routeVisible === false);
-  // Линия маршрута: красная, 1.6, круглые концы, каждый отрезок укорочен
-  // на радиус значка (14) с обеих сторон — как RouteLineOverlay
+  // Р›РёРЅРёСЏ РјР°СЂС€СЂСѓС‚Р°: РєСЂР°СЃРЅР°СЏ, 1.6, РєСЂСѓРіР»С‹Рµ РєРѕРЅС†С‹, РєР°Р¶РґС‹Р№ РѕС‚СЂРµР·РѕРє СѓРєРѕСЂРѕС‡РµРЅ
+  // РЅР° СЂР°РґРёСѓСЃ Р·РЅР°С‡РєР° (14) СЃ РѕР±РµРёС… СЃС‚РѕСЂРѕРЅ вЂ” РєР°Рє RouteLineOverlay
   const MARKER_RADIUS = 14;
   if (routeVisible && order.length > 1) {
     const startCode = rogaineMode() ? '01' : '1';
@@ -3219,8 +3219,8 @@ function drawMap(box) {
       pin.style.left = `${group.x}px`;
       pin.style.top = `${group.y}px`;
       pin.title = group.units.length === 1
-        ? (group.units[0][0].name || 'Событие')
-        : `Событий: ${group.units.length}`;
+        ? (group.units[0][0].name || 'РЎРѕР±С‹С‚РёРµ')
+        : `РЎРѕР±С‹С‚РёР№: ${group.units.length}`;
       if (group.units.length > 1) {
         const number = document.createElement('span');
         number.textContent = String(group.units.length);
@@ -3243,7 +3243,7 @@ function drawMap(box) {
     const radius = 14;
 
     if (start) {
-      // Вершина смотрит на первый пункт маршрута, если направление известно
+      // Р’РµСЂС€РёРЅР° СЃРјРѕС‚СЂРёС‚ РЅР° РїРµСЂРІС‹Р№ РїСѓРЅРєС‚ РјР°СЂС€СЂСѓС‚Р°, РµСЃР»Рё РЅР°РїСЂР°РІР»РµРЅРёРµ РёР·РІРµСЃС‚РЅРѕ
       const routeNext = order
         .map((code) => points.find((item) => String(codeOf(item)) === String(code)))
         .filter(Boolean)
@@ -3291,7 +3291,7 @@ function drawMap(box) {
       : mapLabelOf(point, order);
     if (!markerLabel) return;
 
-    // Номер справа от окружности: белая обводка, чтобы читался на карте
+    // РќРѕРјРµСЂ СЃРїСЂР°РІР° РѕС‚ РѕРєСЂСѓР¶РЅРѕСЃС‚Рё: Р±РµР»Р°СЏ РѕР±РІРѕРґРєР°, С‡С‚РѕР±С‹ С‡РёС‚Р°Р»СЃСЏ РЅР° РєР°СЂС‚Рµ
     const halo = document.createElementNS(svgNS, 'text');
     halo.setAttribute('x', String(x + radius + 5));
     halo.setAttribute('y', String(y + 5));
@@ -3320,7 +3320,7 @@ function saveMapKind() {
   try {
     localStorage.setItem('osport.lite.mapkind', String(mapState.kind));
   } catch (error) {
-    // Приватный режим может запретить запись
+    // РџСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј РјРѕР¶РµС‚ Р·Р°РїСЂРµС‚РёС‚СЊ Р·Р°РїРёСЃСЊ
   }
 }
 
@@ -3333,10 +3333,10 @@ function loadMapKind() {
   }
 }
 
-/** Время как в приложении: чч:мм:сс или мм:сс. */
+/** Р’СЂРµРјСЏ РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё: С‡С‡:РјРј:СЃСЃ РёР»Рё РјРј:СЃСЃ. */
 function formatDuration(millis) {
-  if (!Number.isFinite(millis) || millis <= 0) return '—';
-  const total = Math.floor(millis / 1000);
+  if (!Number.isFinite(millis) || millis <= 0) return 'вЂ”';
+  const total = Math.ceil(millis / 1000);
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = total % 60;
@@ -3344,24 +3344,24 @@ function formatDuration(millis) {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
 
-/** Время в сплитах: ноль показывается как 0:00, дальше как в Android. */
+/** Р’СЂРµРјСЏ РІ СЃРїР»РёС‚Р°С…: РЅРѕР»СЊ РїРѕРєР°Р·С‹РІР°РµС‚СЃСЏ РєР°Рє 0:00, РґР°Р»СЊС€Рµ РєР°Рє РІ Android. */
 function formatSplitTime(millis) {
   const value = Number.isFinite(millis) ? Math.max(0, millis) : 0;
   return value > 0 ? formatDuration(value) : '0:00';
 }
 
 function formatClock(millis) {
-  if (!Number.isFinite(millis) || millis <= 0) return '—';
+  if (!Number.isFinite(millis) || millis <= 0) return 'вЂ”';
   return new Date(millis).toLocaleTimeString('ru-RU');
 }
 
-/** Сколько строк протокола видно без «Показать всех». */
+/** РЎРєРѕР»СЊРєРѕ СЃС‚СЂРѕРє РїСЂРѕС‚РѕРєРѕР»Р° РІРёРґРЅРѕ Р±РµР· В«РџРѕРєР°Р·Р°С‚СЊ РІСЃРµС…В». */
 const PROTOCOL_PREVIEW_ROWS = 10;
 
 /**
- * Статус результата — те же правила, что в приложении:
- * DNS — не было старта, DNF — нет финиша, DSQ — отметки не по маршруту,
- * иначе «финиш».
+ * РЎС‚Р°С‚СѓСЃ СЂРµР·СѓР»СЊС‚Р°С‚Р° вЂ” С‚Рµ Р¶Рµ РїСЂР°РІРёР»Р°, С‡С‚Рѕ РІ РїСЂРёР»РѕР¶РµРЅРёРё:
+ * DNS вЂ” РЅРµ Р±С‹Р»Рѕ СЃС‚Р°СЂС‚Р°, DNF вЂ” РЅРµС‚ С„РёРЅРёС€Р°, DSQ вЂ” РѕС‚РјРµС‚РєРё РЅРµ РїРѕ РјР°СЂС€СЂСѓС‚Сѓ,
+ * РёРЅР°С‡Рµ В«С„РёРЅРёС€В».
  */
 function resultStatusOf(row, distance) {
   if (!row.startTime) return 'DNS';
@@ -3380,8 +3380,8 @@ function resultStatusOf(row, distance) {
   return taken.every((code, index) => code === route[index]) ? 'OK' : 'DSQ';
 }
 
-/** Баллы рогейна: очки пунктов без повторов, старт и финиш не считаются. */
-/** Балл КП рогейна: score из облака или первая цифра кода. */
+/** Р‘Р°Р»Р»С‹ СЂРѕРіРµР№РЅР°: РѕС‡РєРё РїСѓРЅРєС‚РѕРІ Р±РµР· РїРѕРІС‚РѕСЂРѕРІ, СЃС‚Р°СЂС‚ Рё С„РёРЅРёС€ РЅРµ СЃС‡РёС‚Р°СЋС‚СЃСЏ. */
+/** Р‘Р°Р»Р» РљРџ СЂРѕРіРµР№РЅР°: score РёР· РѕР±Р»Р°РєР° РёР»Рё РїРµСЂРІР°СЏ С†РёС„СЂР° РєРѕРґР°. */
 function rogainePointScore(point) {
   const direct = Number(point && point.score);
   if (Number.isFinite(direct)) return direct;
@@ -3406,7 +3406,7 @@ function rogainePoints(marks) {
   return total;
 }
 
-/** Штраф рогейна: неполная минута считается целой, ровно в срок — ноль. */
+/** РЁС‚СЂР°С„ СЂРѕРіРµР№РЅР°: РЅРµРїРѕР»РЅР°СЏ РјРёРЅСѓС‚Р° СЃС‡РёС‚Р°РµС‚СЃСЏ С†РµР»РѕР№, СЂРѕРІРЅРѕ РІ СЃСЂРѕРє вЂ” РЅРѕР»СЊ. */
 function rogainePenaltyOf(finishTime, startTime, controlMinutes, penaltyPerMinute) {
   const limit = startTime + (controlMinutes || 0) * 60000;
   const late = finishTime - limit;
@@ -3416,16 +3416,16 @@ function rogainePenaltyOf(finishTime, startTime, controlMinutes, penaltyPerMinut
 }
 
 /**
- * Протокол из скачанной дистанции — по правилам приложения:
- * сначала финишировавшие, места с пропуском при равенстве, у рогейна
- * сортировка по баллам и затем по времени.
+ * РџСЂРѕС‚РѕРєРѕР» РёР· СЃРєР°С‡Р°РЅРЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё вЂ” РїРѕ РїСЂР°РІРёР»Р°Рј РїСЂРёР»РѕР¶РµРЅРёСЏ:
+ * СЃРЅР°С‡Р°Р»Р° С„РёРЅРёС€РёСЂРѕРІР°РІС€РёРµ, РјРµСЃС‚Р° СЃ РїСЂРѕРїСѓСЃРєРѕРј РїСЂРё СЂР°РІРµРЅСЃС‚РІРµ, Сѓ СЂРѕРіРµР№РЅР°
+ * СЃРѕСЂС‚РёСЂРѕРІРєР° РїРѕ Р±Р°Р»Р»Р°Рј Рё Р·Р°С‚РµРј РїРѕ РІСЂРµРјРµРЅРё.
  */
 function buildProtocol(distance) {
   const allResults = Array.isArray(distance.results) ? distance.results : [];
-  // Правило события применяет УСТРОЙСТВО: сервер хранит все попытки
+  // РџСЂР°РІРёР»Рѕ СЃРѕР±С‹С‚РёСЏ РїСЂРёРјРµРЅСЏРµС‚ РЈРЎРўР РћР™РЎРўР’Рћ: СЃРµСЂРІРµСЂ С…СЂР°РЅРёС‚ РІСЃРµ РїРѕРїС‹С‚РєРё
   const policy = String(distance.resubmit || 'update');
   const version = (row) => Number(row && row.updatedAt) || Number(row && row.finishTime) || 0;
-  // «Оставлять оба» — все строки участника; иначе одну выбирает правило
+  // В«РћСЃС‚Р°РІР»СЏС‚СЊ РѕР±Р°В» вЂ” РІСЃРµ СЃС‚СЂРѕРєРё СѓС‡Р°СЃС‚РЅРёРєР°; РёРЅР°С‡Рµ РѕРґРЅСѓ РІС‹Р±РёСЂР°РµС‚ РїСЂР°РІРёР»Рѕ
   const byUser = new Map();
   if (policy !== 'both') {
     allResults.forEach((row) => {
@@ -3443,7 +3443,7 @@ function buildProtocol(distance) {
     ? allResults.filter((row) => row && row.userId)
     : Array.from(byUser.values());
   const rogaine = rogaineMode();
-  // Участник с несколькими результатами выделяется жёлтым весь
+  // РЈС‡Р°СЃС‚РЅРёРє СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё СЂРµР·СѓР»СЊС‚Р°С‚Р°РјРё РІС‹РґРµР»СЏРµС‚СЃСЏ Р¶С‘Р»С‚С‹Рј РІРµСЃСЊ
   const countByUser = new Map();
   results.forEach((row) => {
     const key = String(row.userId);
@@ -3452,9 +3452,9 @@ function buildProtocol(distance) {
 
   const rows = results.map((row) => {
     const allMarks = Array.isArray(row.marks) ? row.marks : [];
-    // В протокол идут только отметки между последним стартом и первым финишем
+    // Р’ РїСЂРѕС‚РѕРєРѕР» РёРґСѓС‚ С‚РѕР»СЊРєРѕ РѕС‚РјРµС‚РєРё РјРµР¶РґСѓ РїРѕСЃР»РµРґРЅРёРј СЃС‚Р°СЂС‚РѕРј Рё РїРµСЂРІС‹Рј С„РёРЅРёС€РµРј
     const counted = attemptMarks(allMarks, rogaine);
-    // В рогейне сплит показывает все отметки, а очки считаются по зачётным
+    // Р’ СЂРѕРіРµР№РЅРµ СЃРїР»РёС‚ РїРѕРєР°Р·С‹РІР°РµС‚ РІСЃРµ РѕС‚РјРµС‚РєРё, Р° РѕС‡РєРё СЃС‡РёС‚Р°СЋС‚СЃСЏ РїРѕ Р·Р°С‡С‘С‚РЅС‹Рј
     const marks = rogaine ? allMarks : counted;
     const status = rogaine
       ? (!row.startTime ? 'DNS' : row.finishTime ? 'OK' : 'DNF')
@@ -3467,8 +3467,8 @@ function buildProtocol(distance) {
 
     return {
       userId: row.userId || '',
-      nick: row.nick || row.userId || 'Участник',
-      // Жёлтым выделяются все строки участника с несколькими результатами
+      nick: row.nick || row.userId || 'РЈС‡Р°СЃС‚РЅРёРє',
+      // Р–С‘Р»С‚С‹Рј РІС‹РґРµР»СЏСЋС‚СЃСЏ РІСЃРµ СЃС‚СЂРѕРєРё СѓС‡Р°СЃС‚РЅРёРєР° СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё СЂРµР·СѓР»СЊС‚Р°С‚Р°РјРё
       duplicate: (countByUser.get(String(row.userId)) || 0) > 1,
       startTime: row.startTime || 0,
       finishTime: row.finishTime || 0,
@@ -3494,15 +3494,15 @@ function buildProtocol(distance) {
     return left.elapsed - right.elapsed;
   });
 
-  // Место — позиция в протоколе; при равенстве место повторяется, следующее
-  // идёт с пропуском (1, 2, 2, 5)
+  // РњРµСЃС‚Рѕ вЂ” РїРѕР·РёС†РёСЏ РІ РїСЂРѕС‚РѕРєРѕР»Рµ; РїСЂРё СЂР°РІРµРЅСЃС‚РІРµ РјРµСЃС‚Рѕ РїРѕРІС‚РѕСЂСЏРµС‚СЃСЏ, СЃР»РµРґСѓСЋС‰РµРµ
+  // РёРґС‘С‚ СЃ РїСЂРѕРїСѓСЃРєРѕРј (1, 2, 2, 5)
   let lastKey = null;
   let lastPlace = 0;
   let best = null;
   ordered.forEach((row, index) => {
     if (row.status !== 'OK') return;
-    // Место — по времени, которое видит участник: доли секунды отбрасываются
-    const elapsedKey = Math.floor(row.elapsed / 1000);
+    // РњРµСЃС‚Рѕ вЂ” РїРѕ РІСЂРµРјРµРЅРё, РєРѕС‚РѕСЂРѕРµ РІРёРґРёС‚ СѓС‡Р°СЃС‚РЅРёРє: РґРѕР»Рё СЃРµРєСѓРЅРґС‹ РѕС‚Р±СЂР°СЃС‹РІР°СЋС‚СЃСЏ
+    const elapsedKey = Math.ceil(row.elapsed / 1000);
     const key = rogaine ? `${row.total}/${elapsedKey}` : String(elapsedKey);
     if (key === lastKey) {
       row.place = lastPlace;
@@ -3514,17 +3514,17 @@ function buildProtocol(distance) {
     if (best === null) best = row;
     row.behind = rogaine
       ? Math.max(0, best.total - row.total)
-      : Math.max(0, Math.floor(row.elapsed / 1000) * 1000 - Math.floor(best.elapsed / 1000) * 1000);
+      : Math.max(0, Math.ceil(row.elapsed / 1000) * 1000 - Math.ceil(best.elapsed / 1000) * 1000);
   });
 
   return ordered;
 }
 
 /**
- * Своя строка для карточки события.
+ * РЎРІРѕСЏ СЃС‚СЂРѕРєР° РґР»СЏ РєР°СЂС‚РѕС‡РєРё СЃРѕР±С‹С‚РёСЏ.
  *
- * «Первый»/«обновлять» — строка та же, что в протоколе. «Оба» — лучшая:
- * меньше место, при равенстве больше баллов; без места — больше отметок.
+ * В«РџРµСЂРІС‹Р№В»/В«РѕР±РЅРѕРІР»СЏС‚СЊВ» вЂ” СЃС‚СЂРѕРєР° С‚Р° Р¶Рµ, С‡С‚Рѕ РІ РїСЂРѕС‚РѕРєРѕР»Рµ. В«РћР±Р°В» вЂ” Р»СѓС‡С€Р°СЏ:
+ * РјРµРЅСЊС€Рµ РјРµСЃС‚Рѕ, РїСЂРё СЂР°РІРµРЅСЃС‚РІРµ Р±РѕР»СЊС€Рµ Р±Р°Р»Р»РѕРІ; Р±РµР· РјРµСЃС‚Р° вЂ” Р±РѕР»СЊС€Рµ РѕС‚РјРµС‚РѕРє.
  */
 function bestOwnProtocolRow(rows, userId, distance) {
   const own = (rows || []).filter((row) => String(row.userId) === String(userId));
@@ -3548,15 +3548,15 @@ function bestOwnProtocolRow(rows, userId, distance) {
 
 let protocolExpanded = false;
 
-/** Протокол: заголовок, число участников, колонки и строки. */
+/** РџСЂРѕС‚РѕРєРѕР»: Р·Р°РіРѕР»РѕРІРѕРє, С‡РёСЃР»Рѕ СѓС‡Р°СЃС‚РЅРёРєРѕРІ, РєРѕР»РѕРЅРєРё Рё СЃС‚СЂРѕРєРё. */
 function renderProtocol(distance) {
   const rows = buildProtocol(distance);
   const rogaine = rogaineMode();
 
   $('detailProtocol').classList.remove('hidden');
   $('protoEmpty').classList.toggle('hidden', rows.length > 0);
-  $('protoCount').textContent = `Участников: ${participantCount(rows)}`;
-  // Пояснение показываем только когда есть участники с несколькими строками
+  $('protoCount').textContent = `РЈС‡Р°СЃС‚РЅРёРєРѕРІ: ${participantCount(rows)}`;
+  // РџРѕСЏСЃРЅРµРЅРёРµ РїРѕРєР°Р·С‹РІР°РµРј С‚РѕР»СЊРєРѕ РєРѕРіРґР° РµСЃС‚СЊ СѓС‡Р°СЃС‚РЅРёРєРё СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё СЃС‚СЂРѕРєР°РјРё
   $('protoLegend').classList.toggle('hidden', !rows.some((row) => row.duplicate));
 
   const list = $('protoList');
@@ -3566,14 +3566,14 @@ function renderProtocol(distance) {
     const head = document.createElement('div');
     head.className = 'proto-row head' + (rogaine ? ' rogaine' : '');
     head.innerHTML = rogaine
-      ? '<span class="proto-nick">Ник</span>' +
-        '<span class="proto-time">Время (результат)</span>' +
-        '<span class="proto-score">Баллы</span>' +
-        '<span class="proto-place">Место</span>'
-      : '<span class="proto-place">Место</span>' +
-        '<span class="proto-nick">Ник</span>' +
-        '<span class="proto-result">Результат</span>' +
-        '<span class="proto-behind">Отст.</span>';
+      ? '<span class="proto-nick">РќРёРє</span>' +
+        '<span class="proto-time">Р’СЂРµРјСЏ (СЂРµР·СѓР»СЊС‚Р°С‚)</span>' +
+        '<span class="proto-score">Р‘Р°Р»Р»С‹</span>' +
+        '<span class="proto-place">РњРµСЃС‚Рѕ</span>'
+      : '<span class="proto-place">РњРµСЃС‚Рѕ</span>' +
+        '<span class="proto-nick">РќРёРє</span>' +
+        '<span class="proto-result">Р РµР·СѓР»СЊС‚Р°С‚</span>' +
+        '<span class="proto-behind">РћС‚СЃС‚.</span>';
     list.append(head);
 
     const shown = protocolExpanded ? rows : rows.slice(0, PROTOCOL_PREVIEW_ROWS);
@@ -3582,12 +3582,12 @@ function renderProtocol(distance) {
 
   const more = $('protoMore');
   more.classList.toggle('hidden', rows.length <= PROTOCOL_PREVIEW_ROWS);
-  more.textContent = protocolExpanded ? 'Свернуть' : `Показать всех (${rows.length})`;
+  more.textContent = protocolExpanded ? 'РЎРІРµСЂРЅСѓС‚СЊ' : `РџРѕРєР°Р·Р°С‚СЊ РІСЃРµС… (${rows.length})`;
 }
 
 /**
- * Строка протокола рогейна: ник, время от старта до финиша, баллы после
- * штрафа и место. У DNF времени нет — прочерк, вместо места — статус.
+ * РЎС‚СЂРѕРєР° РїСЂРѕС‚РѕРєРѕР»Р° СЂРѕРіРµР№РЅР°: РЅРёРє, РІСЂРµРјСЏ РѕС‚ СЃС‚Р°СЂС‚Р° РґРѕ С„РёРЅРёС€Р°, Р±Р°Р»Р»С‹ РїРѕСЃР»Рµ
+ * С€С‚СЂР°С„Р° Рё РјРµСЃС‚Рѕ. РЈ DNF РІСЂРµРјРµРЅРё РЅРµС‚ вЂ” РїСЂРѕС‡РµСЂРє, РІРјРµСЃС‚Рѕ РјРµСЃС‚Р° вЂ” СЃС‚Р°С‚СѓСЃ.
  */
 function protocolRowRogaine(row) {
   const item = document.createElement('button');
@@ -3599,7 +3599,7 @@ function protocolRowRogaine(row) {
 
   const time = document.createElement('span');
   time.className = 'proto-time';
-  time.textContent = row.status === 'OK' ? formatDuration(row.elapsed) : '—';
+  time.textContent = row.status === 'OK' ? formatDuration(row.elapsed) : 'вЂ”';
 
   const score = document.createElement('span');
   score.className = 'proto-score';
@@ -3614,7 +3614,7 @@ function protocolRowRogaine(row) {
   return item;
 }
 
-/** Строка протокола: место (или статус), ник, результат, отставание. */
+/** РЎС‚СЂРѕРєР° РїСЂРѕС‚РѕРєРѕР»Р°: РјРµСЃС‚Рѕ (РёР»Рё СЃС‚Р°С‚СѓСЃ), РЅРёРє, СЂРµР·СѓР»СЊС‚Р°С‚, РѕС‚СЃС‚Р°РІР°РЅРёРµ. */
 function protocolRow(row, rogaine) {
   const item = document.createElement('button');
   item.className = 'proto-row' + (row.duplicate ? ' duplicate' : '');
@@ -3631,16 +3631,16 @@ function protocolRow(row, rogaine) {
   result.className = 'proto-result';
   result.textContent = row.status === 'OK'
     ? (rogaine ? String(row.total) : formatDuration(row.elapsed))
-    : '—';
+    : 'вЂ”';
 
   const behind = document.createElement('span');
   behind.className = 'proto-behind';
   if (row.status !== 'OK') {
     behind.textContent = '';
   } else if (rogaine) {
-    behind.textContent = row.penalty ? `−${row.penalty}` : '0';
+    behind.textContent = row.penalty ? `в€’${row.penalty}` : '0';
   } else {
-    behind.textContent = row.behind ? '+' + formatDuration(row.behind) : '—';
+    behind.textContent = row.behind ? '+' + formatDuration(row.behind) : 'вЂ”';
   }
 
   item.append(place, nick, result, behind);
@@ -3649,25 +3649,25 @@ function protocolRow(row, rogaine) {
 }
 
 /**
- * Экран «Сплит участника» — как в приложении.
+ * Р­РєСЂР°РЅ В«РЎРїР»РёС‚ СѓС‡Р°СЃС‚РЅРёРєР°В» вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё.
  *
- * Сверху сводка (дистанция, ник, время старта и финиша, результат, место),
- * ниже таблица «№ п/п | Время отметки (номер КП)»: у пункта номер по порядку,
- * время этапа и накопленное время. Старт и финиш — без номера.
+ * РЎРІРµСЂС…Сѓ СЃРІРѕРґРєР° (РґРёСЃС‚Р°РЅС†РёСЏ, РЅРёРє, РІСЂРµРјСЏ СЃС‚Р°СЂС‚Р° Рё С„РёРЅРёС€Р°, СЂРµР·СѓР»СЊС‚Р°С‚, РјРµСЃС‚Рѕ),
+ * РЅРёР¶Рµ С‚Р°Р±Р»РёС†Р° В«в„– Рї/Рї | Р’СЂРµРјСЏ РѕС‚РјРµС‚РєРё (РЅРѕРјРµСЂ РљРџ)В»: Сѓ РїСѓРЅРєС‚Р° РЅРѕРјРµСЂ РїРѕ РїРѕСЂСЏРґРєСѓ,
+ * РІСЂРµРјСЏ СЌС‚Р°РїР° Рё РЅР°РєРѕРїР»РµРЅРЅРѕРµ РІСЂРµРјСЏ. РЎС‚Р°СЂС‚ Рё С„РёРЅРёС€ вЂ” Р±РµР· РЅРѕРјРµСЂР°.
  */
-/** Темп на километр: «5:42/км». */
+/** РўРµРјРї РЅР° РєРёР»РѕРјРµС‚СЂ: В«5:42/РєРјВ». */
 function formatPace(msPerKm) {
   const total = Math.max(0, Math.floor(msPerKm / 1000));
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}/км`;
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}/РєРј`;
 }
 
 function formatDistance(meters) {
   return meters < 1000
-    ? `${Math.round(meters)} м`
-    : `${(meters / 1000).toFixed(2).replace('.', ',')} км`;
+    ? `${Math.round(meters)} Рј`
+    : `${(meters / 1000).toFixed(2).replace('.', ',')} РєРј`;
 }
 
-/** Общее расстояние по прямой и средняя скорость за прохождение. */
+/** РћР±С‰РµРµ СЂР°СЃСЃС‚РѕСЏРЅРёРµ РїРѕ РїСЂСЏРјРѕР№ Рё СЃСЂРµРґРЅСЏСЏ СЃРєРѕСЂРѕСЃС‚СЊ Р·Р° РїСЂРѕС…РѕР¶РґРµРЅРёРµ. */
 function courseStatsWeb(points, startTime, finishTime) {
   const located = (points || []).filter(Boolean);
   if (located.length < 2) return null;
@@ -3686,13 +3686,13 @@ function courseStatsWeb(points, startTime, finishTime) {
 }
 
 /**
- * Лучшие на отрезках — по всем строкам протокола, где отрезок пройден.
- * DNF участвует наравне с финишировавшими. Берутся только верные отметки
- * по порядку маршрута.
+ * Р›СѓС‡С€РёРµ РЅР° РѕС‚СЂРµР·РєР°С… вЂ” РїРѕ РІСЃРµРј СЃС‚СЂРѕРєР°Рј РїСЂРѕС‚РѕРєРѕР»Р°, РіРґРµ РѕС‚СЂРµР·РѕРє РїСЂРѕР№РґРµРЅ.
+ * DNF СѓС‡Р°СЃС‚РІСѓРµС‚ РЅР°СЂР°РІРЅРµ СЃ С„РёРЅРёС€РёСЂРѕРІР°РІС€РёРјРё. Р‘РµСЂСѓС‚СЃСЏ С‚РѕР»СЊРєРѕ РІРµСЂРЅС‹Рµ РѕС‚РјРµС‚РєРё
+ * РїРѕ РїРѕСЂСЏРґРєСѓ РјР°СЂС€СЂСѓС‚Р°.
  */
 /**
- * Отметки ориентирования до последней правильной. DSQ и DNF не показывают
- * хвост после ошибки; при DSQ финиш тоже скрыт.
+ * РћС‚РјРµС‚РєРё РѕСЂРёРµРЅС‚РёСЂРѕРІР°РЅРёСЏ РґРѕ РїРѕСЃР»РµРґРЅРµР№ РїСЂР°РІРёР»СЊРЅРѕР№. DSQ Рё DNF РЅРµ РїРѕРєР°Р·С‹РІР°СЋС‚
+ * С…РІРѕСЃС‚ РїРѕСЃР»Рµ РѕС€РёР±РєРё; РїСЂРё DSQ С„РёРЅРёС€ С‚РѕР¶Рµ СЃРєСЂС‹С‚.
  */
 function visibleOrienteeringMarks(distance, marks, status) {
   if (status === 'OK') return marks;
@@ -3721,8 +3721,8 @@ function visibleOrienteeringMarks(distance, marks, status) {
 }
 
 /**
- * DSQ и DNF: полный маршрут по позициям. Правильные отметки и финиш
- * сохраняют время, у любой позиции без отметки — состояние noMark.
+ * DSQ Рё DNF: РїРѕР»РЅС‹Р№ РјР°СЂС€СЂСѓС‚ РїРѕ РїРѕР·РёС†РёСЏРј. РџСЂР°РІРёР»СЊРЅС‹Рµ РѕС‚РјРµС‚РєРё Рё С„РёРЅРёС€
+ * СЃРѕС…СЂР°РЅСЏСЋС‚ РІСЂРµРјСЏ, Сѓ Р»СЋР±РѕР№ РїРѕР·РёС†РёРё Р±РµР· РѕС‚РјРµС‚РєРё вЂ” СЃРѕСЃС‚РѕСЏРЅРёРµ noMark.
  */
 function fullRouteMarks(distance, marks) {
   const route = (distance.order || []).map((code) => String(code));
@@ -3749,7 +3749,7 @@ function fullRouteMarks(distance, marks) {
   });
 }
 
-/** Отметки рогейна без повторных КП: для скорости и общего расстояния. */
+/** РћС‚РјРµС‚РєРё СЂРѕРіРµР№РЅР° Р±РµР· РїРѕРІС‚РѕСЂРЅС‹С… РљРџ: РґР»СЏ СЃРєРѕСЂРѕСЃС‚Рё Рё РѕР±С‰РµРіРѕ СЂР°СЃСЃС‚РѕСЏРЅРёСЏ. */
 function uniqueRogaineMarks(marks) {
   const seen = new Set();
   return (marks || []).filter((mark) => {
@@ -3790,14 +3790,14 @@ function orienteeringLegLeaders(distance) {
       const key = `${accepted[index - 1].code}>${accepted[index].code}`;
       const known = leaders.get(key);
       if (!known || leg < known.millis) {
-        leaders.set(key, { nick: row.nick || row.userId || 'Участник', millis: leg });
+        leaders.set(key, { nick: row.nick || row.userId || 'РЈС‡Р°СЃС‚РЅРёРє', millis: leg });
       }
     }
   });
   return leaders;
 }
 
-/** Принятые отметки участника в порядке маршрута. */
+/** РџСЂРёРЅСЏС‚С‹Рµ РѕС‚РјРµС‚РєРё СѓС‡Р°СЃС‚РЅРёРєР° РІ РїРѕСЂСЏРґРєРµ РјР°СЂС€СЂСѓС‚Р°. */
 function analysisAcceptedMarks(distance, row) {
   const route = (distance.order || []).map((code) => String(code));
   const starts = startAliasCodes(distance);
@@ -3821,8 +3821,8 @@ function analysisAcceptedMarks(distance, row) {
 }
 
 function analysisLegLabel(code, distance) {
-  if (isStart(String(code), false)) return 'С';
-  if (isFinish(String(code), false)) return 'Ф';
+  if (isStart(String(code), false)) return 'РЎ';
+  if (isFinish(String(code), false)) return 'Р¤';
   return String(code);
 }
 
@@ -3847,9 +3847,9 @@ function renderAnalysis(distance) {
         const current = accepted[index];
         if (!previous.time || !current.time) continue;
         const key = `${previous.code}>${current.code}`;
-        // Секунды округляем так же, как при показе: иначе «0:04 − 0:02»
-        // может дать «+0:01» из-за миллисекунд.
-        times.set(key, Math.floor(Math.max(0, current.time - previous.time) / 1000) * 1000);
+        // РЎРµРєСѓРЅРґС‹ РѕРєСЂСѓРіР»СЏРµРј С‚Р°Рє Р¶Рµ, РєР°Рє РїСЂРё РїРѕРєР°Р·Рµ: РёРЅР°С‡Рµ В«0:04 в€’ 0:02В»
+        // РјРѕР¶РµС‚ РґР°С‚СЊ В«+0:01В» РёР·-Р·Р° РјРёР»Р»РёСЃРµРєСѓРЅРґ.
+        times.set(key, Math.ceil(Math.max(0, current.time - previous.time) / 1000) * 1000);
       }
       return { row, times };
     })
@@ -3857,7 +3857,7 @@ function renderAnalysis(distance) {
   if (!rows.length) {
     const empty = document.createElement('p');
     empty.className = 'analysis-empty';
-    empty.textContent = 'Нет данных для анализа';
+    empty.textContent = 'РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ Р°РЅР°Р»РёР·Р°';
     table.append(empty);
     return;
   }
@@ -3886,12 +3886,12 @@ function renderAnalysis(distance) {
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
   const nameHead = document.createElement('th');
-  nameHead.textContent = 'Участник';
+  nameHead.textContent = 'РЈС‡Р°СЃС‚РЅРёРє';
   nameHead.className = 'analysis-name';
   headRow.append(nameHead);
   legs.forEach(([from, to]) => {
     const th = document.createElement('th');
-    th.textContent = `${analysisLegLabel(from, distance)} → ${analysisLegLabel(to, distance)}`;
+    th.textContent = `${analysisLegLabel(from, distance)} в†’ ${analysisLegLabel(to, distance)}`;
     headRow.append(th);
   });
   head.append(headRow);
@@ -3903,7 +3903,7 @@ function renderAnalysis(distance) {
     const name = document.createElement('td');
     name.className = 'analysis-name';
     const nick = document.createElement('div');
-    nick.textContent = row.nick || 'Участник';
+    nick.textContent = row.nick || 'РЈС‡Р°СЃС‚РЅРёРє';
     name.append(nick);
     if (row.status && row.status !== 'OK') {
       const status = document.createElement('small');
@@ -3927,7 +3927,7 @@ function renderAnalysis(distance) {
         time.textContent = formatSplitTime(value);
         time.className = 'analysis-time';
         const diff = document.createElement('small');
-        diff.textContent = gap === 0 ? 'лучший' : `+${formatSplitTime(gap)}`;
+        diff.textContent = gap === 0 ? 'Р»СѓС‡С€РёР№' : `+${formatSplitTime(gap)}`;
         diff.className = 'analysis-gap';
         cell.append(time, diff);
       }
@@ -3941,7 +3941,7 @@ function renderAnalysis(distance) {
 function openAnalysis() {
   const distance = (state.event && (state.event.distance || state.event.entry)) || null;
   if (!distance || rogaineMode()) {
-    setStatus('Анализ доступен только для ориентирования', 'error');
+    setStatus('РђРЅР°Р»РёР· РґРѕСЃС‚СѓРїРµРЅ С‚РѕР»СЊРєРѕ РґР»СЏ РѕСЂРёРµРЅС‚РёСЂРѕРІР°РЅРёСЏ', 'error');
     return;
   }
   renderAnalysis(distance);
@@ -3967,26 +3967,26 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
   const allMarks = (row.marks || []).slice().sort((left, right) => (left.time || 0) - (right.time || 0));
   const firstFinishMark = allMarks.find((mark) => isFinish(String(mark.code), rogaine));
-  summaryRow('Дистанция', distance.name || '—');
-  summaryRow('Ник', row.nick);
-  // В «Моих отметках» времени, результата, баллов и места нет: там только
-  // дистанция, ник и свои отметки, как в приложении
+  summaryRow('Р”РёСЃС‚Р°РЅС†РёСЏ', distance.name || 'вЂ”');
+  summaryRow('РќРёРє', row.nick);
+  // Р’ В«РњРѕРёС… РѕС‚РјРµС‚РєР°С…В» РІСЂРµРјРµРЅРё, СЂРµР·СѓР»СЊС‚Р°С‚Р°, Р±Р°Р»Р»РѕРІ Рё РјРµСЃС‚Р° РЅРµС‚: С‚Р°Рј С‚РѕР»СЊРєРѕ
+  // РґРёСЃС‚Р°РЅС†РёСЏ, РЅРёРє Рё СЃРІРѕРё РѕС‚РјРµС‚РєРё, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
   if (fromProtocol) {
-    summaryRow('Время старта', row.startTime ? formatClock(row.startTime) : '—');
+    summaryRow('Р’СЂРµРјСЏ СЃС‚Р°СЂС‚Р°', row.startTime ? formatClock(row.startTime) : 'вЂ”');
     const finishClock = (firstFinishMark && firstFinishMark.time) || 0;
-    summaryRow('Время финиша', finishClock ? formatClock(finishClock) : '—');
+    summaryRow('Р’СЂРµРјСЏ С„РёРЅРёС€Р°', finishClock ? formatClock(finishClock) : 'вЂ”');
     summaryRow(
-      'Результат',
+      'Р РµР·СѓР»СЊС‚Р°С‚',
       row.status && row.status !== 'OK'
         ? row.status
-        : (row.startTime && row.finishTime ? formatDuration(row.elapsed) : '—')
+        : (row.startTime && row.finishTime ? formatDuration(row.elapsed) : 'вЂ”')
     );
     if (rogaine) {
-      summaryRow('Баллы без штрафа', String(row.score ?? 0));
-      summaryRow('Штраф', String(row.penalty ?? 0));
-      summaryRow('Баллы', String(row.total ?? 0));
+      summaryRow('Р‘Р°Р»Р»С‹ Р±РµР· С€С‚СЂР°С„Р°', String(row.score ?? 0));
+      summaryRow('РЁС‚СЂР°С„', String(row.penalty ?? 0));
+      summaryRow('Р‘Р°Р»Р»С‹', String(row.total ?? 0));
     }
-    if (row.place) summaryRow('Место', String(row.place));
+    if (row.place) summaryRow('РњРµСЃС‚Рѕ', String(row.place));
   }
 
   const list = $('participantMarks');
@@ -4013,8 +4013,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   );
   const gpsMode = String(distance.markMode || '').toUpperCase() !== 'QR';
   if (courseStats && row.status === 'OK' && gpsMode) {
-    summaryRow('Средняя скорость', courseStats.average || '—');
-    if (rogaine) summaryRow('Расстояние', formatDistance(courseStats.meters));
+    summaryRow('РЎСЂРµРґРЅСЏСЏ СЃРєРѕСЂРѕСЃС‚СЊ', courseStats.average || 'вЂ”');
+    if (rogaine) summaryRow('Р Р°СЃСЃС‚РѕСЏРЅРёРµ', formatDistance(courseStats.meters));
   }
 
   const starts = startAliasCodes(distance);
@@ -4039,8 +4039,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   let previousRogaineCode = null;
   let previousRogaineTime = null;
   let previousValidTime = null;
-  // Пункты, отмеченные хотя бы раз: повтор номера не получает, а помечается
-  // словом «дубль» — как на экране сплита в приложении
+  // РџСѓРЅРєС‚С‹, РѕС‚РјРµС‡РµРЅРЅС‹Рµ С…РѕС‚СЏ Р±С‹ СЂР°Р·: РїРѕРІС‚РѕСЂ РЅРѕРјРµСЂР° РЅРµ РїРѕР»СѓС‡Р°РµС‚, Р° РїРѕРјРµС‡Р°РµС‚СЃСЏ
+  // СЃР»РѕРІРѕРј В«РґСѓР±Р»СЊВ» вЂ” РєР°Рє РЅР° СЌРєСЂР°РЅРµ СЃРїР»РёС‚Р° РІ РїСЂРёР»РѕР¶РµРЅРёРё
   const seen = new Set();
 
   displayedMarks.forEach((mark) => {
@@ -4048,9 +4048,9 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const startPoint = starts.has(code);
     const finishPoint = isFinish(code, rogaine);
     const noMark = mark.routeState === 'noMark';
-    // Старт нужен только как начало отсчёта; строкой в сплите не показываем
+    // РЎС‚Р°СЂС‚ РЅСѓР¶РµРЅ С‚РѕР»СЊРєРѕ РєР°Рє РЅР°С‡Р°Р»Рѕ РѕС‚СЃС‡С‘С‚Р°; СЃС‚СЂРѕРєРѕР№ РІ СЃРїР»РёС‚Рµ РЅРµ РїРѕРєР°Р·С‹РІР°РµРј
     if (startPoint) {
-      // Старт не показываем строкой, но в расчёте маршрута он участвует
+      // РЎС‚Р°СЂС‚ РЅРµ РїРѕРєР°Р·С‹РІР°РµРј СЃС‚СЂРѕРєРѕР№, РЅРѕ РІ СЂР°СЃС‡С‘С‚Рµ РјР°СЂС€СЂСѓС‚Р° РѕРЅ СѓС‡Р°СЃС‚РІСѓРµС‚
       if (route.length) routePosition = Math.max(0, route.indexOf(code));
       previousValidTime = mark.time;
       previousAcceptedCode = code;
@@ -4061,13 +4061,13 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       }
       return;
     }
-    // Верная отметка ориентирования: только следующий пункт маршрута.
-    // Неверные КП в расчёте скорости и отставания не участвуют.
+    // Р’РµСЂРЅР°СЏ РѕС‚РјРµС‚РєР° РѕСЂРёРµРЅС‚РёСЂРѕРІР°РЅРёСЏ: С‚РѕР»СЊРєРѕ СЃР»РµРґСѓСЋС‰РёР№ РїСѓРЅРєС‚ РјР°СЂС€СЂСѓС‚Р°.
+    // РќРµРІРµСЂРЅС‹Рµ РљРџ РІ СЂР°СЃС‡С‘С‚Рµ СЃРєРѕСЂРѕСЃС‚Рё Рё РѕС‚СЃС‚Р°РІР°РЅРёСЏ РЅРµ СѓС‡Р°СЃС‚РІСѓСЋС‚.
     if (!noMark && startPoint && route.length) routePosition = Math.max(0, route.indexOf(code));
     let accepted = !noMark && startPoint;
     if (!noMark && noStartRoute && !startPoint && !finishPoint) {
-      // Без старта правильность КП считаем по порядку маршрута: первая
-      // отметка задаёт начало, дальше — только следующий КП
+      // Р‘РµР· СЃС‚Р°СЂС‚Р° РїСЂР°РІРёР»СЊРЅРѕСЃС‚СЊ РљРџ СЃС‡РёС‚Р°РµРј РїРѕ РїРѕСЂСЏРґРєСѓ РјР°СЂС€СЂСѓС‚Р°: РїРµСЂРІР°СЏ
+      // РѕС‚РјРµС‚РєР° Р·Р°РґР°С‘С‚ РЅР°С‡Р°Р»Рѕ, РґР°Р»СЊС€Рµ вЂ” С‚РѕР»СЊРєРѕ СЃР»РµРґСѓСЋС‰РёР№ РљРџ
       const expected = noStartCheckpoints[noStartPosition];
       accepted = expected !== undefined && expected === code;
       if (accepted) noStartPosition += 1;
@@ -4076,19 +4076,19 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       accepted = expected !== undefined && expected === code;
       if (accepted) routePosition += 1;
     }
-    // Финиш — такая же точка отрезка: скорость и лидер считаются и для него
+    // Р¤РёРЅРёС€ вЂ” С‚Р°РєР°СЏ Р¶Рµ С‚РѕС‡РєР° РѕС‚СЂРµР·РєР°: СЃРєРѕСЂРѕСЃС‚СЊ Рё Р»РёРґРµСЂ СЃС‡РёС‚Р°СЋС‚СЃСЏ Рё РґР»СЏ РЅРµРіРѕ
     const acceptedCheckpoint = !rogaine && (
       finishPoint
         ? (finishPredecessor !== null && previousAcceptedCode === finishPredecessor)
         : (accepted && !startPoint)
     );
-    // Повтор КП рогейна: в протоколе он не нумеруется, а скорость и
-    // расстояние с ним не считаются в любом окне
+    // РџРѕРІС‚РѕСЂ РљРџ СЂРѕРіРµР№РЅР°: РІ РїСЂРѕС‚РѕРєРѕР»Рµ РѕРЅ РЅРµ РЅСѓРјРµСЂСѓРµС‚СЃСЏ, Р° СЃРєРѕСЂРѕСЃС‚СЊ Рё
+    // СЂР°СЃСЃС‚РѕСЏРЅРёРµ СЃ РЅРёРј РЅРµ СЃС‡РёС‚Р°СЋС‚СЃСЏ РІ Р»СЋР±РѕРј РѕРєРЅРµ
     const rogaineCheckpoint = rogaine && !startPoint && !finishPoint && /^[1-9]/.test(code);
     const repeatMark = rogaineCheckpoint && seen.has(code);
     if (rogaineCheckpoint) seen.add(code);
-    // Из протокола повтор помечается «дубль» и номера не получает; в «Моих
-    // отметках» нумеруются все отметки подряд, включая повторные
+    // РР· РїСЂРѕС‚РѕРєРѕР»Р° РїРѕРІС‚РѕСЂ РїРѕРјРµС‡Р°РµС‚СЃСЏ В«РґСѓР±Р»СЊВ» Рё РЅРѕРјРµСЂР° РЅРµ РїРѕР»СѓС‡Р°РµС‚; РІ В«РњРѕРёС…
+    // РѕС‚РјРµС‚РєР°С…В» РЅСѓРјРµСЂСѓСЋС‚СЃСЏ РІСЃРµ РѕС‚РјРµС‚РєРё РїРѕРґСЂСЏРґ, РІРєР»СЋС‡Р°СЏ РїРѕРІС‚РѕСЂРЅС‹Рµ
     const checkpoint = fromProtocol && rogaineCheckpoint;
     const repeat = checkpoint && repeatMark;
     const rogainePoint = rogaine && !startPoint;
@@ -4096,18 +4096,18 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const elapsed = validRow && row.startTime && mark.time
       ? Math.max(0, mark.time - row.startTime)
       : null;
-    const elapsedRounded = elapsed === null ? null : Math.floor(elapsed / 1000) * 1000;
-    // Этап — разница между соседними известными отметками. Старт для него
-    // не нужен; дубли и неверные отметки пропускаются
+    const elapsedRounded = elapsed === null ? null : Math.ceil(elapsed / 1000) * 1000;
+    // Р­С‚Р°Рї вЂ” СЂР°Р·РЅРёС†Р° РјРµР¶РґСѓ СЃРѕСЃРµРґРЅРёРјРё РёР·РІРµСЃС‚РЅС‹РјРё РѕС‚РјРµС‚РєР°РјРё. РЎС‚Р°СЂС‚ РґР»СЏ РЅРµРіРѕ
+    // РЅРµ РЅСѓР¶РµРЅ; РґСѓР±Р»Рё Рё РЅРµРІРµСЂРЅС‹Рµ РѕС‚РјРµС‚РєРё РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ
     const leg = !validRow || startPoint || previousValidTime === null
       ? null
-      : Math.floor(Math.max(0, mark.time - previousValidTime) / 1000) * 1000;
+      : Math.ceil(Math.max(0, mark.time - previousValidTime) / 1000) * 1000;
     const point = pointByCode.get(code);
     const acceptedLeg = acceptedCheckpoint && previousAcceptedTime !== null && mark.time
-      ? Math.floor(Math.max(0, mark.time - previousAcceptedTime) / 1000) * 1000
+      ? Math.ceil(Math.max(0, mark.time - previousAcceptedTime) / 1000) * 1000
       : null;
     const rogaineLeg = rogainePoint && !repeatMark && previousRogaineTime !== null && mark.time
-      ? Math.floor(Math.max(0, mark.time - previousRogaineTime) / 1000) * 1000
+      ? Math.ceil(Math.max(0, mark.time - previousRogaineTime) / 1000) * 1000
       : null;
     const showSpeed = rogaine ? (rogainePoint && !repeatMark) : acceptedCheckpoint;
     const speedLeg = rogaine ? rogaineLeg : acceptedLeg;
@@ -4126,9 +4126,9 @@ function openParticipant(row, rogaine, fromProtocol = true) {
 
     let label;
     if (startPoint) {
-      label = '(Старт)';
+      label = '(РЎС‚Р°СЂС‚)';
     } else if (finishPoint) {
-      label = 'Финиш';
+      label = 'Р¤РёРЅРёС€';
     } else {
       if (!repeat) number += 1;
       label = `(${code})`;
@@ -4147,11 +4147,11 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     const codeEl = document.createElement('span');
     codeEl.className = 'split-code';
     if (finishPoint && !noMark) {
-      num.textContent = 'Финиш';
+      num.textContent = 'Р¤РёРЅРёС€';
       num.classList.add('split-finish');
       item.append(num);
     } else {
-      codeEl.textContent = noMark ? `${label} нет отметки` : label;
+      codeEl.textContent = noMark ? `${label} РЅРµС‚ РѕС‚РјРµС‚РєРё` : label;
       item.append(num, codeEl);
     }
 
@@ -4162,11 +4162,11 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       times.className = 'split-times';
       const stage = document.createElement('span');
       stage.className = 'split-line';
-      stage.textContent = leg === null ? '—' : formatSplitTime(leg);
+      stage.textContent = leg === null ? 'вЂ”' : formatSplitTime(leg);
       const total = document.createElement('span');
       total.className = 'split-line total';
       total.textContent = elapsedRounded === null
-        ? '—'
+        ? 'вЂ”'
         : formatSplitTime(elapsedRounded);
       times.append(stage, total);
       item.append(times);
@@ -4174,7 +4174,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     if (repeatMark) {
       const repeatTime = document.createElement('span');
       repeatTime.className = 'split-times';
-      repeatTime.textContent = 'дубль';
+      repeatTime.textContent = 'РґСѓР±Р»СЊ';
       item.append(repeatTime);
     }
     const pointScore = rogainePointScore(point);
@@ -4234,30 +4234,30 @@ function openParticipant(row, rogaine, fromProtocol = true) {
     (mark) => isFinish(String(mark.code), rogaine)
   );
   const reasons = [];
-  if (!row.startTime) reasons.push('нет старта');
-  if (orderBroken) reasons.push('нарушен порядок прохождения КП');
-  if (!row.finishTime && !hasFinishMark) reasons.push('нет финиша');
+  if (!row.startTime) reasons.push('РЅРµС‚ СЃС‚Р°СЂС‚Р°');
+  if (orderBroken) reasons.push('РЅР°СЂСѓС€РµРЅ РїРѕСЂСЏРґРѕРє РїСЂРѕС…РѕР¶РґРµРЅРёСЏ РљРџ');
+  if (!row.finishTime && !hasFinishMark) reasons.push('РЅРµС‚ С„РёРЅРёС€Р°');
   if (reasons.length) {
     const reason = document.createElement('div');
     reason.className = 'split-reason';
-    reason.textContent = `Причина отсутствия результата:\n${reasons.join('\n')}`;
+    reason.textContent = `РџСЂРёС‡РёРЅР° РѕС‚СЃСѓС‚СЃС‚РІРёСЏ СЂРµР·СѓР»СЊС‚Р°С‚Р°:\n${reasons.join('\n')}`;
     list.append(reason);
   }
 
-  // Своя отметка: сумма баллов одной строкой под таблицей, не в сводке.
-  // Прежнюю строку убираем, иначе при повторном открытии они копились бы
+  // РЎРІРѕСЏ РѕС‚РјРµС‚РєР°: СЃСѓРјРјР° Р±Р°Р»Р»РѕРІ РѕРґРЅРѕР№ СЃС‚СЂРѕРєРѕР№ РїРѕРґ С‚Р°Р±Р»РёС†РµР№, РЅРµ РІ СЃРІРѕРґРєРµ.
+  // РџСЂРµР¶РЅСЋСЋ СЃС‚СЂРѕРєСѓ СѓР±РёСЂР°РµРј, РёРЅР°С‡Рµ РїСЂРё РїРѕРІС‚РѕСЂРЅРѕРј РѕС‚РєСЂС‹С‚РёРё РѕРЅРё РєРѕРїРёР»РёСЃСЊ Р±С‹
   const oldTotal = $('myMarksTotal');
   if (oldTotal) oldTotal.remove();
   if (!fromProtocol && rogaine) {
     const total = document.createElement('p');
     total.className = 'meta';
     total.id = 'myMarksTotal';
-    total.textContent = `Баллы: ${row.total ?? 0}`;
+    total.textContent = `Р‘Р°Р»Р»С‹: ${row.total ?? 0}`;
     list.after(total);
   }
 
-  // Карта порядка прохождения — только в сплите участника GPS-рогейна и
-  // только если автор разрешил показ пунктов. Дубли в линию не попадают.
+  // РљР°СЂС‚Р° РїРѕСЂСЏРґРєР° РїСЂРѕС…РѕР¶РґРµРЅРёСЏ вЂ” С‚РѕР»СЊРєРѕ РІ СЃРїР»РёС‚Рµ СѓС‡Р°СЃС‚РЅРёРєР° GPS-СЂРѕРіРµР№РЅР° Рё
+  // С‚РѕР»СЊРєРѕ РµСЃР»Рё Р°РІС‚РѕСЂ СЂР°Р·СЂРµС€РёР» РїРѕРєР°Р· РїСѓРЅРєС‚РѕРІ. Р”СѓР±Р»Рё РІ Р»РёРЅРёСЋ РЅРµ РїРѕРїР°РґР°СЋС‚.
   const participantMap = $('participantMap');
   const participantMapTitle = $('participantMapTitle');
   const showParticipantMap = rogaine && fromProtocol && gps &&
@@ -4284,7 +4284,7 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       if (seenCodes.has(code)) return;
       seenCodes.add(code);
       let point = pointByCode.get(code);
-      // Старт мог не храниться отдельным пунктом, а лежать в полях дистанции
+      // РЎС‚Р°СЂС‚ РјРѕРі РЅРµ С…СЂР°РЅРёС‚СЊСЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј РїСѓРЅРєС‚РѕРј, Р° Р»РµР¶Р°С‚СЊ РІ РїРѕР»СЏС… РґРёСЃС‚Р°РЅС†РёРё
       if (!point && isStart(code, true) &&
           Number.isFinite(Number(distance.latitude)) &&
           Number.isFinite(Number(distance.longitude))) {
@@ -4301,8 +4301,8 @@ function openParticipant(row, rogaine, fromProtocol = true) {
       addMapPoint(point, false);
     });
 
-    // Все точки дистанции, даже без отметки: они видны, но в путь не входят.
-    // Неотмеченные КП рисуются пунктиром.
+    // Р’СЃРµ С‚РѕС‡РєРё РґРёСЃС‚Р°РЅС†РёРё, РґР°Р¶Рµ Р±РµР· РѕС‚РјРµС‚РєРё: РѕРЅРё РІРёРґРЅС‹, РЅРѕ РІ РїСѓС‚СЊ РЅРµ РІС…РѕРґСЏС‚.
+    // РќРµРѕС‚РјРµС‡РµРЅРЅС‹Рµ РљРџ СЂРёСЃСѓСЋС‚СЃСЏ РїСѓРЅРєС‚РёСЂРѕРј.
     (distance.points || []).forEach((point) => {
       const code = String(point.code);
       if (seenCodes.has(code)) return;
@@ -4330,14 +4330,14 @@ function openParticipant(row, rogaine, fromProtocol = true) {
   showTab('participant');
 }
 
-/* ─────────────────────────── отметки ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РѕС‚РјРµС‚РєРё в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
 /**
- * Коды, которые считаются стартом.
+ * РљРѕРґС‹, РєРѕС‚РѕСЂС‹Рµ СЃС‡РёС‚Р°СЋС‚СЃСЏ СЃС‚Р°СЂС‚РѕРј.
  *
- * Старт и «место старта» — одна точка: кроме кода старта сюда попадают пункты,
- * стоящие в тех же координатах (у события старт может быть записан как
- * обычный пункт, например кодом 3).
+ * РЎС‚Р°СЂС‚ Рё В«РјРµСЃС‚Рѕ СЃС‚Р°СЂС‚Р°В» вЂ” РѕРґРЅР° С‚РѕС‡РєР°: РєСЂРѕРјРµ РєРѕРґР° СЃС‚Р°СЂС‚Р° СЃСЋРґР° РїРѕРїР°РґР°СЋС‚ РїСѓРЅРєС‚С‹,
+ * СЃС‚РѕСЏС‰РёРµ РІ С‚РµС… Р¶Рµ РєРѕРѕСЂРґРёРЅР°С‚Р°С… (Сѓ СЃРѕР±С‹С‚РёСЏ СЃС‚Р°СЂС‚ РјРѕР¶РµС‚ Р±С‹С‚СЊ Р·Р°РїРёСЃР°РЅ РєР°Рє
+ * РѕР±С‹С‡РЅС‹Р№ РїСѓРЅРєС‚, РЅР°РїСЂРёРјРµСЂ РєРѕРґРѕРј 3).
  */
 function startAliasCodes(distance) {
   const codes = new Set([rogaineMode() ? '01' : '1']);
@@ -4354,7 +4354,7 @@ function startAliasCodes(distance) {
   return codes;
 }
 
-/** Как отмечаются в этой дистанции: «QR» или «GPS» (MarkMode в приложении). */
+/** РљР°Рє РѕС‚РјРµС‡Р°СЋС‚СЃСЏ РІ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё: В«QRВ» РёР»Рё В«GPSВ» (MarkMode РІ РїСЂРёР»РѕР¶РµРЅРёРё). */
 function qrMode() {
   const distance = (state.event && state.event.distance) || {};
   return String(distance.markMode || '').toUpperCase() === 'QR';
@@ -4364,15 +4364,15 @@ function rogaineMode() {
   return Boolean(state.event && state.event.kind === 'rogaine');
 }
 
-/** Подпись пункта по правилам Labels.kt: «Старт», «Финиш» или код. */
+/** РџРѕРґРїРёСЃСЊ РїСѓРЅРєС‚Р° РїРѕ РїСЂР°РІРёР»Р°Рј Labels.kt: В«РЎС‚Р°СЂС‚В», В«Р¤РёРЅРёС€В» РёР»Рё РєРѕРґ. */
 function labelOf(point) {
-  // Принимает и пункт, и сам код: у QR подпись строится по коду из таблички,
-  // и без этого номер превращался в пустую строку
+  // РџСЂРёРЅРёРјР°РµС‚ Рё РїСѓРЅРєС‚, Рё СЃР°Рј РєРѕРґ: Сѓ QR РїРѕРґРїРёСЃСЊ СЃС‚СЂРѕРёС‚СЃСЏ РїРѕ РєРѕРґСѓ РёР· С‚Р°Р±Р»РёС‡РєРё,
+  // Рё Р±РµР· СЌС‚РѕРіРѕ РЅРѕРјРµСЂ РїСЂРµРІСЂР°С‰Р°Р»СЃСЏ РІ РїСѓСЃС‚СѓСЋ СЃС‚СЂРѕРєСѓ
   const code = typeof point === 'string' || typeof point === 'number'
     ? String(point)
     : codeOf(point);
-  if (isStart(code, rogaineMode())) return 'Старт';
-  if (isFinish(code, rogaineMode())) return 'Финиш';
+  if (isStart(code, rogaineMode())) return 'РЎС‚Р°СЂС‚';
+  if (isFinish(code, rogaineMode())) return 'Р¤РёРЅРёС€';
   return String(code);
 }
 
@@ -4382,25 +4382,25 @@ function markedCodes() {
   );
 }
 
-/** Сколько держится подтверждение отметки, как в приложении. */
+/** РЎРєРѕР»СЊРєРѕ РґРµСЂР¶РёС‚СЃСЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РѕС‚РјРµС‚РєРё, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 const MARKED_MESSAGE_MILLIS = 3000;
-/** Сколько ждать уточнения места, прежде чем предложить аварийную отметку. */
+/** РЎРєРѕР»СЊРєРѕ Р¶РґР°С‚СЊ СѓС‚РѕС‡РЅРµРЅРёСЏ РјРµСЃС‚Р°, РїСЂРµР¶РґРµ С‡РµРј РїСЂРµРґР»РѕР¶РёС‚СЊ Р°РІР°СЂРёР№РЅСѓСЋ РѕС‚РјРµС‚РєСѓ. */
 const EMERGENCY_WAIT_MILLIS = 10000;
-/** Через сколько код считается ушедшим из кадра. */
+/** Р§РµСЂРµР· СЃРєРѕР»СЊРєРѕ РєРѕРґ СЃС‡РёС‚Р°РµС‚СЃСЏ СѓС€РµРґС€РёРј РёР· РєР°РґСЂР°. */
 const CODE_GONE_MILLIS = 1000;
-/** Окно, в котором ищем ближайшую точку для отметки на ходу. */
+/** РћРєРЅРѕ, РІ РєРѕС‚РѕСЂРѕРј РёС‰РµРј Р±Р»РёР¶Р°Р№С€СѓСЋ С‚РѕС‡РєСѓ РґР»СЏ РѕС‚РјРµС‚РєРё РЅР° С…РѕРґСѓ. */
 const FIX_WINDOW_MILLIS = 5000;
-/** Больше точек в буфере не держим. */
+/** Р‘РѕР»СЊС€Рµ С‚РѕС‡РµРє РІ Р±СѓС„РµСЂРµ РЅРµ РґРµСЂР¶РёРј. */
 const MAX_RECENT_FIXES = 60;
 
-/** Старт или финиш этот код: подпись и правила у них особые. */
+/** РЎС‚Р°СЂС‚ РёР»Рё С„РёРЅРёС€ СЌС‚РѕС‚ РєРѕРґ: РїРѕРґРїРёСЃСЊ Рё РїСЂР°РІРёР»Р° Сѓ РЅРёС… РѕСЃРѕР±С‹Рµ. */
 function startOrFinishOf(code) {
   if (isStart(code, rogaineMode())) return 'start';
   if (isFinish(code, rogaineMode())) return 'finish';
   return null;
 }
 
-/** Склонение числа: 1 балл, 2 балла, 5 баллов. */
+/** РЎРєР»РѕРЅРµРЅРёРµ С‡РёСЃР»Р°: 1 Р±Р°Р»Р», 2 Р±Р°Р»Р»Р°, 5 Р±Р°Р»Р»РѕРІ. */
 function plural(count, one, few, many) {
   const value = Math.abs(Number(count) || 0) % 100;
   const last = value % 10;
@@ -4410,7 +4410,7 @@ function plural(count, one, few, many) {
   return many;
 }
 
-/** Точка в зоне пункта: допуск — погрешность пункта + погрешность приёмника + 5 м. */
+/** РўРѕС‡РєР° РІ Р·РѕРЅРµ РїСѓРЅРєС‚Р°: РґРѕРїСѓСЃРє вЂ” РїРѕРіСЂРµС€РЅРѕСЃС‚СЊ РїСѓРЅРєС‚Р° + РїРѕРіСЂРµС€РЅРѕСЃС‚СЊ РїСЂРёС‘РјРЅРёРєР° + 5 Рј. */
 function inZone(point, position) {
   if (!point || !position) return false;
   if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return false;
@@ -4419,7 +4419,7 @@ function inZone(point, position) {
   return distanceMeters(position.lat, position.lon, point.latitude, point.longitude) <= allowed;
 }
 
-/** Пункт, у которого стоит участник. loose — без ограничения погрешности. */
+/** РџСѓРЅРєС‚, Сѓ РєРѕС‚РѕСЂРѕРіРѕ СЃС‚РѕРёС‚ СѓС‡Р°СЃС‚РЅРёРє. loose вЂ” Р±РµР· РѕРіСЂР°РЅРёС‡РµРЅРёСЏ РїРѕРіСЂРµС€РЅРѕСЃС‚Рё. */
 function findMarkPoint(loose) {
   if (!state.event || !state.position) return null;
   if (!loose && state.position.accuracy > MAX_ACCURACY_METERS) return null;
@@ -4431,11 +4431,11 @@ function findMarkPoint(loose) {
 }
 
 /**
- * Ближайшая к пункту точка из последних секунд.
+ * Р‘Р»РёР¶Р°Р№С€Р°СЏ Рє РїСѓРЅРєС‚Сѓ С‚РѕС‡РєР° РёР· РїРѕСЃР»РµРґРЅРёС… СЃРµРєСѓРЅРґ.
  *
- * Нужна для отметки на ходу: участник мог уже выйти из зоны, пока нажимает.
- * Берём именно ближайший замер, а не последний, и только если он сам не грубее
- * допустимого.
+ * РќСѓР¶РЅР° РґР»СЏ РѕС‚РјРµС‚РєРё РЅР° С…РѕРґСѓ: СѓС‡Р°СЃС‚РЅРёРє РјРѕРі СѓР¶Рµ РІС‹Р№С‚Рё РёР· Р·РѕРЅС‹, РїРѕРєР° РЅР°Р¶РёРјР°РµС‚.
+ * Р‘РµСЂС‘Рј РёРјРµРЅРЅРѕ Р±Р»РёР¶Р°Р№С€РёР№ Р·Р°РјРµСЂ, Р° РЅРµ РїРѕСЃР»РµРґРЅРёР№, Рё С‚РѕР»СЊРєРѕ РµСЃР»Рё РѕРЅ СЃР°Рј РЅРµ РіСЂСѓР±РµРµ
+ * РґРѕРїСѓСЃС‚РёРјРѕРіРѕ.
  */
 function bestBufferedPoint() {
   if (!state.event || !state.position) return null;
@@ -4461,7 +4461,7 @@ function bestBufferedPoint() {
   return best;
 }
 
-/** Подпись отметки до записи: номер пункта, баллы рогейна и дубль. */
+/** РџРѕРґРїРёСЃСЊ РѕС‚РјРµС‚РєРё РґРѕ Р·Р°РїРёСЃРё: РЅРѕРјРµСЂ РїСѓРЅРєС‚Р°, Р±Р°Р»Р»С‹ СЂРѕРіРµР№РЅР° Рё РґСѓР±Р»СЊ. */
 function markLabelFor(code) {
   const rogaine = rogaineMode();
   const checkpoint = rogaine && /^[1-9]/.test(String(code));
@@ -4477,26 +4477,26 @@ function markLabelFor(code) {
   };
 }
 
-/** Исход отметки: те же слова, что в приложении. */
+/** РСЃС…РѕРґ РѕС‚РјРµС‚РєРё: С‚Рµ Р¶Рµ СЃР»РѕРІР°, С‡С‚Рѕ РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function outcomeText(kind) {
   return {
-    recorded: 'Отметка записана',
-    finish: 'Вы уже финишировали',
-    start: 'Вначале отметьте старт на выбранной дистанции',
-    foreign: 'Код другой дистанции',
-    unknown: 'Это не код контрольного пункта — или не вашей дистанции',
-    skipped: 'Код пропущен',
+    recorded: 'РћС‚РјРµС‚РєР° Р·Р°РїРёСЃР°РЅР°',
+    finish: 'Р’С‹ СѓР¶Рµ С„РёРЅРёС€РёСЂРѕРІР°Р»Рё',
+    start: 'Р’РЅР°С‡Р°Р»Рµ РѕС‚РјРµС‚СЊС‚Рµ СЃС‚Р°СЂС‚ РЅР° РІС‹Р±СЂР°РЅРЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё',
+    foreign: 'РљРѕРґ РґСЂСѓРіРѕР№ РґРёСЃС‚Р°РЅС†РёРё',
+    unknown: 'Р­С‚Рѕ РЅРµ РєРѕРґ РєРѕРЅС‚СЂРѕР»СЊРЅРѕРіРѕ РїСѓРЅРєС‚Р° вЂ” РёР»Рё РЅРµ РІР°С€РµР№ РґРёСЃС‚Р°РЅС†РёРё',
+    skipped: 'РљРѕРґ РїСЂРѕРїСѓС‰РµРЅ',
   }[kind] || '';
 }
 
-/** Крупное подтверждение отметки: баннер, вспышка рамки и толчок кнопки. */
+/** РљСЂСѓРїРЅРѕРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РѕС‚РјРµС‚РєРё: Р±Р°РЅРЅРµСЂ, РІСЃРїС‹С€РєР° СЂР°РјРєРё Рё С‚РѕР»С‡РѕРє РєРЅРѕРїРєРё. */
 function showMarkConfirmation(label, time) {
   const banner = $('markBanner');
   if (!banner) return;
-  $('markBannerTitle').textContent = 'ОТМЕТКА ЗАПИСАНА';
+  $('markBannerTitle').textContent = 'РћРўРњР•РўРљРђ Р—РђРџРРЎРђРќРђ';
   const number = label && label.number ? label.number : '';
-  const duplicate = label && label.duplicate ? ' · дубль' : '';
-  $('markBannerDetail').textContent = `${number}${duplicate} · ${formatClock(time)}`;
+  const duplicate = label && label.duplicate ? ' В· РґСѓР±Р»СЊ' : '';
+  $('markBannerDetail').textContent = `${number}${duplicate} В· ${formatClock(time)}`;
 
   banner.classList.remove('hidden');
   banner.classList.remove('show');
@@ -4523,34 +4523,34 @@ function showMarkConfirmation(label, time) {
   }
 }
 
-/** Показать исход на 3 секунды и подписи отметки рогейна. */
+/** РџРѕРєР°Р·Р°С‚СЊ РёСЃС…РѕРґ РЅР° 3 СЃРµРєСѓРЅРґС‹ Рё РїРѕРґРїРёСЃРё РѕС‚РјРµС‚РєРё СЂРѕРіРµР№РЅР°. */
 function showOutcome(kind, label, code) {
   const text = $('markOutcome');
   const lines = [outcomeText(kind)];
 
-  // У записанной отметки рогейна сразу под исходом — номер пункта, баллы
-  // и сумма: одна строка на каждое значение, без отдельных элементов,
-  // которые могли остаться скрытыми
+  // РЈ Р·Р°РїРёСЃР°РЅРЅРѕР№ РѕС‚РјРµС‚РєРё СЂРѕРіРµР№РЅР° СЃСЂР°Р·Сѓ РїРѕРґ РёСЃС…РѕРґРѕРј вЂ” РЅРѕРјРµСЂ РїСѓРЅРєС‚Р°, Р±Р°Р»Р»С‹
+  // Рё СЃСѓРјРјР°: РѕРґРЅР° СЃС‚СЂРѕРєР° РЅР° РєР°Р¶РґРѕРµ Р·РЅР°С‡РµРЅРёРµ, Р±РµР· РѕС‚РґРµР»СЊРЅС‹С… СЌР»РµРјРµРЅС‚РѕРІ,
+  // РєРѕС‚РѕСЂС‹Рµ РјРѕРіР»Рё РѕСЃС‚Р°С‚СЊСЃСЏ СЃРєСЂС‹С‚С‹РјРё
   if (kind === 'recorded' && label && rogaineMode()) {
     lines.push(label.number);
     if (label.duplicate) {
-      lines.push('дублирующая отметка, баллов нет');
+      lines.push('РґСѓР±Р»РёСЂСѓСЋС‰Р°СЏ РѕС‚РјРµС‚РєР°, Р±Р°Р»Р»РѕРІ РЅРµС‚');
     } else if (label.score !== null) {
-      lines.push(`${label.score} ${plural(label.score, 'балл', 'балла', 'баллов')}`);
+      lines.push(`${label.score} ${plural(label.score, 'Р±Р°Р»Р»', 'Р±Р°Р»Р»Р°', 'Р±Р°Р»Р»РѕРІ')}`);
     }
     if (label.total !== null) {
-      lines.push(`итого: ${label.total} ${plural(label.total, 'балл', 'балла', 'баллов')}`);
+      lines.push(`РёС‚РѕРіРѕ: ${label.total} ${plural(label.total, 'Р±Р°Р»Р»', 'Р±Р°Р»Р»Р°', 'Р±Р°Р»Р»РѕРІ')}`);
     }
   }
 
   text.textContent = lines.join('\n');
   text.classList.remove('hidden');
 
-  // Дублируем исход всплывающей строкой: она видна при любом размере окна
-  // камеры и не зависит от верстки нижнего блока
+  // Р”СѓР±Р»РёСЂСѓРµРј РёСЃС…РѕРґ РІСЃРїР»С‹РІР°СЋС‰РµР№ СЃС‚СЂРѕРєРѕР№: РѕРЅР° РІРёРґРЅР° РїСЂРё Р»СЋР±РѕРј СЂР°Р·РјРµСЂРµ РѕРєРЅР°
+  // РєР°РјРµСЂС‹ Рё РЅРµ Р·Р°РІРёСЃРёС‚ РѕС‚ РІРµСЂСЃС‚РєРё РЅРёР¶РЅРµРіРѕ Р±Р»РѕРєР°
   if (kind === 'recorded' && rogaineMode() && label) {
-    setStatus(lines.join(' · '), 'good');
-    // Итог дублируем прямо под номером пункта в панели: туда смотрит участник
+    setStatus(lines.join(' В· '), 'good');
+    // РС‚РѕРі РґСѓР±Р»РёСЂСѓРµРј РїСЂСЏРјРѕ РїРѕРґ РЅРѕРјРµСЂРѕРј РїСѓРЅРєС‚Р° РІ РїР°РЅРµР»Рё: С‚СѓРґР° СЃРјРѕС‚СЂРёС‚ СѓС‡Р°СЃС‚РЅРёРє
     state.outcomeHints = lines.slice(1).join('\n');
     state.outcomeUntil = Date.now() + MARKED_MESSAGE_MILLIS;
     const hints = $('qrHints');
@@ -4568,41 +4568,41 @@ function showOutcome(kind, label, code) {
   }, MARKED_MESSAGE_MILLIS);
 }
 
-/** Подсказка под кнопкой: порядок важнее — отказ, грубая точность, старт/финиш, режим. */
+/** РџРѕРґСЃРєР°Р·РєР° РїРѕРґ РєРЅРѕРїРєРѕР№: РїРѕСЂСЏРґРѕРє РІР°Р¶РЅРµРµ вЂ” РѕС‚РєР°Р·, РіСЂСѓР±Р°СЏ С‚РѕС‡РЅРѕСЃС‚СЊ, СЃС‚Р°СЂС‚/С„РёРЅРёС€, СЂРµР¶РёРј. */
 function renderHint(point, rough, auto) {
   const hint = $('markHint');
   hint.classList.remove('error');
 
   if (state.manualRefused) {
-    hint.textContent = 'Включена автоматическая отметка: нажимать не нужно. '
-      + 'Чтобы отмечаться вручную, выключите «Автоматическую отметку» в настройках.';
+    hint.textContent = 'Р’РєР»СЋС‡РµРЅР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РѕС‚РјРµС‚РєР°: РЅР°Р¶РёРјР°С‚СЊ РЅРµ РЅСѓР¶РЅРѕ. '
+      + 'Р§С‚РѕР±С‹ РѕС‚РјРµС‡Р°С‚СЊСЃСЏ РІСЂСѓС‡РЅСѓСЋ, РІС‹РєР»СЋС‡РёС‚Рµ В«РђРІС‚РѕРјР°С‚РёС‡РµСЃРєСѓСЋ РѕС‚РјРµС‚РєСѓВ» РІ РЅР°СЃС‚СЂРѕР№РєР°С….';
     hint.classList.add('error');
     return;
   }
   if (rough) {
-    hint.textContent = `Ждём точное местоположение: погрешность больше ${MAX_ACCURACY_METERS} метров. `
-      + 'Отметка включится сама, как только приёмник уточнит место.';
+    hint.textContent = `Р–РґС‘Рј С‚РѕС‡РЅРѕРµ РјРµСЃС‚РѕРїРѕР»РѕР¶РµРЅРёРµ: РїРѕРіСЂРµС€РЅРѕСЃС‚СЊ Р±РѕР»СЊС€Рµ ${MAX_ACCURACY_METERS} РјРµС‚СЂРѕРІ. `
+      + 'РћС‚РјРµС‚РєР° РІРєР»СЋС‡РёС‚СЃСЏ СЃР°РјР°, РєР°Рє С‚РѕР»СЊРєРѕ РїСЂРёС‘РјРЅРёРє СѓС‚РѕС‡РЅРёС‚ РјРµСЃС‚Рѕ.';
     return;
   }
-  // Слова про ручной старт и финиш нужны только при включённой
-  // автоматической отметке: в ручном режиме это и так очевидно
+  // РЎР»РѕРІР° РїСЂРѕ СЂСѓС‡РЅРѕР№ СЃС‚Р°СЂС‚ Рё С„РёРЅРёС€ РЅСѓР¶РЅС‹ С‚РѕР»СЊРєРѕ РїСЂРё РІРєР»СЋС‡С‘РЅРЅРѕР№
+  // Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРѕР№ РѕС‚РјРµС‚РєРµ: РІ СЂСѓС‡РЅРѕРј СЂРµР¶РёРјРµ СЌС‚Рѕ Рё С‚Р°Рє РѕС‡РµРІРёРґРЅРѕ
   if (point && auto) {
     const kind = startOrFinishOf(codeOf(point));
     if (kind === 'start') {
-      hint.textContent = 'Старт отмечается только вручную — нажмите кнопку';
+      hint.textContent = 'РЎС‚Р°СЂС‚ РѕС‚РјРµС‡Р°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РІСЂСѓС‡РЅСѓСЋ вЂ” РЅР°Р¶РјРёС‚Рµ РєРЅРѕРїРєСѓ';
       return;
     }
     if (kind === 'finish') {
-      hint.textContent = 'Финиш отмечается только вручную — нажмите кнопку';
+      hint.textContent = 'Р¤РёРЅРёС€ РѕС‚РјРµС‡Р°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РІСЂСѓС‡РЅСѓСЋ вЂ” РЅР°Р¶РјРёС‚Рµ РєРЅРѕРїРєСѓ';
       return;
     }
   }
   hint.textContent = auto
-    ? 'Подойдите к пункту — отметка поставится сама, нажимать не нужно'
-    : 'Кнопка станет зелёной у пункта — тогда нажмите';
+    ? 'РџРѕРґРѕР№РґРёС‚Рµ Рє РїСѓРЅРєС‚Сѓ вЂ” РѕС‚РјРµС‚РєР° РїРѕСЃС‚Р°РІРёС‚СЃСЏ СЃР°РјР°, РЅР°Р¶РёРјР°С‚СЊ РЅРµ РЅСѓР¶РЅРѕ'
+    : 'РљРЅРѕРїРєР° СЃС‚Р°РЅРµС‚ Р·РµР»С‘РЅРѕР№ Сѓ РїСѓРЅРєС‚Р° вЂ” С‚РѕРіРґР° РЅР°Р¶РјРёС‚Рµ';
 }
 
-/** Стрелка на выбранный КП: только GPS, только с разрешения автора и участника. */
+/** РЎС‚СЂРµР»РєР° РЅР° РІС‹Р±СЂР°РЅРЅС‹Р№ РљРџ: С‚РѕР»СЊРєРѕ GPS, С‚РѕР»СЊРєРѕ СЃ СЂР°Р·СЂРµС€РµРЅРёСЏ Р°РІС‚РѕСЂР° Рё СѓС‡Р°СЃС‚РЅРёРєР°. */
 function updateHintArrow(distance, position, point) {
   const row = $('hintTargetRow');
   const select = $('hintTarget');
@@ -4618,17 +4618,17 @@ function updateHintArrow(distance, position, point) {
     state.hintBearing = null;
     return;
   }
-  // Только пункты этого события, без повторов
+  // РўРѕР»СЊРєРѕ РїСѓРЅРєС‚С‹ СЌС‚РѕРіРѕ СЃРѕР±С‹С‚РёСЏ, Р±РµР· РїРѕРІС‚РѕСЂРѕРІ
   const codes = [...new Set((distance.points || []).map((item) => String(codeOf(item))))]
     .sort((left, right) => left.localeCompare(right, 'ru', { numeric: true }));
-  // Список перестраиваем только при смене набора КП, иначе выбор мигает
+  // РЎРїРёСЃРѕРє РїРµСЂРµСЃС‚СЂР°РёРІР°РµРј С‚РѕР»СЊРєРѕ РїСЂРё СЃРјРµРЅРµ РЅР°Р±РѕСЂР° РљРџ, РёРЅР°С‡Рµ РІС‹Р±РѕСЂ РјРёРіР°РµС‚
   const signature = codes.join('|');
   if (select.dataset.signature !== signature) {
     const currentValue = select.value;
     select.textContent = '';
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = 'Без подсказки';
+    placeholder.textContent = 'Р‘РµР· РїРѕРґСЃРєР°Р·РєРё';
     select.append(placeholder);
     codes.forEach((item) => {
       const option = document.createElement('option');
@@ -4644,7 +4644,7 @@ function updateHintArrow(distance, position, point) {
     try {
       stored = localStorage.getItem(hintTargetKey(state.event && state.event.id)) || '';
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
     select.value = codes.includes(stored) ? stored : '';
   }
@@ -4661,43 +4661,43 @@ function updateHintArrow(distance, position, point) {
   const bearing = bearingDegrees(position.lat, position.lon, target.latitude, target.longitude);
   const turn = ((bearing - state.heading + 540) % 360) - 180;
   state.hintBearing = bearing;
-  hintText.textContent = `${labelOf(code)} · ${meters} м · ${Math.round(bearing)}°`;
+  hintText.textContent = `${labelOf(code)} В· ${meters} Рј В· ${Math.round(bearing)}В°`;
   $('hintArrowPointer').style.transform = `rotate(${turn}deg)`;
   arrow.classList.remove('hidden');
   label.classList.add('hidden');
 }
 
-/** Отрисовка экрана отметки по состоянию: GPS и QR. */
+/** РћС‚СЂРёСЃРѕРІРєР° СЌРєСЂР°РЅР° РѕС‚РјРµС‚РєРё РїРѕ СЃРѕСЃС‚РѕСЏРЅРёСЋ: GPS Рё QR. */
 function renderMark() {
   const event = state.event;
   const auto = Boolean(settings().autoMark);
   const mode = $('markMode');
-  mode.textContent = auto ? 'Отметка автоматическая' : 'Отметка ручная';
+  mode.textContent = auto ? 'РћС‚РјРµС‚РєР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ' : 'РћС‚РјРµС‚РєР° СЂСѓС‡РЅР°СЏ';
   mode.classList.toggle('auto', auto);
 
   if (!event) {
-    $('markTitle').textContent = 'Сначала активируйте событие';
-    $('markAccuracy').textContent = 'Выберите событие в облаке.';
+    $('markTitle').textContent = 'РЎРЅР°С‡Р°Р»Р° Р°РєС‚РёРІРёСЂСѓР№С‚Рµ СЃРѕР±С‹С‚РёРµ';
+    $('markAccuracy').textContent = 'Р’С‹Р±РµСЂРёС‚Рµ СЃРѕР±С‹С‚РёРµ РІ РѕР±Р»Р°РєРµ.';
     $('markReady').classList.add('hidden');
-    setCircle(null, 'Подойдите к пункту', false);
+    setCircle(null, 'РџРѕРґРѕР№РґРёС‚Рµ Рє РїСѓРЅРєС‚Сѓ', false);
     renderHint(null, false, auto);
     return;
   }
 
   const distance = event.distance || {};
   const scanning = qrMode();
-  $('markTitle').textContent = distance.name || 'Событие';
+  $('markTitle').textContent = distance.name || 'РЎРѕР±С‹С‚РёРµ';
   $('qrBox').classList.toggle('hidden', !scanning);
   document.querySelector('.mark-center').classList.toggle('hidden', scanning);
 
   if (scanning) {
-    $('markAccuracy').textContent = identity().nick || 'Профиль не заполнен';
+    $('markAccuracy').textContent = identity().nick || 'РџСЂРѕС„РёР»СЊ РЅРµ Р·Р°РїРѕР»РЅРµРЅ';
     $('markReady').classList.add('hidden');
     $('markHint').classList.remove('hidden');
     renderHint(null, false, auto);
     $('markHint').textContent = auto
-      ? 'Наведите камеру на QR-код — отметка поставится сама, нажимать не нужно'
-      : 'Наведите камеру на QR-код и нажмите «ОТМЕТИТЬ»';
+      ? 'РќР°РІРµРґРёС‚Рµ РєР°РјРµСЂСѓ РЅР° QR-РєРѕРґ вЂ” РѕС‚РјРµС‚РєР° РїРѕСЃС‚Р°РІРёС‚СЃСЏ СЃР°РјР°, РЅР°Р¶РёРјР°С‚СЊ РЅРµ РЅСѓР¶РЅРѕ'
+      : 'РќР°РІРµРґРёС‚Рµ РєР°РјРµСЂСѓ РЅР° QR-РєРѕРґ Рё РЅР°Р¶РјРёС‚Рµ В«РћРўРњР•РўРРўР¬В»';
     renderQrConfirm();
     return;
   }
@@ -4705,9 +4705,9 @@ function renderMark() {
   const position = state.position;
   if (position) {
     const accuracy = Math.round(position.accuracy * 10) / 10;
-    $('markAccuracy').textContent = `Погрешность: ${String(accuracy).replace('.', ',')} м`;
+    $('markAccuracy').textContent = `РџРѕРіСЂРµС€РЅРѕСЃС‚СЊ: ${String(accuracy).replace('.', ',')} Рј`;
   } else {
-    $('markAccuracy').textContent = 'Координаты пока не получены';
+    $('markAccuracy').textContent = 'РљРѕРѕСЂРґРёРЅР°С‚С‹ РїРѕРєР° РЅРµ РїРѕР»СѓС‡РµРЅС‹';
   }
 
   const current = findMarkPoint(false);
@@ -4716,20 +4716,20 @@ function renderMark() {
   const pointFix = current ? null : (buffered && buffered.fix) || null;
   state.candidate = point;
   state.candidateFix = pointFix;
-  // Грубая точность важна, только когда зачётной точки нет вовсе
+  // Р“СЂСѓР±Р°СЏ С‚РѕС‡РЅРѕСЃС‚СЊ РІР°Р¶РЅР°, С‚РѕР»СЊРєРѕ РєРѕРіРґР° Р·Р°С‡С‘С‚РЅРѕР№ С‚РѕС‡РєРё РЅРµС‚ РІРѕРІСЃРµ
   const rough = !point && Boolean(position) && position.accuracy > MAX_ACCURACY_METERS;
 
   const ready = $('markReady');
   if (!position) {
-    ready.textContent = 'Ждём сигнал GPS';
+    ready.textContent = 'Р–РґС‘Рј СЃРёРіРЅР°Р» GPS';
     ready.classList.remove('hidden', 'ok');
   } else if (rough) {
-    ready.textContent = `Точность пока грубая: ±${Math.round(position.accuracy)} м`;
+    ready.textContent = `РўРѕС‡РЅРѕСЃС‚СЊ РїРѕРєР° РіСЂСѓР±Р°СЏ: В±${Math.round(position.accuracy)} Рј`;
     ready.classList.remove('hidden', 'ok');
   } else if (point) {
     ready.textContent = pointFix
-      ? `Готово — по точке ${Math.max(1, Math.round((Date.now() - pointFix.at) / 1000))} с назад`
-      : 'Готово — можно отмечать';
+      ? `Р“РѕС‚РѕРІРѕ вЂ” РїРѕ С‚РѕС‡РєРµ ${Math.max(1, Math.round((Date.now() - pointFix.at) / 1000))} СЃ РЅР°Р·Р°Рґ`
+      : 'Р“РѕС‚РѕРІРѕ вЂ” РјРѕР¶РЅРѕ РѕС‚РјРµС‡Р°С‚СЊ';
     ready.classList.remove('hidden');
     ready.classList.add('ok');
   } else {
@@ -4737,11 +4737,11 @@ function renderMark() {
   }
 
   if (point) setCircle(point, labelOf(codeOf(point)), true);
-  else setCircle(null, 'Подойдите к пункту', false);
+  else setCircle(null, 'РџРѕРґРѕР№РґРёС‚Рµ Рє РїСѓРЅРєС‚Сѓ', false);
   updateHintArrow(distance, position, point);
 
-  // Автоматическая отметка: одна на пункт, старт и финиш не автоматизируются.
-  // Ближайшая точка из буфера тоже годится: участник мог уже выйти из зоны
+  // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РѕС‚РјРµС‚РєР°: РѕРґРЅР° РЅР° РїСѓРЅРєС‚, СЃС‚Р°СЂС‚ Рё С„РёРЅРёС€ РЅРµ Р°РІС‚РѕРјР°С‚РёР·РёСЂСѓСЋС‚СЃСЏ.
+  // Р‘Р»РёР¶Р°Р№С€Р°СЏ С‚РѕС‡РєР° РёР· Р±СѓС„РµСЂР° С‚РѕР¶Рµ РіРѕРґРёС‚СЃСЏ: СѓС‡Р°СЃС‚РЅРёРє РјРѕРі СѓР¶Рµ РІС‹Р№С‚Рё РёР· Р·РѕРЅС‹
   const code = point ? codeOf(point) : null;
   const kind = point ? startOrFinishOf(code) : null;
   if (auto && code && !kind) {
@@ -4751,8 +4751,8 @@ function renderMark() {
       markByCode(code);
     }
   } else {
-    // Ушли с пункта, встали на старт/финиш или выключили автоотметку:
-    // ключ сбрасывается, как autoMarkKey в Android
+    // РЈС€Р»Рё СЃ РїСѓРЅРєС‚Р°, РІСЃС‚Р°Р»Рё РЅР° СЃС‚Р°СЂС‚/С„РёРЅРёС€ РёР»Рё РІС‹РєР»СЋС‡РёР»Рё Р°РІС‚РѕРѕС‚РјРµС‚РєСѓ:
+    // РєР»СЋС‡ СЃР±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РєР°Рє autoMarkKey РІ Android
     state.autoMarked = null;
     if (!auto) state.manualRefused = false;
   }
@@ -4761,7 +4761,7 @@ function renderMark() {
   renderHint(point, rough, auto);
 }
 
-/** Кнопка отметки: цвет и подпись зависят от того, можно ли отмечать. */
+/** РљРЅРѕРїРєР° РѕС‚РјРµС‚РєРё: С†РІРµС‚ Рё РїРѕРґРїРёСЃСЊ Р·Р°РІРёСЃСЏС‚ РѕС‚ С‚РѕРіРѕ, РјРѕР¶РЅРѕ Р»Рё РѕС‚РјРµС‡Р°С‚СЊ. */
 function setCircle(point, label, ready) {
   const circle = $('bigMark');
   $('markButtonLabel').textContent = label;
@@ -4769,7 +4769,7 @@ function setCircle(point, label, ready) {
   circle.disabled = !ready;
 }
 
-/** Нажатие круглой кнопки. */
+/** РќР°Р¶Р°С‚РёРµ РєСЂСѓРіР»РѕР№ РєРЅРѕРїРєРё. */
 function markCandidate() {
   const auto = Boolean(settings().autoMark);
   const point = state.candidate;
@@ -4780,7 +4780,7 @@ function markCandidate() {
 
   const code = codeOf(point);
   const kind = startOrFinishOf(code);
-  // Автоматическая отметка включена: ручная не выполняется, экран объясняет
+  // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РѕС‚РјРµС‚РєР° РІРєР»СЋС‡РµРЅР°: СЂСѓС‡РЅР°СЏ РЅРµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ, СЌРєСЂР°РЅ РѕР±СЉСЏСЃРЅСЏРµС‚
   if (auto && !kind) {
     state.manualRefused = true;
     renderMark();
@@ -4791,12 +4791,12 @@ function markCandidate() {
 }
 
 /**
- * Оставляет только отметки текущего прохода: после последнего старта
- * и до первого финиша.
+ * РћСЃС‚Р°РІР»СЏРµС‚ С‚РѕР»СЊРєРѕ РѕС‚РјРµС‚РєРё С‚РµРєСѓС‰РµРіРѕ РїСЂРѕС…РѕРґР°: РїРѕСЃР»Рµ РїРѕСЃР»РµРґРЅРµРіРѕ СЃС‚Р°СЂС‚Р°
+ * Рё РґРѕ РїРµСЂРІРѕРіРѕ С„РёРЅРёС€Р°.
  *
- * Правило приложения: новый старт стирает прежние отметки, а после финиша
- * ничего не записывается. Чистка нужна и для отметок, записанных старыми
- * сборками, где сброса ещё не было.
+ * РџСЂР°РІРёР»Рѕ РїСЂРёР»РѕР¶РµРЅРёСЏ: РЅРѕРІС‹Р№ СЃС‚Р°СЂС‚ СЃС‚РёСЂР°РµС‚ РїСЂРµР¶РЅРёРµ РѕС‚РјРµС‚РєРё, Р° РїРѕСЃР»Рµ С„РёРЅРёС€Р°
+ * РЅРёС‡РµРіРѕ РЅРµ Р·Р°РїРёСЃС‹РІР°РµС‚СЃСЏ. Р§РёСЃС‚РєР° РЅСѓР¶РЅР° Рё РґР»СЏ РѕС‚РјРµС‚РѕРє, Р·Р°РїРёСЃР°РЅРЅС‹С… СЃС‚Р°СЂС‹РјРё
+ * СЃР±РѕСЂРєР°РјРё, РіРґРµ СЃР±СЂРѕСЃР° РµС‰С‘ РЅРµ Р±С‹Р»Рѕ.
  */
 function sanitizeMarks() {
   const marks = state.marks || [];
@@ -4804,8 +4804,8 @@ function sanitizeMarks() {
   marks.forEach((mark, index) => {
     if (mark.start) startAt = index;
   });
-  // Старт стирает всё до него; отметки после финиша сохраняются, но в
-  // результат не идут — их отсекает attemptMarks
+  // РЎС‚Р°СЂС‚ СЃС‚РёСЂР°РµС‚ РІСЃС‘ РґРѕ РЅРµРіРѕ; РѕС‚РјРµС‚РєРё РїРѕСЃР»Рµ С„РёРЅРёС€Р° СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ, РЅРѕ РІ
+  // СЂРµР·СѓР»СЊС‚Р°С‚ РЅРµ РёРґСѓС‚ вЂ” РёС… РѕС‚СЃРµРєР°РµС‚ attemptMarks
   const cleaned = startAt >= 0 ? marks.slice(startAt) : marks;
   if (cleaned.length !== marks.length || startAt > 0) {
     state.marks = cleaned;
@@ -4814,7 +4814,7 @@ function sanitizeMarks() {
   return cleaned;
 }
 
-/** Запись отметки: одно правило и одни слова для кнопки, автоматики и QR. */
+/** Р—Р°РїРёСЃСЊ РѕС‚РјРµС‚РєРё: РѕРґРЅРѕ РїСЂР°РІРёР»Рѕ Рё РѕРґРЅРё СЃР»РѕРІР° РґР»СЏ РєРЅРѕРїРєРё, Р°РІС‚РѕРјР°С‚РёРєРё Рё QR. */
 function clearMapReturnTimer() {
   if (state.mapReturnTimer) {
     clearTimeout(state.mapReturnTimer);
@@ -4822,7 +4822,7 @@ function clearMapReturnTimer() {
   }
 }
 
-/** Возврат с отметки на ту же полноэкранную карту. */
+/** Р’РѕР·РІСЂР°С‚ СЃ РѕС‚РјРµС‚РєРё РЅР° С‚Сѓ Р¶Рµ РїРѕР»РЅРѕСЌРєСЂР°РЅРЅСѓСЋ РєР°СЂС‚Сѓ. */
 function returnToFullMap() {
   clearMapReturnTimer();
   state.returnToMap = false;
@@ -4836,7 +4836,7 @@ function returnToFullMap() {
   redrawMap();
 }
 
-/** Отсчёт 3, 2, 1 после успешной GPS-отметки. */
+/** РћС‚СЃС‡С‘С‚ 3, 2, 1 РїРѕСЃР»Рµ СѓСЃРїРµС€РЅРѕР№ GPS-РѕС‚РјРµС‚РєРё. */
 function scheduleMapReturn(auto) {
   if (!state.returnToMap) return;
   if (auto && state.autoReturnUsed) return;
@@ -4847,7 +4847,7 @@ function scheduleMapReturn(auto) {
   const tick = () => {
     if (!state.returnToMap) return;
     if (seconds > 0) {
-      label.textContent = `Возврат к карте через ${seconds}`;
+      label.textContent = `Р’РѕР·РІСЂР°С‚ Рє РєР°СЂС‚Рµ С‡РµСЂРµР· ${seconds}`;
       label.classList.remove('hidden');
       seconds -= 1;
       state.mapReturnTimer = setTimeout(tick, 1000);
@@ -4859,20 +4859,20 @@ function scheduleMapReturn(auto) {
 }
 
 function markByCode(code, options = {}) {
-  // Время — только момент отметки. Буфер GPS даёт координаты, но не время
+  // Р’СЂРµРјСЏ вЂ” С‚РѕР»СЊРєРѕ РјРѕРјРµРЅС‚ РѕС‚РјРµС‚РєРё. Р‘СѓС„РµСЂ GPS РґР°С‘С‚ РєРѕРѕСЂРґРёРЅР°С‚С‹, РЅРѕ РЅРµ РІСЂРµРјСЏ
   const time = Date.now();
   const start = isStart(code, rogaineMode());
   const finish = isFinish(code, rogaineMode());
 
   const label = markLabelFor(code);
   if (start) {
-    // Новая отметка старта начинает протокол заново
+    // РќРѕРІР°СЏ РѕС‚РјРµС‚РєР° СЃС‚Р°СЂС‚Р° РЅР°С‡РёРЅР°РµС‚ РїСЂРѕС‚РѕРєРѕР» Р·Р°РЅРѕРІРѕ
     state.marks = [{ code, time, start: true, finish: false }];
   } else {
     state.marks.push({ code, time, start: false, finish: Boolean(finish) });
   }
-  // Буфер относится к только что записанной отметке: следующая точка
-  // должна прийти уже после неё
+  // Р‘СѓС„РµСЂ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє С‚РѕР»СЊРєРѕ С‡С‚Рѕ Р·Р°РїРёСЃР°РЅРЅРѕР№ РѕС‚РјРµС‚РєРµ: СЃР»РµРґСѓСЋС‰Р°СЏ С‚РѕС‡РєР°
+  // РґРѕР»Р¶РЅР° РїСЂРёР№С‚Рё СѓР¶Рµ РїРѕСЃР»Рµ РЅРµС‘
   state.recentFixes = [];
   state.candidateFix = null;
   state.autoMarked = options.auto ? String(code) : state.autoMarked;
@@ -4889,7 +4889,7 @@ function markByCode(code, options = {}) {
   return 'recorded';
 }
 
-/** Аварийная отметка: стоим в зоне 10 секунд при грубой погрешности. */
+/** РђРІР°СЂРёР№РЅР°СЏ РѕС‚РјРµС‚РєР°: СЃС‚РѕРёРј РІ Р·РѕРЅРµ 10 СЃРµРєСѓРЅРґ РїСЂРё РіСЂСѓР±РѕР№ РїРѕРіСЂРµС€РЅРѕСЃС‚Рё. */
 function handleEmergency(point, position, rough) {
   const loose = rough ? findMarkPoint(true) : null;
   const key = loose ? String(codeOf(loose)) : null;
@@ -4914,20 +4914,20 @@ function handleEmergency(point, position, rough) {
     const pointCoords = { lat: loose.latitude, lon: loose.longitude };
     const meters = distanceMeters(pointCoords.lat, pointCoords.lon, position.lat, position.lon);
     $('emergencyText').textContent =
-      `Приёмник не может уточнить место: погрешность ${Math.round(position.accuracy)} метров, `
-      + `а до пункта ${Math.round(meters)} метров. Обычно при такой погрешности отметка не ставится — `
-      + 'рядом с пунктом оказался бы участок в десятки метров.\n\n'
-      + 'Вы стоите внутри зоны пункта, посчитанной по этой погрешности, поэтому отметку можно '
-      + 'поставить вручную. Запись будет сделана, но место определено грубо: при проверке организатор '
-      + 'увидит это по погрешности.\n\n'
-      + 'Лучше отойти от деревьев и стен и подождать уточнения. Если ждать нечего — подтвердите отметку.';
+      `РџСЂРёС‘РјРЅРёРє РЅРµ РјРѕР¶РµС‚ СѓС‚РѕС‡РЅРёС‚СЊ РјРµСЃС‚Рѕ: РїРѕРіСЂРµС€РЅРѕСЃС‚СЊ ${Math.round(position.accuracy)} РјРµС‚СЂРѕРІ, `
+      + `Р° РґРѕ РїСѓРЅРєС‚Р° ${Math.round(meters)} РјРµС‚СЂРѕРІ. РћР±С‹С‡РЅРѕ РїСЂРё С‚Р°РєРѕР№ РїРѕРіСЂРµС€РЅРѕСЃС‚Рё РѕС‚РјРµС‚РєР° РЅРµ СЃС‚Р°РІРёС‚СЃСЏ вЂ” `
+      + 'СЂСЏРґРѕРј СЃ РїСѓРЅРєС‚РѕРј РѕРєР°Р·Р°Р»СЃСЏ Р±С‹ СѓС‡Р°СЃС‚РѕРє РІ РґРµСЃСЏС‚РєРё РјРµС‚СЂРѕРІ.\n\n'
+      + 'Р’С‹ СЃС‚РѕРёС‚Рµ РІРЅСѓС‚СЂРё Р·РѕРЅС‹ РїСѓРЅРєС‚Р°, РїРѕСЃС‡РёС‚Р°РЅРЅРѕР№ РїРѕ СЌС‚РѕР№ РїРѕРіСЂРµС€РЅРѕСЃС‚Рё, РїРѕСЌС‚РѕРјСѓ РѕС‚РјРµС‚РєСѓ РјРѕР¶РЅРѕ '
+      + 'РїРѕСЃС‚Р°РІРёС‚СЊ РІСЂСѓС‡РЅСѓСЋ. Р—Р°РїРёСЃСЊ Р±СѓРґРµС‚ СЃРґРµР»Р°РЅР°, РЅРѕ РјРµСЃС‚Рѕ РѕРїСЂРµРґРµР»РµРЅРѕ РіСЂСѓР±Рѕ: РїСЂРё РїСЂРѕРІРµСЂРєРµ РѕСЂРіР°РЅРёР·Р°С‚РѕСЂ '
+      + 'СѓРІРёРґРёС‚ СЌС‚Рѕ РїРѕ РїРѕРіСЂРµС€РЅРѕСЃС‚Рё.\n\n'
+      + 'Р›СѓС‡С€Рµ РѕС‚РѕР№С‚Рё РѕС‚ РґРµСЂРµРІСЊРµРІ Рё СЃС‚РµРЅ Рё РїРѕРґРѕР¶РґР°С‚СЊ СѓС‚РѕС‡РЅРµРЅРёСЏ. Р•СЃР»Рё Р¶РґР°С‚СЊ РЅРµС‡РµРіРѕ вЂ” РїРѕРґС‚РІРµСЂРґРёС‚Рµ РѕС‚РјРµС‚РєСѓ.';
     $('emergencyText').style.whiteSpace = 'pre-line';
     state.emergencyPoint = codeOf(loose);
     dialog.classList.remove('hidden');
   }
 }
 
-/** Сканер QR: камера и BarcodeDetector, отметка ставится сама. */
+/** РЎРєР°РЅРµСЂ QR: РєР°РјРµСЂР° Рё BarcodeDetector, РѕС‚РјРµС‚РєР° СЃС‚Р°РІРёС‚СЃСЏ СЃР°РјР°. */
 let qrStream = null;
 let qrTimer = null;
 let qrBusy = false;
@@ -4937,15 +4937,15 @@ function startQrScanner() {
   const video = $('qrVideo');
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setStatus('Камера недоступна в этом браузере', 'error');
+    setStatus('РљР°РјРµСЂР° РЅРµРґРѕСЃС‚СѓРїРЅР° РІ СЌС‚РѕРј Р±СЂР°СѓР·РµСЂРµ', 'error');
     return;
   }
 
-  // В Chrome на Android есть встроенный BarcodeDetector, в Safari его нет —
-  // там работает резервный декодер jsQR
+  // Р’ Chrome РЅР° Android РµСЃС‚СЊ РІСЃС‚СЂРѕРµРЅРЅС‹Р№ BarcodeDetector, РІ Safari РµРіРѕ РЅРµС‚ вЂ”
+  // С‚Р°Рј СЂР°Р±РѕС‚Р°РµС‚ СЂРµР·РµСЂРІРЅС‹Р№ РґРµРєРѕРґРµСЂ jsQR
   const native = 'BarcodeDetector' in window;
   if (!native && typeof jsQR === 'undefined') {
-    setStatus('Камера есть, но читать QR этот браузер не умеет', 'error');
+    setStatus('РљР°РјРµСЂР° РµСЃС‚СЊ, РЅРѕ С‡РёС‚Р°С‚СЊ QR СЌС‚РѕС‚ Р±СЂР°СѓР·РµСЂ РЅРµ СѓРјРµРµС‚', 'error');
     return;
   }
 
@@ -4968,10 +4968,10 @@ function startQrScanner() {
         }, 250);
       }
     })
-    .catch(() => setStatus('Камера недоступна: проверьте разрешение', 'error'));
+    .catch(() => setStatus('РљР°РјРµСЂР° РЅРµРґРѕСЃС‚СѓРїРЅР°: РїСЂРѕРІРµСЂСЊС‚Рµ СЂР°Р·СЂРµС€РµРЅРёРµ', 'error'));
 }
 
-/** Резервный путь для iPhone: кадр в canvas и разбор через jsQR. */
+/** Р РµР·РµСЂРІРЅС‹Р№ РїСѓС‚СЊ РґР»СЏ iPhone: РєР°РґСЂ РІ canvas Рё СЂР°Р·Р±РѕСЂ С‡РµСЂРµР· jsQR. */
 const qrCanvas = document.createElement('canvas');
 
 function detectWithJsQr(video) {
@@ -5009,7 +5009,7 @@ function detectOnce(detector, video) {
     });
 }
 
-/** Разбор кода с камеры: показываем подтверждение, отметка — по кнопке. */
+/** Р Р°Р·Р±РѕСЂ РєРѕРґР° СЃ РєР°РјРµСЂС‹: РїРѕРєР°Р·С‹РІР°РµРј РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ, РѕС‚РјРµС‚РєР° вЂ” РїРѕ РєРЅРѕРїРєРµ. */
 function handleQrText(raw) {
   if (!state.event || !qrMode()) return;
   const distance = state.event.distance || {};
@@ -5022,9 +5022,9 @@ function handleQrText(raw) {
     foreign = true;
   } else if (!parsed.error) {
     code = String(parsed.code);
-    // В QR коды двузначные («01», «02», «57»), а в базе ориентирования числа
-    // без ведущего нуля: «02» — это финиш 2, «01» — старт (3 или 1).
-    // Без приведения верный код финиша искали строкой «02» и не находили
+    // Р’ QR РєРѕРґС‹ РґРІСѓР·РЅР°С‡РЅС‹Рµ (В«01В», В«02В», В«57В»), Р° РІ Р±Р°Р·Рµ РѕСЂРёРµРЅС‚РёСЂРѕРІР°РЅРёСЏ С‡РёСЃР»Р°
+    // Р±РµР· РІРµРґСѓС‰РµРіРѕ РЅСѓР»СЏ: В«02В» вЂ” СЌС‚Рѕ С„РёРЅРёС€ 2, В«01В» вЂ” СЃС‚Р°СЂС‚ (3 РёР»Рё 1).
+    // Р‘РµР· РїСЂРёРІРµРґРµРЅРёСЏ РІРµСЂРЅС‹Р№ РєРѕРґ С„РёРЅРёС€Р° РёСЃРєР°Р»Рё СЃС‚СЂРѕРєРѕР№ В«02В» Рё РЅРµ РЅР°С…РѕРґРёР»Рё
     if (!rogaineMode() && /^[0-9]+$/.test(code)) {
       const numeric = String(Number(code));
       if (numeric === '1') {
@@ -5040,8 +5040,8 @@ function handleQrText(raw) {
     }
   }
 
-  // До отметки известен только номер пункта. Баллы и сумму не считаем вовсе:
-  // сумма обязана измениться ровно после записи, а не при наведении камеры
+  // Р”Рѕ РѕС‚РјРµС‚РєРё РёР·РІРµСЃС‚РµРЅ С‚РѕР»СЊРєРѕ РЅРѕРјРµСЂ РїСѓРЅРєС‚Р°. Р‘Р°Р»Р»С‹ Рё СЃСѓРјРјСѓ РЅРµ СЃС‡РёС‚Р°РµРј РІРѕРІСЃРµ:
+  // СЃСѓРјРјР° РѕР±СЏР·Р°РЅР° РёР·РјРµРЅРёС‚СЊСЃСЏ СЂРѕРІРЅРѕ РїРѕСЃР»Рµ Р·Р°РїРёСЃРё, Р° РЅРµ РїСЂРё РЅР°РІРµРґРµРЅРёРё РєР°РјРµСЂС‹
   const label = code
     ? { code, number: labelOf(code), score: null, duplicate: false, total: null }
     : null;
@@ -5050,15 +5050,15 @@ function handleQrText(raw) {
   state.outcomeHints = '';
   renderQrConfirm();
 
-  // Автоматическая отметка: код в кадре — отмечаемся без нажатия, один раз на код.
-  // Старт и финиш автоматика не ставит.
+  // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РѕС‚РјРµС‚РєР°: РєРѕРґ РІ РєР°РґСЂРµ вЂ” РѕС‚РјРµС‡Р°РµРјСЃСЏ Р±РµР· РЅР°Р¶Р°С‚РёСЏ, РѕРґРёРЅ СЂР°Р· РЅР° РєРѕРґ.
+  // РЎС‚Р°СЂС‚ Рё С„РёРЅРёС€ Р°РІС‚РѕРјР°С‚РёРєР° РЅРµ СЃС‚Р°РІРёС‚.
   if (settings().autoMark && label && !startOrFinishOf(code) && state.autoQrCode !== code) {
     state.autoQrCode = code;
     markByCode(code, { auto: true });
   }
 }
 
-/** Панель подтверждения QR: подпись пункта, предупреждение и кнопки. */
+/** РџР°РЅРµР»СЊ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ QR: РїРѕРґРїРёСЃСЊ РїСѓРЅРєС‚Р°, РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµ Рё РєРЅРѕРїРєРё. */
 function renderQrConfirm() {
   const box = $('qrConfirm');
   if (!box) return;
@@ -5077,21 +5077,21 @@ function renderQrConfirm() {
   let text = '';
   if (!label) {
     text = pending.foreign
-      ? 'Код другой дистанции'
-      : 'Это не код контрольного пункта — или не вашей дистанции';
+      ? 'РљРѕРґ РґСЂСѓРіРѕР№ РґРёСЃС‚Р°РЅС†РёРё'
+      : 'Р­С‚Рѕ РЅРµ РєРѕРґ РєРѕРЅС‚СЂРѕР»СЊРЅРѕРіРѕ РїСѓРЅРєС‚Р° вЂ” РёР»Рё РЅРµ РІР°С€РµР№ РґРёСЃС‚Р°РЅС†РёРё';
   } else if (auto) {
     const kind = startOrFinishOf(label.code);
-    if (kind === 'start') text = 'Старт отмечается только вручную: нажмите «Отметить»';
-    if (kind === 'finish') text = 'Финиш отмечается только вручную: нажмите «Отметить»';
-    if (!kind) text = 'Включена автоматическая отметка: отмечать вручную не нужно';
+    if (kind === 'start') text = 'РЎС‚Р°СЂС‚ РѕС‚РјРµС‡Р°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РІСЂСѓС‡РЅСѓСЋ: РЅР°Р¶РјРёС‚Рµ В«РћС‚РјРµС‚РёС‚СЊВ»';
+    if (kind === 'finish') text = 'Р¤РёРЅРёС€ РѕС‚РјРµС‡Р°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РІСЂСѓС‡РЅСѓСЋ: РЅР°Р¶РјРёС‚Рµ В«РћС‚РјРµС‚РёС‚СЊВ»';
+    if (!kind) text = 'Р’РєР»СЋС‡РµРЅР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РѕС‚РјРµС‚РєР°: РѕС‚РјРµС‡Р°С‚СЊ РІСЂСѓС‡РЅСѓСЋ РЅРµ РЅСѓР¶РЅРѕ';
   }
   warning.textContent = text;
   warning.classList.toggle('hidden', !text);
   $('qrMark').disabled = !label;
 
-  // До отметки показываем ТОЛЬКО номер пункта. После записи под номером
-  // ещё 3 секунды висят баллы и «итого» — так же, как подпись отметки
-  // в приложении остаётся на экране
+  // Р”Рѕ РѕС‚РјРµС‚РєРё РїРѕРєР°Р·С‹РІР°РµРј РўРћР›Р¬РљРћ РЅРѕРјРµСЂ РїСѓРЅРєС‚Р°. РџРѕСЃР»Рµ Р·Р°РїРёСЃРё РїРѕРґ РЅРѕРјРµСЂРѕРј
+  // РµС‰С‘ 3 СЃРµРєСѓРЅРґС‹ РІРёСЃСЏС‚ Р±Р°Р»Р»С‹ Рё В«РёС‚РѕРіРѕВ» вЂ” С‚Р°Рє Р¶Рµ, РєР°Рє РїРѕРґРїРёСЃСЊ РѕС‚РјРµС‚РєРё
+  // РІ РїСЂРёР»РѕР¶РµРЅРёРё РѕСЃС‚Р°С‘С‚СЃСЏ РЅР° СЌРєСЂР°РЅРµ
   const hints = $('qrHints');
   if (state.outcomeHints && state.outcomeUntil > Date.now()) {
     hints.textContent = state.outcomeHints;
@@ -5104,7 +5104,7 @@ function renderQrConfirm() {
   box.classList.remove('hidden');
 }
 
-/** Код ушёл из кадра — подтверждение и кнопки убираем, как в приложении. */
+/** РљРѕРґ СѓС€С‘Р» РёР· РєР°РґСЂР° вЂ” РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ Рё РєРЅРѕРїРєРё СѓР±РёСЂР°РµРј, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё. */
 function checkQrGone() {
   if (!state.pendingQr) return;
   if (Date.now() - state.pendingQr.seenAt >= CODE_GONE_MILLIS) {
@@ -5133,7 +5133,7 @@ function stopWatch() {
   }
 }
 
-/** Единое правило периода для активации, экрана отметки и карты. */
+/** Р•РґРёРЅРѕРµ РїСЂР°РІРёР»Рѕ РїРµСЂРёРѕРґР° РґР»СЏ Р°РєС‚РёРІР°С†РёРё, СЌРєСЂР°РЅР° РѕС‚РјРµС‚РєРё Рё РєР°СЂС‚С‹. */
 function markingPeriodBlock(source) {
   const data = source || {};
   const period = periodState(data);
@@ -5144,29 +5144,29 @@ function markingPeriodBlock(source) {
 
 function showPeriodWarning(before, time) {
   const box = $('periodWarning');
-  // Карта открыта на экране события: переносим предупреждение из скрытого
-  // экрана отметки в body, иначе оно не покажется.
+  // РљР°СЂС‚Р° РѕС‚РєСЂС‹С‚Р° РЅР° СЌРєСЂР°РЅРµ СЃРѕР±С‹С‚РёСЏ: РїРµСЂРµРЅРѕСЃРёРј РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµ РёР· СЃРєСЂС‹С‚РѕРіРѕ
+  // СЌРєСЂР°РЅР° РѕС‚РјРµС‚РєРё РІ body, РёРЅР°С‡Рµ РѕРЅРѕ РЅРµ РїРѕРєР°Р¶РµС‚СЃСЏ.
   if (box && box.parentElement && box.parentElement.id === 'markScreen') {
     document.body.append(box);
   }
   $('periodWarningTitle').textContent = before
-    ? 'Событие ещё не началось'
-    : 'Событие уже закончилось';
+    ? 'РЎРѕР±С‹С‚РёРµ РµС‰С‘ РЅРµ РЅР°С‡Р°Р»РѕСЃСЊ'
+    : 'РЎРѕР±С‹С‚РёРµ СѓР¶Рµ Р·Р°РєРѕРЅС‡РёР»РѕСЃСЊ';
   $('periodWarningText').textContent = before
-    ? `Отметка станет доступна ${formatDate(time)}.`
-    : `Событие закончилось ${formatDate(time)}.`;
+    ? `РћС‚РјРµС‚РєР° СЃС‚Р°РЅРµС‚ РґРѕСЃС‚СѓРїРЅР° ${formatDate(time)}.`
+    : `РЎРѕР±С‹С‚РёРµ Р·Р°РєРѕРЅС‡РёР»РѕСЃСЊ ${formatDate(time)}.`;
   $('periodWarning').classList.remove('hidden');
 }
 
 function locationHintForBrowser() {
   const ua = navigator.userAgent || '';
   if (/iPhone|iPad|iPod/i.test(ua)) {
-    return 'Настройки → Safari → Геолокация → Разрешить. Также включите «Службы геолокации» в настройках iPhone.';
+    return 'РќР°СЃС‚СЂРѕР№РєРё в†’ Safari в†’ Р“РµРѕР»РѕРєР°С†РёСЏ в†’ Р Р°Р·СЂРµС€РёС‚СЊ. РўР°РєР¶Рµ РІРєР»СЋС‡РёС‚Рµ В«РЎР»СѓР¶Р±С‹ РіРµРѕР»РѕРєР°С†РёРёВ» РІ РЅР°СЃС‚СЂРѕР№РєР°С… iPhone.';
   }
   if (/Chrome/i.test(ua) && /Android/i.test(ua)) {
-    return 'Настройки телефона → Геолокация → Включить. Затем разрешите геолокацию для этого сайта в Chrome.';
+    return 'РќР°СЃС‚СЂРѕР№РєРё С‚РµР»РµС„РѕРЅР° в†’ Р“РµРѕР»РѕРєР°С†РёСЏ в†’ Р’РєР»СЋС‡РёС‚СЊ. Р—Р°С‚РµРј СЂР°Р·СЂРµС€РёС‚Рµ РіРµРѕР»РѕРєР°С†РёСЋ РґР»СЏ СЌС‚РѕРіРѕ СЃР°Р№С‚Р° РІ Chrome.';
   }
-  return 'Включите службы геолокации в настройках устройства и разрешите геолокацию для этого сайта в браузере.';
+  return 'Р’РєР»СЋС‡РёС‚Рµ СЃР»СѓР¶Р±С‹ РіРµРѕР»РѕРєР°С†РёРё РІ РЅР°СЃС‚СЂРѕР№РєР°С… СѓСЃС‚СЂРѕР№СЃС‚РІР° Рё СЂР°Р·СЂРµС€РёС‚Рµ РіРµРѕР»РѕРєР°С†РёСЋ РґР»СЏ СЌС‚РѕРіРѕ СЃР°Р№С‚Р° РІ Р±СЂР°СѓР·РµСЂРµ.';
 }
 
 function showLocationWarning(reason) {
@@ -5174,10 +5174,10 @@ function showLocationWarning(reason) {
   if (!box) return;
   const denied = reason === 'denied';
   $('locationWarningTitle').textContent = denied
-    ? 'Доступ к геолокации запрещён'
-    : 'Геолокация выключена';
+    ? 'Р”РѕСЃС‚СѓРї Рє РіРµРѕР»РѕРєР°С†РёРё Р·Р°РїСЂРµС‰С‘РЅ'
+    : 'Р“РµРѕР»РѕРєР°С†РёСЏ РІС‹РєР»СЋС‡РµРЅР°';
   $('locationWarningText').textContent = locationHintForBrowser();
-  $('locationEnable').textContent = 'Включить';
+  $('locationEnable').textContent = 'Р’РєР»СЋС‡РёС‚СЊ';
   box.classList.remove('hidden');
 }
 
@@ -5196,15 +5196,15 @@ async function checkLocationAccess() {
     if (navigator.permissions && navigator.permissions.query) {
       const permission = await navigator.permissions.query({ name: 'geolocation' });
       if (permission.state === 'denied') return showLocationWarning('denied');
-      // При вопросе браузер сам покажет разрешение после startWatch.
+      // РџСЂРё РІРѕРїСЂРѕСЃРµ Р±СЂР°СѓР·РµСЂ СЃР°Рј РїРѕРєР°Р¶РµС‚ СЂР°Р·СЂРµС€РµРЅРёРµ РїРѕСЃР»Рµ startWatch.
       if (permission.state === 'prompt') probe = false;
     }
   } catch (error) {
-    // Safari может не поддерживать запрос разрешения — проверим запросом GPS
+    // Safari РјРѕР¶РµС‚ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°С‚СЊ Р·Р°РїСЂРѕСЃ СЂР°Р·СЂРµС€РµРЅРёСЏ вЂ” РїСЂРѕРІРµСЂРёРј Р·Р°РїСЂРѕСЃРѕРј GPS
   }
   if (!probe) return;
-  // Если разрешение уже выдано, а службы геолокации выключены, ошибка
-  // приходит быстро; не ждём 20 секунд основного watch.
+  // Р•СЃР»Рё СЂР°Р·СЂРµС€РµРЅРёРµ СѓР¶Рµ РІС‹РґР°РЅРѕ, Р° СЃР»СѓР¶Р±С‹ РіРµРѕР»РѕРєР°С†РёРё РІС‹РєР»СЋС‡РµРЅС‹, РѕС€РёР±РєР°
+  // РїСЂРёС…РѕРґРёС‚ Р±С‹СЃС‚СЂРѕ; РЅРµ Р¶РґС‘Рј 20 СЃРµРєСѓРЅРґ РѕСЃРЅРѕРІРЅРѕРіРѕ watch.
   navigator.geolocation.getCurrentPosition(
     hideLocationWarning,
     (error) => {
@@ -5225,8 +5225,8 @@ function startWatch() {
         lon: position.coords.longitude,
         accuracy: position.coords.accuracy,
       };
-      // Грубые замеры сразу отбрасываем: при открытии экрана приёмник часто
-      // даёт 40–80 м, и такие точки не должны попадать в буфер
+      // Р“СЂСѓР±С‹Рµ Р·Р°РјРµСЂС‹ СЃСЂР°Р·Сѓ РѕС‚Р±СЂР°СЃС‹РІР°РµРј: РїСЂРё РѕС‚РєСЂС‹С‚РёРё СЌРєСЂР°РЅР° РїСЂРёС‘РјРЅРёРє С‡Р°СЃС‚Рѕ
+      // РґР°С‘С‚ 40вЂ“80 Рј, Рё С‚Р°РєРёРµ С‚РѕС‡РєРё РЅРµ РґРѕР»Р¶РЅС‹ РїРѕРїР°РґР°С‚СЊ РІ Р±СѓС„РµСЂ
       if (position.coords.accuracy > 0 && position.coords.accuracy <= MAX_ACCURACY_METERS) {
         const now = Date.now();
         state.recentFixes = (state.recentFixes || [])
@@ -5243,17 +5243,17 @@ function startWatch() {
       renderMark();
     },
     (error) => {
-      // Снимаем зависший watch: иначе кнопка повторного запроса не сработает
+      // РЎРЅРёРјР°РµРј Р·Р°РІРёСЃС€РёР№ watch: РёРЅР°С‡Рµ РєРЅРѕРїРєР° РїРѕРІС‚РѕСЂРЅРѕРіРѕ Р·Р°РїСЂРѕСЃР° РЅРµ СЃСЂР°Р±РѕС‚Р°РµС‚
       stopWatch();
       if (error && (error.code === 1 || error.code === 2)) {
         showLocationWarning(error.code === 1 ? 'denied' : 'unavailable');
       }
       if (error && error.code === 1) {
         $('markAccuracy').textContent =
-          'Геолокация запрещена. Настройки → Конфиденциальность → '
-          + 'Службы геолокации → Safari Websites → Разрешить и включить точную геопозицию.';
+          'Р“РµРѕР»РѕРєР°С†РёСЏ Р·Р°РїСЂРµС‰РµРЅР°. РќР°СЃС‚СЂРѕР№РєРё в†’ РљРѕРЅС„РёРґРµРЅС†РёР°Р»СЊРЅРѕСЃС‚СЊ в†’ '
+          + 'РЎР»СѓР¶Р±С‹ РіРµРѕР»РѕРєР°С†РёРё в†’ Safari Websites в†’ Р Р°Р·СЂРµС€РёС‚СЊ Рё РІРєР»СЋС‡РёС‚СЊ С‚РѕС‡РЅСѓСЋ РіРµРѕРїРѕР·РёС†РёСЋ.';
       } else {
-        $('markAccuracy').textContent = 'GPS недоступен: ' + error.message;
+        $('markAccuracy').textContent = 'GPS РЅРµРґРѕСЃС‚СѓРїРµРЅ: ' + error.message;
       }
       $('gpsRetry').classList.remove('hidden');
     },
@@ -5261,7 +5261,7 @@ function startWatch() {
   );
 }
 
-/** Звук отметки: тот же файл, что в Android (res/raw/mark_success.ogg). */
+/** Р—РІСѓРє РѕС‚РјРµС‚РєРё: С‚РѕС‚ Р¶Рµ С„Р°Р№Р», С‡С‚Рѕ РІ Android (res/raw/mark_success.ogg). */
 const MARK_SOUND_URL = 'sounds/mark_success.wav';
 let markAudioContext = null;
 let markSoundBuffer = null;
@@ -5289,13 +5289,13 @@ async function loadMarkSound(context) {
     const data = await response.arrayBuffer();
     markSoundBuffer = await context.decodeAudioData(data);
   } catch (error) {
-    // Остаётся запасной синтезированный сигнал
+    // РћСЃС‚Р°С‘С‚СЃСЏ Р·Р°РїР°СЃРЅРѕР№ СЃРёРЅС‚РµР·РёСЂРѕРІР°РЅРЅС‹Р№ СЃРёРіРЅР°Р»
   } finally {
     markSoundLoading = false;
   }
 }
 
-/** Разблокировка звука на iOS: до первого касания AudioContext спит. */
+/** Р Р°Р·Р±Р»РѕРєРёСЂРѕРІРєР° Р·РІСѓРєР° РЅР° iOS: РґРѕ РїРµСЂРІРѕРіРѕ РєР°СЃР°РЅРёСЏ AudioContext СЃРїРёС‚. */
 function unlockMarkSound() {
   const context = markAudio();
   if (!context) return;
@@ -5313,7 +5313,7 @@ function playFallbackSound(context) {
   oscillator.stop(context.currentTime + 0.12);
 }
 
-/** Звук и вибрация при отметке — как MarkSoundPlayer и MarkVibrationPlayer. */
+/** Р—РІСѓРє Рё РІРёР±СЂР°С†РёСЏ РїСЂРё РѕС‚РјРµС‚РєРµ вЂ” РєР°Рє MarkSoundPlayer Рё MarkVibrationPlayer. */
 function playMarkSound() {
   const current = settings();
   if (current.sound) {
@@ -5331,7 +5331,7 @@ function playMarkSound() {
             playFallbackSound(context);
           }
         } catch (error) {
-          // Звук не обязателен: отметка всё равно записана
+          // Р—РІСѓРє РЅРµ РѕР±СЏР·Р°С‚РµР»РµРЅ: РѕС‚РјРµС‚РєР° РІСЃС‘ СЂР°РІРЅРѕ Р·Р°РїРёСЃР°РЅР°
         }
       };
       if (context.state === 'running') {
@@ -5344,67 +5344,67 @@ function playMarkSound() {
   if (current.vibration && navigator.vibrate) navigator.vibrate(60);
 }
 
-// Safari разрешает звук только после касания. Разблокируем при первом действии
+// Safari СЂР°Р·СЂРµС€Р°РµС‚ Р·РІСѓРє С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ РєР°СЃР°РЅРёСЏ. Р Р°Р·Р±Р»РѕРєРёСЂСѓРµРј РїСЂРё РїРµСЂРІРѕРј РґРµР№СЃС‚РІРёРё
 ['pointerdown', 'touchstart', 'keydown'].forEach((event) => {
   window.addEventListener(event, unlockMarkSound, { once: true, passive: true });
 });
 
-/* ─────────────────────────── профиль и отправка ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РїСЂРѕС„РёР»СЊ Рё РѕС‚РїСЂР°РІРєР° в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
 function identity() {
   const saved = readJson(STORAGE.identity, { nick: '', code: '' });
   return { nick: String(saved.nick || '').trim(), code: String(saved.code || '').trim().toUpperCase() };
 }
 
-/** Состояние отправки на экране дистанции; на профиле её больше нет. */
+/** РЎРѕСЃС‚РѕСЏРЅРёРµ РѕС‚РїСЂР°РІРєРё РЅР° СЌРєСЂР°РЅРµ РґРёСЃС‚Р°РЅС†РёРё; РЅР° РїСЂРѕС„РёР»Рµ РµС‘ Р±РѕР»СЊС€Рµ РЅРµС‚. */
 function updateSendState() {
   const button = $('detailSend');
   if (!button) return;
-  // Как в Android: отправить можно любые отметки, даже без финиша.
-  // Статус результата решит протокол — DNS, DNF или DSQ
+  // РљР°Рє РІ Android: РѕС‚РїСЂР°РІРёС‚СЊ РјРѕР¶РЅРѕ Р»СЋР±С‹Рµ РѕС‚РјРµС‚РєРё, РґР°Р¶Рµ Р±РµР· С„РёРЅРёС€Р°.
+  // РЎС‚Р°С‚СѓСЃ СЂРµР·СѓР»СЊС‚Р°С‚Р° СЂРµС€РёС‚ РїСЂРѕС‚РѕРєРѕР» вЂ” DNS, DNF РёР»Рё DSQ
   button.disabled = !state.event || state.marks.length === 0;
 }
 
 async function sendResult() {
   if (state.sending) return;
   if (!state.marks.length) {
-    setStatus('Отметок нет: по этой дистанции ничего не отмечено, отправлять нечего.', 'error');
+    setStatus('РћС‚РјРµС‚РѕРє РЅРµС‚: РїРѕ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё РЅРёС‡РµРіРѕ РЅРµ РѕС‚РјРµС‡РµРЅРѕ, РѕС‚РїСЂР°РІР»СЏС‚СЊ РЅРµС‡РµРіРѕ.', 'error');
     return;
   }
 
   const who = identity();
   if (!who.nick) {
-    setStatus('Укажите ник', 'error');
+    setStatus('РЈРєР°Р¶РёС‚Рµ РЅРёРє', 'error');
     showTab('profile');
     return;
   }
   if (who.code.length < 6) {
-    setStatus('Укажите код профиля', 'error');
+    setStatus('РЈРєР°Р¶РёС‚Рµ РєРѕРґ РїСЂРѕС„РёР»СЏ', 'error');
     showTab('profile');
     return;
   }
   writeJson(STORAGE.identity, who);
 
-  // Запрет: отметки не от этой дистанции — отправлять нельзя
+  // Р—Р°РїСЂРµС‚: РѕС‚РјРµС‚РєРё РЅРµ РѕС‚ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё вЂ” РѕС‚РїСЂР°РІР»СЏС‚СЊ РЅРµР»СЊР·СЏ
   if (!marksMatchDistance()) {
-    setStatus('Отметки не соответствуют этой дистанции. Отправлять их нельзя.', 'error');
+    setStatus('РћС‚РјРµС‚РєРё РЅРµ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‚ СЌС‚РѕР№ РґРёСЃС‚Р°РЅС†РёРё. РћС‚РїСЂР°РІР»СЏС‚СЊ РёС… РЅРµР»СЊР·СЏ.', 'error');
     return;
   }
 
   const event = state.event;
   const result = buildResult(event.distance, state.marks, who);
-  // Номер попытки назначает СЕРВЕР: клиент отправляет результат как есть
+  // РќРѕРјРµСЂ РїРѕРїС‹С‚РєРё РЅР°Р·РЅР°С‡Р°РµС‚ РЎР•Р Р’Р•Р : РєР»РёРµРЅС‚ РѕС‚РїСЂР°РІР»СЏРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РєР°Рє РµСЃС‚СЊ
 
-  // Такой результат уже есть: второй раз не записываем и не отправляем
+  // РўР°РєРѕР№ СЂРµР·СѓР»СЊС‚Р°С‚ СѓР¶Рµ РµСЃС‚СЊ: РІС‚РѕСЂРѕР№ СЂР°Р· РЅРµ Р·Р°РїРёСЃС‹РІР°РµРј Рё РЅРµ РѕС‚РїСЂР°РІР»СЏРµРј
   if ((event.distance.results || []).some((row) => sameResult(row, result))) {
-    setStatus('Этот результат уже есть. Повторно он не записан.', 'warn');
+    setStatus('Р­С‚РѕС‚ СЂРµР·СѓР»СЊС‚Р°С‚ СѓР¶Рµ РµСЃС‚СЊ. РџРѕРІС‚РѕСЂРЅРѕ РѕРЅ РЅРµ Р·Р°РїРёСЃР°РЅ.', 'warn');
     return;
   }
 
-  // Пока запрос идёт, результат уже считается неотправленным: синхронизация
-  // не должна выбросить его, пока облако не подтвердило приём.
-  // requestId повторяется при повторе из очереди, чтобы сервер не добавил
-  // тот же результат второй раз после потерянного ответа
+  // РџРѕРєР° Р·Р°РїСЂРѕСЃ РёРґС‘С‚, СЂРµР·СѓР»СЊС‚Р°С‚ СѓР¶Рµ СЃС‡РёС‚Р°РµС‚СЃСЏ РЅРµРѕС‚РїСЂР°РІР»РµРЅРЅС‹Рј: СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ
+  // РЅРµ РґРѕР»Р¶РЅР° РІС‹Р±СЂРѕСЃРёС‚СЊ РµРіРѕ, РїРѕРєР° РѕР±Р»Р°РєРѕ РЅРµ РїРѕРґС‚РІРµСЂРґРёР»Рѕ РїСЂРёС‘Рј.
+  // requestId РїРѕРІС‚РѕСЂСЏРµС‚СЃСЏ РїСЂРё РїРѕРІС‚РѕСЂРµ РёР· РѕС‡РµСЂРµРґРё, С‡С‚РѕР±С‹ СЃРµСЂРІРµСЂ РЅРµ РґРѕР±Р°РІРёР»
+  // С‚РѕС‚ Р¶Рµ СЂРµР·СѓР»СЊС‚Р°С‚ РІС‚РѕСЂРѕР№ СЂР°Р· РїРѕСЃР»Рµ РїРѕС‚РµСЂСЏРЅРЅРѕРіРѕ РѕС‚РІРµС‚Р°
   const requestId = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
     : `r-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -5412,10 +5412,10 @@ async function sendResult() {
   queueResult(event.key, result, payload);
   state.sending = true;
 
-  // Как в приложении: результат сначала ложится в дистанцию на устройстве,
-  // экраны обновляются сразу, а отправка в облако идёт после
-  // Прежние разные результаты не удаляем: новый добавляется к ним,
-  // а правило события выберет нужное при показе протокола
+  // РљР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё: СЂРµР·СѓР»СЊС‚Р°С‚ СЃРЅР°С‡Р°Р»Р° Р»РѕР¶РёС‚СЃСЏ РІ РґРёСЃС‚Р°РЅС†РёСЋ РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµ,
+  // СЌРєСЂР°РЅС‹ РѕР±РЅРѕРІР»СЏСЋС‚СЃСЏ СЃСЂР°Р·Сѓ, Р° РѕС‚РїСЂР°РІРєР° РІ РѕР±Р»Р°РєРѕ РёРґС‘С‚ РїРѕСЃР»Рµ
+  // РџСЂРµР¶РЅРёРµ СЂР°Р·РЅС‹Рµ СЂРµР·СѓР»СЊС‚Р°С‚С‹ РЅРµ СѓРґР°Р»СЏРµРј: РЅРѕРІС‹Р№ РґРѕР±Р°РІР»СЏРµС‚СЃСЏ Рє РЅРёРј,
+  // Р° РїСЂР°РІРёР»Рѕ СЃРѕР±С‹С‚РёСЏ РІС‹Р±РµСЂРµС‚ РЅСѓР¶РЅРѕРµ РїСЂРё РїРѕРєР°Р·Рµ РїСЂРѕС‚РѕРєРѕР»Р°
   const results = (event.distance.results || []).slice();
   results.push(result);
   event.distance = Object.assign({}, event.distance, { results });
@@ -5425,21 +5425,21 @@ async function sendResult() {
   renderHome();
   renderDetail();
 
-  setStatus('Результат сохранён, отправляю…');
+  setStatus('Р РµР·СѓР»СЊС‚Р°С‚ СЃРѕС…СЂР°РЅС‘РЅ, РѕС‚РїСЂР°РІР»СЏСЋвЂ¦');
   try {
     await callFunction('action=result&key=' + encodeURIComponent(event.key), payload);
     dropPendingResult(event.key, result.userId);
-    setStatus('Результат отправлен', 'good');
+    setStatus('Р РµР·СѓР»СЊС‚Р°С‚ РѕС‚РїСЂР°РІР»РµРЅ', 'good');
     renderHome();
     renderDetail();
   } catch (error) {
-    setStatus('Результат сохранён, отправится позже: ' + error.message, 'error');
+    setStatus('Р РµР·СѓР»СЊС‚Р°С‚ СЃРѕС…СЂР°РЅС‘РЅ, РѕС‚РїСЂР°РІРёС‚СЃСЏ РїРѕР·Р¶Рµ: ' + error.message, 'error');
   } finally {
     state.sending = false;
   }
 }
 
-/** Отложенный результат: храним, пока облако не ответит. */
+/** РћС‚Р»РѕР¶РµРЅРЅС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚: С…СЂР°РЅРёРј, РїРѕРєР° РѕР±Р»Р°РєРѕ РЅРµ РѕС‚РІРµС‚РёС‚. */
 function queueResult(key, result, payload) {
   const list = readJson(STORAGE.pendingResults, []);
   const filtered = list.filter(
@@ -5449,7 +5449,7 @@ function queueResult(key, result, payload) {
   writeJson(STORAGE.pendingResults, filtered);
 }
 
-/** Убирает результат из очереди после успешной отправки. */
+/** РЈР±РёСЂР°РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РёР· РѕС‡РµСЂРµРґРё РїРѕСЃР»Рµ СѓСЃРїРµС€РЅРѕР№ РѕС‚РїСЂР°РІРєРё. */
 function dropPendingResult(key, userId) {
   const list = readJson(STORAGE.pendingResults, []);
   writeJson(
@@ -5458,7 +5458,7 @@ function dropPendingResult(key, userId) {
   );
 }
 
-/** Пробуем отправить отложенные результаты — при запуске и после удачной отправки. */
+/** РџСЂРѕР±СѓРµРј РѕС‚РїСЂР°РІРёС‚СЊ РѕС‚Р»РѕР¶РµРЅРЅС‹Рµ СЂРµР·СѓР»СЊС‚Р°С‚С‹ вЂ” РїСЂРё Р·Р°РїСѓСЃРєРµ Рё РїРѕСЃР»Рµ СѓРґР°С‡РЅРѕР№ РѕС‚РїСЂР°РІРєРё. */
 async function flushPendingResults() {
   if (state.sending || state.flushing) return;
   const list = readJson(STORAGE.pendingResults, []);
@@ -5466,9 +5466,9 @@ async function flushPendingResults() {
   state.flushing = true;
   const left = [];
   for (const item of list) {
-    // Старые записи очереди без полного тела отправить нельзя: функция требует
-    // id и порядок пунктов. Результат уже лежит на устройстве, и его можно
-    // отправить кнопкой заново — такую запись просто убираем из очереди
+    // РЎС‚Р°СЂС‹Рµ Р·Р°РїРёСЃРё РѕС‡РµСЂРµРґРё Р±РµР· РїРѕР»РЅРѕРіРѕ С‚РµР»Р° РѕС‚РїСЂР°РІРёС‚СЊ РЅРµР»СЊР·СЏ: С„СѓРЅРєС†РёСЏ С‚СЂРµР±СѓРµС‚
+    // id Рё РїРѕСЂСЏРґРѕРє РїСѓРЅРєС‚РѕРІ. Р РµР·СѓР»СЊС‚Р°С‚ СѓР¶Рµ Р»РµР¶РёС‚ РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµ, Рё РµРіРѕ РјРѕР¶РЅРѕ
+    // РѕС‚РїСЂР°РІРёС‚СЊ РєРЅРѕРїРєРѕР№ Р·Р°РЅРѕРІРѕ вЂ” С‚Р°РєСѓСЋ Р·Р°РїРёСЃСЊ РїСЂРѕСЃС‚Рѕ СѓР±РёСЂР°РµРј РёР· РѕС‡РµСЂРµРґРё
     if (!item.payload) continue;
     try {
       await callFunction('action=result&key=' + encodeURIComponent(item.key), item.payload);
@@ -5481,19 +5481,19 @@ async function flushPendingResults() {
 }
 
 /**
- * Обновляет открытое событие из облака: результаты, поля, протокол.
+ * РћР±РЅРѕРІР»СЏРµС‚ РѕС‚РєСЂС‹С‚РѕРµ СЃРѕР±С‹С‚РёРµ РёР· РѕР±Р»Р°РєР°: СЂРµР·СѓР»СЊС‚Р°С‚С‹, РїРѕР»СЏ, РїСЂРѕС‚РѕРєРѕР».
  *
- * Протяжка на странице события обновляет только её, а не весь список.
- * Локальные неотправленные результаты сохраняются — это делает mergeResults.
+ * РџСЂРѕС‚СЏР¶РєР° РЅР° СЃС‚СЂР°РЅРёС†Рµ СЃРѕР±С‹С‚РёСЏ РѕР±РЅРѕРІР»СЏРµС‚ С‚РѕР»СЊРєРѕ РµС‘, Р° РЅРµ РІРµСЃСЊ СЃРїРёСЃРѕРє.
+ * Р›РѕРєР°Р»СЊРЅС‹Рµ РЅРµРѕС‚РїСЂР°РІР»РµРЅРЅС‹Рµ СЂРµР·СѓР»СЊС‚Р°С‚С‹ СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ вЂ” СЌС‚Рѕ РґРµР»Р°РµС‚ mergeResults.
  */
 async function refreshCurrentEvent() {
   const current = state.event;
   if (!current || state.syncing) return;
   state.syncing = true;
-  setStatus('Обновляю событие…');
+  setStatus('РћР±РЅРѕРІР»СЏСЋ СЃРѕР±С‹С‚РёРµвЂ¦');
   try {
     const full = await callFunction('action=get&id=' + encodeURIComponent(current.id));
-    if (!full.distance) throw new Error('событие не найдено в облаке');
+    if (!full.distance) throw new Error('СЃРѕР±С‹С‚РёРµ РЅРµ РЅР°Р№РґРµРЅРѕ РІ РѕР±Р»Р°РєРµ');
     const previous = readJson(STORAGE.event + '.' + current.id, current);
     const localResults = (previous && previous.distance && previous.distance.results) || [];
     const distance = Object.assign({}, full.distance, {
@@ -5513,29 +5513,29 @@ async function refreshCurrentEvent() {
     rememberEvent(item);
     renderDetail();
     renderHome();
-    setStatus('Событие обновлено', 'good');
+    setStatus('РЎРѕР±С‹С‚РёРµ РѕР±РЅРѕРІР»РµРЅРѕ', 'good');
   } catch (error) {
-    setStatus('Не удалось обновить событие: ' + error.message, 'error');
+    setStatus('РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ СЃРѕР±С‹С‚РёРµ: ' + error.message, 'error');
   } finally {
     state.syncing = false;
   }
 }
 
-/* ─────────────────────────── запуск ─────────────────────────── */
+/* в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ Р·Р°РїСѓСЃРє в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ */
 
 /**
- * Протягивание вниз на главном, в облаке и на странице события обновляет данные.
+ * РџСЂРѕС‚СЏРіРёРІР°РЅРёРµ РІРЅРёР· РЅР° РіР»Р°РІРЅРѕРј, РІ РѕР±Р»Р°РєРµ Рё РЅР° СЃС‚СЂР°РЅРёС†Рµ СЃРѕР±С‹С‚РёСЏ РѕР±РЅРѕРІР»СЏРµС‚ РґР°РЅРЅС‹Рµ.
  *
- * На главном это полное обновление скачанного (карточки, результаты,
- * протоколы), в облаке — перечитывание каталога. Жест работает только когда
- * страница прокручена к самому верху, чтобы не мешать обычной прокрутке.
+ * РќР° РіР»Р°РІРЅРѕРј СЌС‚Рѕ РїРѕР»РЅРѕРµ РѕР±РЅРѕРІР»РµРЅРёРµ СЃРєР°С‡Р°РЅРЅРѕРіРѕ (РєР°СЂС‚РѕС‡РєРё, СЂРµР·СѓР»СЊС‚Р°С‚С‹,
+ * РїСЂРѕС‚РѕРєРѕР»С‹), РІ РѕР±Р»Р°РєРµ вЂ” РїРµСЂРµС‡РёС‚С‹РІР°РЅРёРµ РєР°С‚Р°Р»РѕРіР°. Р–РµСЃС‚ СЂР°Р±РѕС‚Р°РµС‚ С‚РѕР»СЊРєРѕ РєРѕРіРґР°
+ * СЃС‚СЂР°РЅРёС†Р° РїСЂРѕРєСЂСѓС‡РµРЅР° Рє СЃР°РјРѕРјСѓ РІРµСЂС…Сѓ, С‡С‚РѕР±С‹ РЅРµ РјРµС€Р°С‚СЊ РѕР±С‹С‡РЅРѕР№ РїСЂРѕРєСЂСѓС‚РєРµ.
  */
 function bindPullToRefresh() {
   const indicator = $('pullIndicator');
   const THRESHOLD = 70;
 
-  // Жест вешаем на сам экран, а не на документ: так его не перехватывают
-  // карта и кнопки, и он не конфликтует с прокруткой списков
+  // Р–РµСЃС‚ РІРµС€Р°РµРј РЅР° СЃР°Рј СЌРєСЂР°РЅ, Р° РЅРµ РЅР° РґРѕРєСѓРјРµРЅС‚: С‚Р°Рє РµРіРѕ РЅРµ РїРµСЂРµС…РІР°С‚С‹РІР°СЋС‚
+  // РєР°СЂС‚Р° Рё РєРЅРѕРїРєРё, Рё РѕРЅ РЅРµ РєРѕРЅС„Р»РёРєС‚СѓРµС‚ СЃ РїСЂРѕРєСЂСѓС‚РєРѕР№ СЃРїРёСЃРєРѕРІ
   const screens = [$('homeScreen'), $('cloudScreen'), $('detailScreen')];
 
   const atTop = () => {
@@ -5546,8 +5546,8 @@ function bindPullToRefresh() {
   };
 
   const refresh = (screen) => {
-    // Протяжка вниз: на главном — проверка хранилища, на экране облака —
-    // перечитывание каталога. Просто заход на главный ничего не запрашивает
+    // РџСЂРѕС‚СЏР¶РєР° РІРЅРёР·: РЅР° РіР»Р°РІРЅРѕРј вЂ” РїСЂРѕРІРµСЂРєР° С…СЂР°РЅРёР»РёС‰Р°, РЅР° СЌРєСЂР°РЅРµ РѕР±Р»Р°РєР° вЂ”
+    // РїРµСЂРµС‡РёС‚С‹РІР°РЅРёРµ РєР°С‚Р°Р»РѕРіР°. РџСЂРѕСЃС‚Рѕ Р·Р°С…РѕРґ РЅР° РіР»Р°РІРЅС‹Р№ РЅРёС‡РµРіРѕ РЅРµ Р·Р°РїСЂР°С€РёРІР°РµС‚
     if (screen === $('homeScreen')) syncFromCloud().catch(() => {});
     else if (screen === $('detailScreen')) refreshCurrentEvent().catch(() => {});
     else openCloud();
@@ -5580,9 +5580,9 @@ function bindPullToRefresh() {
       if (startY === null) return;
       pulled = Math.max(0, event.touches[0].clientY - startY);
       if (pulled <= 4) return;
-      // Свой жест: иначе браузер делает «потянуть для обновления» страницы
+      // РЎРІРѕР№ Р¶РµСЃС‚: РёРЅР°С‡Рµ Р±СЂР°СѓР·РµСЂ РґРµР»Р°РµС‚ В«РїРѕС‚СЏРЅСѓС‚СЊ РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏВ» СЃС‚СЂР°РЅРёС†С‹
       if (event.cancelable) event.preventDefault();
-      show(pulled >= THRESHOLD ? 'Отпустите, чтобы обновить' : 'Потяните, чтобы обновить', pulled);
+      show(pulled >= THRESHOLD ? 'РћС‚РїСѓСЃС‚РёС‚Рµ, С‡С‚РѕР±С‹ РѕР±РЅРѕРІРёС‚СЊ' : 'РџРѕС‚СЏРЅРёС‚Рµ, С‡С‚РѕР±С‹ РѕР±РЅРѕРІРёС‚СЊ', pulled);
     }, { passive: false });
 
     const finish = () => {
@@ -5611,8 +5611,8 @@ function bind() {
     return ((bearing - heading - screenAngle + 540) % 360) - 180;
   };
   const updateHeading = (event, absolute) => {
-    // Абсолютный датчик предпочтительнее: обычный deviceorientation на
-    // Android может отдавать не компас, а произвольный относительный угол.
+    // РђР±СЃРѕР»СЋС‚РЅС‹Р№ РґР°С‚С‡РёРє РїСЂРµРґРїРѕС‡С‚РёС‚РµР»СЊРЅРµРµ: РѕР±С‹С‡РЅС‹Р№ deviceorientation РЅР°
+    // Android РјРѕР¶РµС‚ РѕС‚РґР°РІР°С‚СЊ РЅРµ РєРѕРјРїР°СЃ, Р° РїСЂРѕРёР·РІРѕР»СЊРЅС‹Р№ РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅС‹Р№ СѓРіРѕР».
     if (absolute) state.headingAbsolute = true;
     else if (state.headingAbsolute) return;
     const compass = Number(event.webkitCompassHeading);
@@ -5625,7 +5625,7 @@ function bind() {
       state.heading = raw;
       state.headingSeen = true;
     } else {
-      // Короткий путь и мягкое сглаживание: магнитный датчик шумит
+      // РљРѕСЂРѕС‚РєРёР№ РїСѓС‚СЊ Рё РјСЏРіРєРѕРµ СЃРіР»Р°Р¶РёРІР°РЅРёРµ: РјР°РіРЅРёС‚РЅС‹Р№ РґР°С‚С‡РёРє С€СѓРјРёС‚
       const delta = ((raw - state.heading + 540) % 360) - 180;
       state.heading = (state.heading + delta * 0.18 + 360) % 360;
     }
@@ -5648,7 +5648,7 @@ function bind() {
         if (value) localStorage.setItem(hintTargetKey(eventId), value);
         else localStorage.removeItem(hintTargetKey(eventId));
       } catch (error) {
-        // приватный режим
+        // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
       }
     }
     renderMark();
@@ -5677,10 +5677,10 @@ function bind() {
   $('setSound').addEventListener('change', (event) => updateSetting('sound', event.target.checked));
   $('setVibration').addEventListener('change', (event) => updateSetting('vibration', event.target.checked));
   $('settingsReset').addEventListener('click', () => {
-    if (!window.confirm('Вернуть настройки к значениям по умолчанию?')) return;
+    if (!window.confirm('Р’РµСЂРЅСѓС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё Рє Р·РЅР°С‡РµРЅРёСЏРј РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ?')) return;
     saveSettings(Object.assign({}, DEFAULT_SETTINGS));
     renderSettings();
-    setStatus('Настройки сброшены', 'good');
+    setStatus('РќР°СЃС‚СЂРѕР№РєРё СЃР±СЂРѕС€РµРЅС‹', 'good');
   });
 
   bindPullToRefresh();
@@ -5695,7 +5695,7 @@ function bind() {
     cloudMapToggle.innerHTML = cloudMapMode
       ? '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#list"></use></svg>'
       : '<svg class="icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="icons.svg#map"></use></svg>';
-    cloudMapToggle.title = cloudMapMode ? 'Показать списком' : 'Показать карту';
+    cloudMapToggle.title = cloudMapMode ? 'РџРѕРєР°Р·Р°С‚СЊ СЃРїРёСЃРєРѕРј' : 'РџРѕРєР°Р·Р°С‚СЊ РєР°СЂС‚Сѓ';
     renderCloud();
   });
   $('cloudBack').addEventListener('click', () => showTab('events'));
@@ -5712,9 +5712,9 @@ function bind() {
     protocolExpanded = !protocolExpanded;
     renderProtocol(state.event.distance || {});
   });
-  // Назад с дистанции: откуда пришли — туда и возвращаемся.
-  // Экран группы при открытии дистанции прячется, поэтому смотрим историю,
-  // а не видимость экрана
+  // РќР°Р·Р°Рґ СЃ РґРёСЃС‚Р°РЅС†РёРё: РѕС‚РєСѓРґР° РїСЂРёС€Р»Рё вЂ” С‚СѓРґР° Рё РІРѕР·РІСЂР°С‰Р°РµРјСЃСЏ.
+  // Р­РєСЂР°РЅ РіСЂСѓРїРїС‹ РїСЂРё РѕС‚РєСЂС‹С‚РёРё РґРёСЃС‚Р°РЅС†РёРё РїСЂСЏС‡РµС‚СЃСЏ, РїРѕСЌС‚РѕРјСѓ СЃРјРѕС‚СЂРёРј РёСЃС‚РѕСЂРёСЋ,
+  // Р° РЅРµ РІРёРґРёРјРѕСЃС‚СЊ СЌРєСЂР°РЅР°
   $('detailBack').addEventListener('click', () => {
     const previous = navStack[navStack.length - 2];
     if (previous === 'group') {
@@ -5744,12 +5744,12 @@ function bind() {
     }
   });
   $('detailMark').addEventListener('click', () => showTab('mark'));
-  // «Отправить отметки»: если ник и код уже заданы — отправляем сразу,
-  // иначе ведём в профиль, где их вводят
+  // В«РћС‚РїСЂР°РІРёС‚СЊ РѕС‚РјРµС‚РєРёВ»: РµСЃР»Рё РЅРёРє Рё РєРѕРґ СѓР¶Рµ Р·Р°РґР°РЅС‹ вЂ” РѕС‚РїСЂР°РІР»СЏРµРј СЃСЂР°Р·Сѓ,
+  // РёРЅР°С‡Рµ РІРµРґС‘Рј РІ РїСЂРѕС„РёР»СЊ, РіРґРµ РёС… РІРІРѕРґСЏС‚
   $('detailSend').addEventListener('click', () => {
     const who = identity();
     if (!who.nick || who.code.length < 6) {
-      setStatus('Укажите ник и код профиля', 'error');
+      setStatus('РЈРєР°Р¶РёС‚Рµ РЅРёРє Рё РєРѕРґ РїСЂРѕС„РёР»СЏ', 'error');
       showTab('profile');
       return;
     }
@@ -5772,15 +5772,15 @@ function bind() {
 
   $('bigMark').addEventListener('click', markCandidate);
 
-  // Подтверждение кода с камеры: «Отметить» и «Отменить», как в приложении
+  // РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РєРѕРґР° СЃ РєР°РјРµСЂС‹: В«РћС‚РјРµС‚РёС‚СЊВ» Рё В«РћС‚РјРµРЅРёС‚СЊВ», РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
   $('qrMark').addEventListener('click', () => {
     const pending = state.pendingQr;
     if (!pending || !pending.code) return;
     const kind = startOrFinishOf(pending.code);
     if (settings().autoMark && !kind) {
       state.manualRefused = true;
-      $('markHint').textContent = 'Включена автоматическая отметка: нажимать не нужно. '
-        + 'Чтобы отмечаться вручную, выключите «Автоматическую отметку» в настройках.';
+      $('markHint').textContent = 'Р’РєР»СЋС‡РµРЅР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РѕС‚РјРµС‚РєР°: РЅР°Р¶РёРјР°С‚СЊ РЅРµ РЅСѓР¶РЅРѕ. '
+        + 'Р§С‚РѕР±С‹ РѕС‚РјРµС‡Р°С‚СЊСЃСЏ РІСЂСѓС‡РЅСѓСЋ, РІС‹РєР»СЋС‡РёС‚Рµ В«РђРІС‚РѕРјР°С‚РёС‡РµСЃРєСѓСЋ РѕС‚РјРµС‚РєСѓВ» РІ РЅР°СЃС‚СЂРѕР№РєР°С….';
       $('markHint').classList.add('error');
       return;
     }
@@ -5795,7 +5795,7 @@ function bind() {
     showOutcome('skipped');
   });
 
-  // Аварийная отметка: подтверждение или отказ
+  // РђРІР°СЂРёР№РЅР°СЏ РѕС‚РјРµС‚РєР°: РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РёР»Рё РѕС‚РєР°Р·
   $('emergencyConfirm').addEventListener('click', () => {
     $('emergencyDialog').classList.add('hidden');
     state.emergencyDismissed = true;
@@ -5806,11 +5806,11 @@ function bind() {
     state.emergencyDismissed = true;
   });
 
-  // Профиль: рисуем состояние и, если гость, кнопку входа ВК
+  // РџСЂРѕС„РёР»СЊ: СЂРёСЃСѓРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ Рё, РµСЃР»Рё РіРѕСЃС‚СЊ, РєРЅРѕРїРєСѓ РІС…РѕРґР° Р’Рљ
   renderProfileState();
   renderVkOneTap();
 
-  // Код поддержки нажимается и открывает ту же страницу, что зашита в коде
+  // РљРѕРґ РїРѕРґРґРµСЂР¶РєРё РЅР°Р¶РёРјР°РµС‚СЃСЏ Рё РѕС‚РєСЂС‹РІР°РµС‚ С‚Сѓ Р¶Рµ СЃС‚СЂР°РЅРёС†Сѓ, С‡С‚Рѕ Р·Р°С€РёС‚Р° РІ РєРѕРґРµ
   $('supportQr').addEventListener('click', () => {
     window.open('https://spasibomir.ru/pay/35620', '_blank', 'noopener');
   });
@@ -5822,7 +5822,7 @@ function registerServiceWorker() {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
-// Уход из приложения (сворачивание, выгрузка вкладки): сохраняем всё сразу
+// РЈС…РѕРґ РёР· РїСЂРёР»РѕР¶РµРЅРёСЏ (СЃРІРѕСЂР°С‡РёРІР°РЅРёРµ, РІС‹РіСЂСѓР·РєР° РІРєР»Р°РґРєРё): СЃРѕС…СЂР°РЅСЏРµРј РІСЃС‘ СЃСЂР°Р·Сѓ
 function flushState() {
   if (!state.event) return;
   writeJson(STORAGE.event, state.event);
@@ -5835,15 +5835,15 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushState();
 });
 
-// Системная кнопка «назад»: на предыдущий экран
+// РЎРёСЃС‚РµРјРЅР°СЏ РєРЅРѕРїРєР° В«РЅР°Р·Р°РґВ»: РЅР° РїСЂРµРґС‹РґСѓС‰РёР№ СЌРєСЂР°РЅ
 window.addEventListener('popstate', () => {
-  // Выход кнопкой из полного экрана: экран не меняется
+  // Р’С‹С…РѕРґ РєРЅРѕРїРєРѕР№ РёР· РїРѕР»РЅРѕРіРѕ СЌРєСЂР°РЅР°: СЌРєСЂР°РЅ РЅРµ РјРµРЅСЏРµС‚СЃСЏ
   if (ignoreNextPop) {
     ignoreNextPop = false;
     return;
   }
 
-  // «Назад» в полном экране сворачивает карту и оставляет тот же экран
+  // В«РќР°Р·Р°РґВ» РІ РїРѕР»РЅРѕРј СЌРєСЂР°РЅРµ СЃРІРѕСЂР°С‡РёРІР°РµС‚ РєР°СЂС‚Сѓ Рё РѕСЃС‚Р°РІР»СЏРµС‚ С‚РѕС‚ Р¶Рµ СЌРєСЂР°РЅ
   if (mapState.fullscreen) {
     mapState.fullscreen = false;
     stopCompass();
@@ -5858,15 +5858,15 @@ window.addEventListener('popstate', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Старый HTML мог остаться в кэше: промежуточный заголовок сплита убираем
+  // РЎС‚Р°СЂС‹Р№ HTML РјРѕРі РѕСЃС‚Р°С‚СЊСЃСЏ РІ РєСЌС€Рµ: РїСЂРѕРјРµР¶СѓС‚РѕС‡РЅС‹Р№ Р·Р°РіРѕР»РѕРІРѕРє СЃРїР»РёС‚Р° СѓР±РёСЂР°РµРј
   document.querySelectorAll('.split-head').forEach((node) => node.remove());
-  // Отложенные результаты: пробуем при запуске, затем по таймеру и при
-  // появлении сети — очередь должна разбираться сама, без действий человека
+  // РћС‚Р»РѕР¶РµРЅРЅС‹Рµ СЂРµР·СѓР»СЊС‚Р°С‚С‹: РїСЂРѕР±СѓРµРј РїСЂРё Р·Р°РїСѓСЃРєРµ, Р·Р°С‚РµРј РїРѕ С‚Р°Р№РјРµСЂСѓ Рё РїСЂРё
+  // РїРѕСЏРІР»РµРЅРёРё СЃРµС‚Рё вЂ” РѕС‡РµСЂРµРґСЊ РґРѕР»Р¶РЅР° СЂР°Р·Р±РёСЂР°С‚СЊСЃСЏ СЃР°РјР°, Р±РµР· РґРµР№СЃС‚РІРёР№ С‡РµР»РѕРІРµРєР°
   flushPendingResults().catch(() => {});
   setInterval(() => flushPendingResults().catch(() => {}), 20000);
   window.addEventListener('online', () => flushPendingResults().catch(() => {}));
 
-  // Возврат из ВК: параметры адреса или уже сохранённый профиль
+  // Р’РѕР·РІСЂР°С‚ РёР· Р’Рљ: РїР°СЂР°РјРµС‚СЂС‹ Р°РґСЂРµСЃР° РёР»Рё СѓР¶Рµ СЃРѕС…СЂР°РЅС‘РЅРЅС‹Р№ РїСЂРѕС„РёР»СЊ
   handleVkRedirectReturn().catch(() => {});
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') refreshIdentityFromStorage();
@@ -5874,14 +5874,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   bind();
   updateProfileButtons();
   registerServiceWorker();
-  // Выбор карты запоминается, как в приложении
+  // Р’С‹Р±РѕСЂ РєР°СЂС‚С‹ Р·Р°РїРѕРјРёРЅР°РµС‚СЃСЏ, РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
   loadMapKind();
   applySettings();
 
   state.history = loadHistory();
-  // Активация и отметки переживают перезапуск и перезагрузку телефона:
-  // активной считается дистанция из STORAGE.active, даже если последней
-  // открывали другую
+  // РђРєС‚РёРІР°С†РёСЏ Рё РѕС‚РјРµС‚РєРё РїРµСЂРµР¶РёРІР°СЋС‚ РїРµСЂРµР·Р°РїСѓСЃРє Рё РїРµСЂРµР·Р°РіСЂСѓР·РєСѓ С‚РµР»РµС„РѕРЅР°:
+  // Р°РєС‚РёРІРЅРѕР№ СЃС‡РёС‚Р°РµС‚СЃСЏ РґРёСЃС‚Р°РЅС†РёСЏ РёР· STORAGE.active, РґР°Р¶Рµ РµСЃР»Рё РїРѕСЃР»РµРґРЅРµР№
+  // РѕС‚РєСЂС‹РІР°Р»Рё РґСЂСѓРіСѓСЋ
   state.activeId = readJson(STORAGE.active, null);
 
   let saved = readJson(STORAGE.event, null);
@@ -5904,35 +5904,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Сохранённую копию поднимаем только если событие есть в списке скачанных
+  // РЎРѕС…СЂР°РЅС‘РЅРЅСѓСЋ РєРѕРїРёСЋ РїРѕРґРЅРёРјР°РµРј С‚РѕР»СЊРєРѕ РµСЃР»Рё СЃРѕР±С‹С‚РёРµ РµСЃС‚СЊ РІ СЃРїРёСЃРєРµ СЃРєР°С‡Р°РЅРЅС‹С…
   const downloaded = (state.history || []).some((item) => saved && item.id === saved.id);
   if (saved && saved.distance && downloaded) {
     state.event = saved;
     state.marks = loadMarks(saved.id);
     updateSendState();
   } else if (saved && saved.distance) {
-    // Запись осталась от удалённой группы: убираем, чтобы не всплывала на главном
+    // Р—Р°РїРёСЃСЊ РѕСЃС‚Р°Р»Р°СЃСЊ РѕС‚ СѓРґР°Р»С‘РЅРЅРѕР№ РіСЂСѓРїРїС‹: СѓР±РёСЂР°РµРј, С‡С‚РѕР±С‹ РЅРµ РІСЃРїР»С‹РІР°Р»Р° РЅР° РіР»Р°РІРЅРѕРј
     try {
       localStorage.removeItem(STORAGE.event);
     } catch (error) {
-      // приватный режим
+      // РїСЂРёРІР°С‚РЅС‹Р№ СЂРµР¶РёРј
     }
   }
-  // «Открывать экран отметки при запуске» — как в приложении
+  // В«РћС‚РєСЂС‹РІР°С‚СЊ СЌРєСЂР°РЅ РѕС‚РјРµС‚РєРё РїСЂРё Р·Р°РїСѓСЃРєРµВ» вЂ” РєР°Рє РІ РїСЂРёР»РѕР¶РµРЅРёРё
   const activeRestored = saved && saved.distance && state.activeId === saved.id;
 
-  // При открытии всегда главный экран. Исключение — настройка «открывать
-  // экран отметки при запуске», и только если дистанция активна
+  // РџСЂРё РѕС‚РєСЂС‹С‚РёРё РІСЃРµРіРґР° РіР»Р°РІРЅС‹Р№ СЌРєСЂР°РЅ. РСЃРєР»СЋС‡РµРЅРёРµ вЂ” РЅР°СЃС‚СЂРѕР№РєР° В«РѕС‚РєСЂС‹РІР°С‚СЊ
+  // СЌРєСЂР°РЅ РѕС‚РјРµС‚РєРё РїСЂРё Р·Р°РїСѓСЃРєРµВ», Рё С‚РѕР»СЊРєРѕ РµСЃР»Рё РґРёСЃС‚Р°РЅС†РёСЏ Р°РєС‚РёРІРЅР°
   const first = activeRestored && settings().showOnStart ? 'mark' : 'events';
 
-  // Под текущим экраном всегда лежит главный: «назад» из события ведёт
-  // на список событий, а не закрывает приложение
+  // РџРѕРґ С‚РµРєСѓС‰РёРј СЌРєСЂР°РЅРѕРј РІСЃРµРіРґР° Р»РµР¶РёС‚ РіР»Р°РІРЅС‹Р№: В«РЅР°Р·Р°РґВ» РёР· СЃРѕР±С‹С‚РёСЏ РІРµРґС‘С‚
+  // РЅР° СЃРїРёСЃРѕРє СЃРѕР±С‹С‚РёР№, Р° РЅРµ Р·Р°РєСЂС‹РІР°РµС‚ РїСЂРёР»РѕР¶РµРЅРёРµ
   navStack = ['events'];
   history.replaceState({ depth: 1 }, '');
 
   showTab(first, { push: first !== 'events' });
 
-  // Проверка хранилища при старте приложения: один раз за запуск.
-  // При каждом возврате на главный её нет — только кнопка и протяжка
+  // РџСЂРѕРІРµСЂРєР° С…СЂР°РЅРёР»РёС‰Р° РїСЂРё СЃС‚Р°СЂС‚Рµ РїСЂРёР»РѕР¶РµРЅРёСЏ: РѕРґРёРЅ СЂР°Р· Р·Р° Р·Р°РїСѓСЃРє.
+  // РџСЂРё РєР°Р¶РґРѕРј РІРѕР·РІСЂР°С‚Рµ РЅР° РіР»Р°РІРЅС‹Р№ РµС‘ РЅРµС‚ вЂ” С‚РѕР»СЊРєРѕ РєРЅРѕРїРєР° Рё РїСЂРѕС‚СЏР¶РєР°
   syncFromCloud().catch(() => {});
 });
+
