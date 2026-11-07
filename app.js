@@ -1092,70 +1092,7 @@ function renderCloud() {
   const list = $('cloudList');
   list.textContent = '';
 
-  matched.forEach((items) => {
-    const first = items[0];
-    const item = document.createElement('button');
-    item.className = 'cloud-item';
-
-    const body = document.createElement('div');
-    body.className = 'body';
-
-    // У группы впереди значок маршрута, у одиночной записи его нет
-    if (items.length > 1) {
-      const mark = document.createElement('img');
-      mark.src = 'icons/group.png';
-      mark.alt = '';
-      mark.className = 'cloud-icon';
-      body.append(mark);
-    }
-
-    const title = document.createElement('span');
-    title.className = 'name';
-    title.textContent = (first.number ? `№ ${first.number}  ` : '') + (first.name || 'Без названия');
-    body.append(title);
-
-    const period = document.createElement('span');
-    period.className = 'period';
-    period.textContent = formatDate(first.startTime) + ' - ' + formatDate(first.finishTime);
-    body.append(period);
-
-    if (items.length > 1) {
-      // Дистанции группы: каждая строкой со значком прицела
-      items.forEach((entry) => {
-        const line = document.createElement('span');
-        line.className = 'line with-icon';
-        line.innerHTML = modeIconMarkup(entry);
-        const text = document.createElement('span');
-        text.textContent = groupDetails(entry);
-        line.append(text);
-        body.append(line);
-      });
-    } else {
-      body.append(detailsBlock(first));
-      body.append(mapLineCloud(first));
-      if (hintsAvailable({ distance: first })) body.append(hintLineCloud());
-    }
-
-    body.append(authorRowCloud(first, items.length === 1));
-
-    // Справа: галочка, если все дистанции записи уже скачаны, иначе стрелка
-    const downloaded = items.every((entry) => state.history.some((saved) => saved.id === entry.id));
-    const action = document.createElement('span');
-    action.className = 'action';
-    action.innerHTML = downloaded
-      ? '<svg class="icon"><use href="icons.svg#check"></use></svg>'
-      : '<svg class="icon"><use href="icons.svg#download"></use></svg>';
-
-    item.append(body, action);
-    item.addEventListener('click', () => {
-      if (downloaded) {
-        activateItem({ id: first.id, kind: first.kind, entry: first, distance: null });
-      } else {
-        downloadEvent(first);
-      }
-    });
-    list.append(item);
-  });
+  matched.forEach((items) => list.append(cloudCard(items)));
 
   list.classList.toggle('hidden', cloudMapMode);
   const searchBox = $('cloudSearchBox');
