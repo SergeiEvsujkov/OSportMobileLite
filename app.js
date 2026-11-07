@@ -3845,7 +3845,9 @@ function renderAnalysis(distance) {
         const current = accepted[index];
         if (!previous.time || !current.time) continue;
         const key = `${previous.code}>${current.code}`;
-        times.set(key, Math.max(0, current.time - previous.time));
+        // Секунды округляем так же, как при показе: иначе «0:04 − 0:02»
+        // может дать «+0:01» из-за миллисекунд.
+        times.set(key, Math.floor(Math.max(0, current.time - previous.time) / 1000) * 1000);
       }
       return { row, times };
     })
